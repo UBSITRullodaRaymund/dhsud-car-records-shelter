@@ -162,19 +162,6 @@ document.querySelectorAll(".card").forEach(card=>{
 
 });
 
-// ===============================
-// Open Module Buttons (Temporary)
-// ===============================
-
-document.querySelectorAll(".card button").forEach(button=>{
-
-    button.addEventListener("click",()=>{
-
-        alert("This module is under development.\n\nComing in Version 2.");
-
-    });
-
-});
 
 // ===============================
 // Smooth Fade-In on Page Load
