@@ -217,3 +217,135 @@ document.head.appendChild(style);
 
 console.log("%cDHSUD-CAR RECORDS SHELTER","color:#005BAC;font-size:22px;font-weight:bold;");
 console.log("Version 1.0 Loaded Successfully");
+
+
+// =============================
+// LIVE TABLE SEARCH
+// =============================
+
+const searchInput = document.getElementById("searchInput");
+
+if(searchInput){
+
+searchInput.addEventListener("keyup",function(){
+
+let value=this.value.toLowerCase();
+
+let rows=document.querySelectorAll(".records-table tbody tr");
+
+rows.forEach(row=>{
+
+row.style.display=row.innerText.toLowerCase().includes(value)
+? ""
+: "none";
+
+});
+
+});
+
+}
+
+// ======================================
+// MODAL
+// ======================================
+
+const modal=document.getElementById("documentModal");
+
+const open=document.getElementById("openModal");
+
+const close=document.querySelector(".close");
+
+const cancel=document.getElementById("closeModal");
+
+if(open){
+
+open.onclick=function(){
+
+modal.style.display="block";
+
+}
+
+}
+
+if(close){
+
+close.onclick=function(){
+
+modal.style.display="none";
+
+}
+
+}
+
+if(cancel){
+
+cancel.onclick=function(){
+
+modal.style.display="none";
+
+}
+
+}
+
+window.onclick=function(e){
+
+if(e.target==modal){
+
+modal.style.display="none";
+
+}
+
+}
+
+const form = document.getElementById("documentForm");
+
+if(form){
+
+form.addEventListener("submit",function(e){
+
+e.preventDefault();
+
+const tracking=document.getElementById("trackingNo").value;
+const date=document.getElementById("dateReceived").value;
+const sender=document.getElementById("sender").value;
+const subject=document.getElementById("subject").value;
+const status=document.getElementById("status").value;
+
+const tbody=document.getElementById("recordsBody");
+
+const row=document.createElement("tr");
+
+row.innerHTML=`
+
+<td>${tracking}</td>
+
+<td>${date}</td>
+
+<td>${sender}</td>
+
+<td>${subject}</td>
+
+<td>
+<span class="status ${status.toLowerCase()}">
+${status}
+</span>
+</td>
+
+<td>
+<button class="view-btn">
+<i class="fa-solid fa-eye"></i>
+View
+</button>
+</td>
+
+`;
+
+tbody.prepend(row);
+
+modal.style.display="none";
+
+form.reset();
+
+});
+
+}

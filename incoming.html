@@ -68,11 +68,71 @@ Manage and monitor all received documents.
 
 <section class="records-page">
 
+    <div class="dashboard-cards">
+
+<div class="dashboard-card total">
+
+<i class="fa-solid fa-folder-open"></i>
+
+<div>
+
+<h4>Total Documents</h4>
+
+<h2>1,245</h2>
+
+</div>
+
+</div>
+
+<div class="dashboard-card pending">
+
+<i class="fa-solid fa-clock"></i>
+
+<div>
+
+<h4>Pending</h4>
+
+<h2>235</h2>
+
+</div>
+
+</div>
+
+<div class="dashboard-card processing">
+
+<i class="fa-solid fa-spinner"></i>
+
+<div>
+
+<h4>Processing</h4>
+
+<h2>120</h2>
+
+</div>
+
+</div>
+
+<div class="dashboard-card completed">
+
+<i class="fa-solid fa-circle-check"></i>
+
+<div>
+
+<h4>Completed</h4>
+
+<h2>890</h2>
+
+</div>
+
+</div>
+
+</div>
+
 <div class="records-header">
 
 <h2>Incoming Documents </h2>
 
-<button class="add-btn">
+<button class="add-btn" id="openModal">
 
 <i class="fa-solid fa-plus"></i>
 
@@ -82,126 +142,204 @@ Add Document
 
 </div>
 
-<div class="filters">
+<div class="filter-panel">
 
-<input type="text" placeholder="Search document...">
+<div class="filter-row">
+
+<div class="filter-box">
+
+<label>Search Documents</label>
+
+<input
+type="text"
+id="searchInput"
+placeholder="Search Tracking No., Subject, Sender..."
+>
+
+</div>
+
+<div class="filter-box">
+
+<label>Office</label>
 
 <select>
 
 <option>All Offices</option>
-<option>Regional Office</option>
+
 <option>Administrative Division</option>
+
 <option>Planning Division</option>
 
+<option>Finance Division</option>
+
+<option>Housing Division</option>
+
 </select>
+
+</div>
+
+<div class="filter-box">
+
+<label>Year</label>
 
 <select>
 
-<option>Status</option>
-<option>Pending</option>
-<option>Released</option>
-<option>Completed</option>
+<option>All Years</option>
+
+<option>2026</option>
+
+<option>2025</option>
+
+<option>2024</option>
 
 </select>
 
-<input type="date">
+</div>
+
+<div class="filter-box">
+
+<label>Status</label>
+
+<select>
+
+<option>All Status</option>
+
+<option>Pending</option>
+
+<option>Processing</option>
+
+<option>Completed</option>
+
+<option>Released</option>
+
+</select>
+
+</div>
+
+</div>
+
+<div class="filter-actions">
 
 <button class="search-btn">
+
+<i class="fa-solid fa-magnifying-glass"></i>
 
 Search
 
 </button>
 
+<button class="clear-btn">
+
+<i class="fa-solid fa-filter-circle-xmark"></i>
+
+Clear Filters
+
+</button>
+
 </div>
 
-<table class="records-table">
+</div>
+
+</div>
+
+<div class="table-container">
+
+<table class="records-table modern-table">
 
 <thead>
 
 <tr>
 
-<th>Tracking No.</th>
+<th>
+TRANSACTION NO.
+<i class="fa-solid fa-chevron-down"></i>
+</th>
 
-<th>Date Received</th>
+<th>
+SENDER
+<i class="fa-solid fa-chevron-down"></i>
+</th>
 
-<th>Sender</th>
+<th>
+ORIGINATING OFFICE
+<i class="fa-solid fa-chevron-down"></i>
+</th>
 
-<th>Subject</th>
+<th>
+CATEGORY
+<i class="fa-solid fa-chevron-down"></i>
+</th>
 
-<th>Status</th>
+<th>
+SUBCATEGORY
+<i class="fa-solid fa-chevron-down"></i>
+</th>
 
-<th>Action</th>
+<th>
+DIVISION
+<i class="fa-solid fa-chevron-down"></i>
+</th>
+
+<th>
+AGEING
+<i class="fa-solid fa-chevron-down"></i>
+</th>
+
+<th>
+STATUS
+<i class="fa-solid fa-chevron-down"></i>
+</th>
 
 </tr>
 
 </thead>
 
-<tbody>
+<tbody id="recordsBody">
 
 <tr>
 
-<td>DHSUD-2026-001</td>
-
-<td>July 8, 2026</td>
-
-<td>HLURB</td>
-
-<td>Subdivision Compliance</td>
+<td>DHSUD-RQST-27419</td>
+<td>Lovelyn Sotelo</td>
+<td>CAR</td>
+<td>Request</td>
+<td>Request for Library Services</td>
+<td>Housing Real Estate Development Regulation Division</td>
 
 <td>
-
-<span class="status completed">
-
-Completed
-
+<span class="age-green">
+2 DAYS OF 3 DAYS
 </span>
 
 </td>
 
 <td>
-
-<button class="view-btn">
-
-<i class="fa-solid fa-eye"></i>
-
-View
-
-</button>
-
+<span class="status completed">
+Completed
+</span>
 </td>
 
 </tr>
 
 <tr>
 
-<td>DHSUD-2026-002</td>
-
-<td>July 8, 2026</td>
-
-<td>LGU Baguio</td>
-
-<td>Housing Request</td>
+<td>DHSUD-RQST-39980</td>
+<td>PhilHealth</td>
+<td>CAR</td>
+<td>Request</td>
+<td>Provision of Public Assistance</td>
+<td>Administrative and Finance Division</td>
 
 <td>
-
-<span class="status pending">
-
-Pending
-
+<span class="age-yellow">
+1 DAY OF 3 DAYS
 </span>
 
 </td>
 
 <td>
-
-<button class="view-btn">
-
-<i class="fa-solid fa-eye"></i>
-
-View
-
-</button>
-
+<span class="status processing">
+Processing
+</span>
 </td>
 
 </tr>
@@ -209,6 +347,36 @@ View
 </tbody>
 
 </table>
+
+<div class="table-footer">
+
+<div class="table-info">
+
+Showing <strong>1–2</strong> of <strong>2</strong> records
+
+</div>
+
+<div class="rows-select">
+
+<label>Rows per page</label>
+
+<select>
+
+<option>10</option>
+
+<option>25</option>
+
+<option>50</option>
+
+<option>100</option>
+
+</select>
+
+</div>
+
+</div>
+
+</div>
 
 </section>
 
@@ -219,6 +387,129 @@ View
 <p>Department of Human Settlements and Urban Development</p>
 
 </footer>
+<!-- ==========================================
+ADD DOCUMENT MODAL
+========================================== -->
+
+<div id="documentModal" class="modal">
+
+<div class="modal-content">
+
+<span class="close">&times;</span>
+
+<h2>Add New Incoming Document</h2>
+
+<form id="documentForm">
+
+<div class="form-grid">
+
+<div class="form-group">
+
+<label>Tracking Number</label>
+
+<input type="text" id="trackingNo" required>
+
+</div>
+
+<div class="form-group">
+
+<label>Date Received</label>
+
+<input type="date" id="dateReceived" required>
+
+</div>
+
+<div class="form-group">
+
+<label>Sender</label>
+
+<input type="text" id="sender" required>
+
+</div>
+
+<div class="form-group">
+
+<label>Office</label>
+
+<select id="office">
+
+<option>Administrative Division</option>
+
+<option>Planning Division</option>
+
+<option>Finance Division</option>
+
+<option>Housing Division</option>
+
+</select>
+
+</div>
+
+<div class="form-group full">
+
+<label>Subject</label>
+
+<input type="text" id="subject" required>
+
+</div>
+
+<div class="form-group full">
+
+<label>Remarks</label>
+
+<textarea id="remarks" rows="4"></textarea>
+
+</div>
+
+<div class="form-group">
+
+<label>Status</label>
+
+<select id="status">
+
+<option>Pending</option>
+
+<option>Processing</option>
+
+<option>Completed</option>
+
+<option>Released</option>
+
+</select>
+
+</div>
+
+<div class="form-group">
+
+<label>Upload File</label>
+
+<input type="file">
+
+</div>
+
+</div>
+
+<div class="modal-buttons">
+
+<button type="submit" class="save-btn">
+
+Save Document
+
+</button>
+
+<button type="button" class="cancel-btn" id="closeModal">
+
+Cancel
+
+</button>
+
+</div>
+
+</form>
+
+</div>
+
+</div>
 
 <script src="script.js"></script>
 
