@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Incoming Documents | DHSUD-CAR Records Shelter</title>
+
+<link rel="stylesheet" href="style.css">
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+<link rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+
+</head>
+
+<body>
+
+<header>
+
+<nav>
+
+<div class="logo">
+
+<img src="logo.png">
+
+<div>
+
+<h2>DHSUD-CAR</h2>
+
+<span>Records Shelter</span>
+
+</div>
+
+</div>
+
+<ul>
+
+<li><a href="index.html">Home</a></li>
+
+<li><a href="documents.html">Documents Monitoring</a></li>
+
+<li><a href="#" class="active">Incoming Documents</a></li>
+
+</ul>
+
+</nav>
+
+</header>
+
+<section class="page-banner">
+
+<div class="page-banner-content">
+
+<h1>Incoming Documents</h1>
+
+<p>
+
+Manage and monitor all received documents.
+
+</p>
+
+</div>
+
+</section>
+
+<section class="records-page">
+
+<div class="records-header">
+
+<h2>Incoming Documents </h2>
+
+<button class="add-btn">
+
+<i class="fa-solid fa-plus"></i>
+
+Add Document
+
+</button>
+
+</div>
+
+<div class="filters">
+
+<input type="text" placeholder="Search document...">
+
+<select>
+
+<option>All Offices</option>
+<option>Regional Office</option>
+<option>Administrative Division</option>
+<option>Planning Division</option>
+
+</select>
+
+<select>
+
+<option>Status</option>
+<option>Pending</option>
+<option>Released</option>
+<option>Completed</option>
+
+</select>
+
+<input type="date">
+
+<button class="search-btn">
+
+Search
+
+</button>
+
+</div>
+
+<table class="records-table">
+
+<thead>
+
+<tr>
+
+<th>Tracking No.</th>
+
+<th>Date Received</th>
+
+<th>Sender</th>
+
+<th>Subject</th>
+
+<th>Status</th>
+
+<th>Action</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td>DHSUD-2026-001</td>
+
+<td>July 8, 2026</td>
+
+<td>HLURB</td>
+
+<td>Subdivision Compliance</td>
+
+<td>
+
+<span class="status completed">
+
+Completed
+
+</span>
+
+</td>
+
+<td>
+
+<button class="view-btn">
+
+<i class="fa-solid fa-eye"></i>
+
+View
+
+</button>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td>DHSUD-2026-002</td>
+
+<td>July 8, 2026</td>
+
+<td>LGU Baguio</td>
+
+<td>Housing Request</td>
+
+<td>
+
+<span class="status pending">
+
+Pending
+
+</span>
+
+</td>
+
+<td>
+
+<button class="view-btn">
+
+<i class="fa-solid fa-eye"></i>
+
+View
+
+</button>
+
+</td>
+
+</tr>
+
+</tbody>
+
+</table>
+
+</section>
+
+<footer>
+
+<h3>DHSUD-CAR RECORDS SHELTER</h3>
+
+<p>Department of Human Settlements and Urban Development</p>
+
+</footer>
+
+<script src="script.js"></script>
+
+</body>
+
+</html>

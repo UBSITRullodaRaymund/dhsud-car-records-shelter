@@ -1,22 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documents Monitoring | DHSUD-CAR Records Shelter</title>
 
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
 
-<title>Documents Monitoring</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
-<link rel="stylesheet" href="style.css">
-
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
-<link rel="stylesheet"
-href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
-
+    <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 </head>
 
 <body>
+
+<!-- ================= NAVIGATION ================= -->
 
 <header>
 
@@ -24,7 +23,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
 
 <div class="logo">
 
-<img src="logo.png">
+<img src="logo.png" alt="Logo">
 
 <div>
 
@@ -38,7 +37,9 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
 
 <ul>
 
-<li><a href="index.html">← Home</a></li>
+<li><a href="index.html">Home</a></li>
+
+<li><a href="documents.html" class="active">Documents Monitoring</a></li>
 
 </ul>
 
@@ -46,57 +47,126 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
 
 </header>
 
-<section style="padding-top:140px;padding-bottom:70px;">
+<!-- ================= PAGE HEADER ================= -->
 
-<div class="title">
+<section class="page-banner">
 
-<h2>Documents Monitoring</h2>
+<div class="page-banner-content">
 
-<p>Select one of the modules below.</p>
+<h1>Documents Monitoring</h1>
+
+<p>
+
+Monitor all official incoming documents, outgoing documents,
+and dockets issuances in one place.
+
+</p>
 
 </div>
 
-<div class="module-grid">
+</section>
 
-<div class="card" onclick="window.location.href='incoming.html'">
+<!-- ================= MODULES ================= -->
+
+<section class="documents-container">
+
+<div class="doc-card">
+
+<div class="doc-icon">
 
 <i class="fa-solid fa-inbox"></i>
 
-<h3>Incoming Documents</h3>
+</div>
+
+<div class="doc-text">
+
+<h2>Incoming Documents</h2>
 
 <p>
-Monitor all incoming documents.
-</p>
 
-<button>Open Module</button>
+Manage and monitor all received documents.
+
+</p>
 
 </div>
 
-<div class="card" onclick="window.location.href='outgoing.html'">
+<div class="doc-button">
+
+<a href="incoming.html">
+
+Open
+
+<i class="fa-solid fa-arrow-right"></i>
+
+</a>
+
+</div>
+
+</div>
+
+<div class="doc-card">
+
+<div class="doc-icon">
 
 <i class="fa-solid fa-paper-plane"></i>
 
-<h3>Outgoing Documents</h3>
+</div>
+
+<div class="doc-text">
+
+<h2>Outgoing Documents</h2>
 
 <p>
-Monitor all outgoing documents.
-</p>
 
-<button>Open Module</button>
+Track all outgoing communications and releases.
+
+</p>
 
 </div>
 
-<div class="card" onclick="window.location.href='issuances.html'">
+<div class="doc-button">
+
+<a href="outgoing.html">
+
+Open
+
+<i class="fa-solid fa-arrow-right"></i>
+
+</a>
+
+</div>
+
+</div>
+
+<div class="doc-card">
+
+<div class="doc-icon">
 
 <i class="fa-solid fa-folder-open"></i>
 
-<h3>Dockets Issuances</h3>
+</div>
+
+<div class="doc-text">
+
+<h2>Dockets Issuances</h2>
 
 <p>
-View all issued dockets.
+
+View and organize all official dockets.
+
 </p>
 
-<button>Open Module</button>
+</div>
+
+<div class="doc-button">
+
+<a href="issuances.html">
+
+Open
+
+<i class="fa-solid fa-arrow-right"></i>
+
+</a>
 
 </div>
 
@@ -104,14 +174,40 @@ View all issued dockets.
 
 </section>
 
+<!-- ================= BACK BUTTON ================= -->
+
+<div class="back-home">
+
+<a href="index.html">
+
+<i class="fa-solid fa-house"></i>
+
+Back to Home
+
+</a>
+
+</div>
+
 <footer>
 
 <h3>DHSUD-CAR RECORDS SHELTER</h3>
 
-<p>Department of Human Settlements and Urban Development</p>
+<p>
+
+Department of Human Settlements and Urban Development
+Cordillera Administrative Region
+
+</p>
+
+<p>
+
+© 2026 All Rights Reserved.
+
+</p>
 
 </footer>
 
-</body>
+<script src="script.js"></script>
 
+</body>
 </html>
