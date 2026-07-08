@@ -2,7 +2,23 @@
    DHSUD-CAR RECORDS SHELTER
    Version 1.0
 ========================================== */
+// ======================================
+// DOCUMENT DATABASE
+// ======================================
+let documents = [
 
+{
+    tracking:"DHSUD-RQST-27419",
+    sender:"Lovelyn Sotelo",
+    office:"CAR",
+    category:"Request",
+    subcategory:"Request for Library Services",
+    division:"Housing Real Estate Development Regulation Division",
+    ageing:"2 DAYS OF 3 DAYS",
+    status:"Completed"
+}
+
+];
 // ===============================
 // Animated Counter
 // ===============================
@@ -297,55 +313,104 @@ modal.style.display="none";
 
 }
 
+// ======================================
+// ADD NEW DOCUMENT
+// ======================================
+
 const form = document.getElementById("documentForm");
 
-if(form){
+if (form) {
 
-form.addEventListener("submit",function(e){
+    form.addEventListener("submit", function (e) {
 
-e.preventDefault();
+        e.preventDefault();
 
-const tracking=document.getElementById("trackingNo").value;
-const date=document.getElementById("dateReceived").value;
-const sender=document.getElementById("sender").value;
-const subject=document.getElementById("subject").value;
-const status=document.getElementById("status").value;
+        const newDocument = {
 
-const tbody=document.getElementById("recordsBody");
+            tracking: document.getElementById("trackingNo").value,
 
-const row=document.createElement("tr");
+            sender: document.getElementById("sender").value,
 
-row.innerHTML=`
+            office: document.getElementById("office").value,
 
-<td>${tracking}</td>
+            category: "Request",
 
-<td>${date}</td>
+            subcategory: document.getElementById("subject").value,
 
-<td>${sender}</td>
+            division: "Administrative and Finance Division",
 
-<td>${subject}</td>
+            ageing: "1 DAY OF 3 DAYS",
 
-<td>
-<span class="status ${status.toLowerCase()}">
-${status}
-</span>
-</td>
+            status: document.getElementById("status").value
 
-<td>
-<button class="view-btn">
-<i class="fa-solid fa-eye"></i>
-View
-</button>
-</td>
+        };
 
-`;
+        documents.unshift(newDocument);
 
-tbody.prepend(row);
+        renderTable();
 
-modal.style.display="none";
+        modal.style.display = "none";
 
-form.reset();
+        form.reset();
 
-});
+    });
 
 }
+
+// ======================================
+// RENDER DOCUMENT TABLE
+// ======================================
+
+function renderTable() {
+
+    const tbody = document.getElementById("recordsBody");
+
+    if (!tbody) return;
+
+    tbody.innerHTML = "";
+
+    documents.forEach((doc) => {
+
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+            <td>${doc.tracking}</td>
+
+            <td>${doc.sender}</td>
+
+            <td>${doc.office}</td>
+
+            <td>${doc.category}</td>
+
+            <td>${doc.subcategory}</td>
+
+            <td>${doc.division}</td>
+
+            <td>
+                <span class="age-badge">
+                    ${doc.ageing}
+                </span>
+            </td>
+
+            <td>
+                <span class="status ${doc.status.toLowerCase()}">
+                    ${doc.status}
+                </span>
+            </td>
+
+            <td>
+                <button class="view-btn">
+                    <i class="fa-solid fa-eye"></i>
+                    View
+                </button>
+            </td>
+        `;
+
+        tbody.appendChild(row);
+
+    });
+
+}
+
+// Load existing data
+renderTable();
