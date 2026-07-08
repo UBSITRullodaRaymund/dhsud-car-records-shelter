@@ -422,3 +422,529 @@ font-size:32px;
 }
 
 }
+
+/* ==========================================
+   DOCUMENTS PAGE
+========================================== */
+
+.page-banner{
+
+    margin-top:90px;
+
+    background:linear-gradient(135deg,#0b4ea2,#1b73d1);
+
+    color:#fff;
+
+    padding:70px 8%;
+
+}
+
+.page-banner-content{
+
+    max-width:900px;
+
+    margin:auto;
+
+    text-align:center;
+
+}
+
+.page-banner h1{
+
+    font-size:48px;
+
+    margin-bottom:15px;
+
+}
+
+.page-banner p{
+
+    font-size:18px;
+
+    opacity:.95;
+
+    line-height:1.8;
+
+}
+
+/* ========================= */
+
+.documents-container{
+
+    width:90%;
+
+    max-width:1200px;
+
+    margin:60px auto;
+
+}
+
+/* ========================= */
+
+.doc-card{
+
+    background:#fff;
+
+    border-radius:20px;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:space-between;
+
+    padding:30px;
+
+    margin-bottom:30px;
+
+    box-shadow:0 10px 30px rgba(0,0,0,.08);
+
+    transition:.35s;
+
+    border-left:8px solid #0056c7;
+
+}
+
+.doc-card:hover{
+
+    transform:translateY(-8px);
+
+    box-shadow:0 18px 40px rgba(0,0,0,.15);
+
+}
+
+/* ========================= */
+
+.doc-icon{
+
+    width:90px;
+
+    height:90px;
+
+    border-radius:50%;
+
+    background:#eaf3ff;
+
+    color:#0056c7;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    font-size:38px;
+
+    margin-right:25px;
+
+    flex-shrink:0;
+
+}
+
+.doc-text{
+
+    flex:1;
+
+}
+
+.doc-text h2{
+
+    font-size:30px;
+
+    color:#003c88;
+
+    margin-bottom:10px;
+
+}
+
+.doc-text p{
+
+    color:#666;
+
+    font-size:17px;
+
+    line-height:1.7;
+
+}
+
+/* ========================= */
+
+.doc-button a{
+
+    display:inline-flex;
+
+    align-items:center;
+
+    gap:12px;
+
+    background:#0056c7;
+
+    color:white;
+
+    text-decoration:none;
+
+    padding:15px 28px;
+
+    border-radius:12px;
+
+    font-weight:600;
+
+    transition:.30s;
+
+}
+
+.doc-button a:hover{
+
+    background:#003f95;
+
+}
+
+/* ========================= */
+
+.back-home{
+
+    text-align:center;
+
+    margin:60px 0;
+
+}
+
+.back-home a{
+
+    background:#003c88;
+
+    color:#fff;
+
+    text-decoration:none;
+
+    padding:15px 35px;
+
+    border-radius:12px;
+
+    display:inline-block;
+
+    transition:.3s;
+
+}
+
+.back-home a:hover{
+
+    background:#002b63;
+
+}
+
+/* ========================= */
+
+.active{
+
+    color:#ffc107 !important;
+
+}
+
+/* ========================= */
+
+@media(max-width:900px){
+
+.doc-card{
+
+flex-direction:column;
+
+text-align:center;
+
+}
+
+.doc-icon{
+
+margin:0 0 20px 0;
+
+}
+
+.doc-button{
+
+margin-top:25px;
+
+}
+
+.page-banner h1{
+
+font-size:38px;
+
+}
+
+}
+
+/* =========================================
+   PAGE BANNER
+========================================= */
+
+.page-banner{
+    background:linear-gradient(135deg,#0b4ea2,#2873d9);
+    color:#fff;
+    text-align:center;
+    padding:80px 20px;
+}
+
+.page-banner h1{
+    font-size:52px;
+    margin-bottom:15px;
+    font-weight:700;
+}
+
+.page-banner p{
+    font-size:20px;
+    opacity:.95;
+}
+
+/* =========================================
+   RECORDS PAGE
+========================================= */
+
+.records-page{
+    width:90%;
+    max-width:1400px;
+    margin:60px auto;
+}
+
+/* =========================================
+   HEADER
+========================================= */
+
+.records-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:35px;
+}
+
+.records-header h2{
+    color:#0b4ea2;
+    font-size:34px;
+}
+
+.add-btn{
+    background:#0b4ea2;
+    color:white;
+    border:none;
+    padding:14px 30px;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:16px;
+    font-weight:600;
+    transition:.3s;
+}
+
+.add-btn:hover{
+    background:#083d81;
+}
+
+/* =========================================
+   FILTERS
+========================================= */
+
+.filters{
+
+    display:grid;
+
+    grid-template-columns:
+    2fr
+    1fr
+    1fr
+    1fr
+    auto;
+
+    gap:15px;
+
+    margin-bottom:35px;
+
+}
+
+.filters input,
+.filters select{
+
+    padding:14px;
+
+    border:1px solid #ccc;
+
+    border-radius:8px;
+
+    font-size:15px;
+
+    outline:none;
+
+}
+
+.search-btn{
+
+    background:#0b4ea2;
+
+    color:white;
+
+    border:none;
+
+    padding:14px 28px;
+
+    border-radius:8px;
+
+    cursor:pointer;
+
+    font-size:16px;
+
+}
+
+.search-btn:hover{
+
+    background:#083d81;
+
+}
+
+/* =========================================
+   TABLE
+========================================= */
+
+.records-table{
+
+    width:100%;
+
+    border-collapse:collapse;
+
+    background:white;
+
+    border-radius:12px;
+
+    overflow:hidden;
+
+    box-shadow:0 10px 30px rgba(0,0,0,.08);
+
+}
+
+.records-table thead{
+
+    background:#0b4ea2;
+
+    color:white;
+
+}
+
+.records-table th{
+
+    padding:18px;
+
+    text-align:left;
+
+}
+
+.records-table td{
+
+    padding:18px;
+
+    border-bottom:1px solid #eee;
+
+}
+
+.records-table tbody tr:hover{
+
+    background:#f5f9ff;
+
+}
+
+/* =========================================
+   STATUS
+========================================= */
+
+.status{
+
+    padding:8px 16px;
+
+    border-radius:30px;
+
+    color:white;
+
+    font-size:14px;
+
+    font-weight:600;
+
+}
+
+.completed{
+
+    background:#28a745;
+
+}
+
+.pending{
+
+    background:#ff9800;
+
+}
+
+.processing{
+
+    background:#2196f3;
+
+}
+
+.released{
+
+    background:#6f42c1;
+
+}
+
+/* =========================================
+   BUTTONS
+========================================= */
+
+.view-btn{
+
+    background:#0b4ea2;
+
+    color:white;
+
+    border:none;
+
+    padding:10px 20px;
+
+    border-radius:6px;
+
+    cursor:pointer;
+
+    transition:.3s;
+
+}
+
+.view-btn:hover{
+
+    background:#083d81;
+
+}
+
+/* =========================================
+   RESPONSIVE
+========================================= */
+
+@media(max-width:1000px){
+
+.filters{
+
+grid-template-columns:1fr;
+
+}
+
+.records-header{
+
+flex-direction:column;
+
+gap:20px;
+
+align-items:flex-start;
+
+}
+
+.records-table{
+
+display:block;
+
+overflow-x:auto;
+
+}
+
+}
