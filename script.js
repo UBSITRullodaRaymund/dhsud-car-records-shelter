@@ -360,13 +360,28 @@ const newDocument = {
 
 };
 
-        documents.unshift(newDocument);
+        // If editing an existing document
+if (editingIndex !== -1) {
 
-        renderTable();
+    documents[editingIndex] = newDocument;
 
-        modal.style.display = "none";
+    editingIndex = -1;
 
-        form.reset();
+    document.querySelector(".save-btn").innerHTML =
+        '<i class="fa-solid fa-floppy-disk"></i> Save Document';
+
+} else {
+
+    // Add new document
+    documents.unshift(newDocument);
+
+}
+
+renderTable();
+
+modal.style.display = "none";
+
+form.reset();
 
     });
 
@@ -516,10 +531,37 @@ form.reset();
 
     });
 
+updateDashboard();
+
 }
 
 // Load existing data
 renderTable();
+updateDashboard();
+
+// ======================================
+// UPDATE DASHBOARD COUNTERS
+// ======================================
+
+function updateDashboard() {
+
+    const total = documents.length;
+
+    const pending = documents.filter(doc => doc.status === "Pending").length;
+
+    const processing = documents.filter(doc => doc.status === "Processing").length;
+
+    const completed = documents.filter(doc => doc.status === "Completed").length;
+
+    document.getElementById("totalDocuments").textContent = total;
+
+    document.getElementById("pendingDocuments").textContent = pending;
+
+    document.getElementById("processingDocuments").textContent = processing;
+
+    document.getElementById("completedDocuments").textContent = completed;
+
+}
 
 // ======================================
 // CLOSE VIEW MODAL
