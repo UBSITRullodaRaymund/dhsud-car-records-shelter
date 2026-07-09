@@ -7,6 +7,8 @@
 // ======================================
 let documents = [
 
+    
+
 {
     tracking:"DHSUD-RQST-27419",
     sender:"Lovelyn Sotelo",
@@ -19,6 +21,13 @@ let documents = [
 }
 
 ];
+
+// ===============================
+// EDIT MODE
+// ===============================
+
+let editingIndex = -1;
+
 // ===============================
 // Animated Counter
 // ===============================
@@ -277,7 +286,7 @@ if(open){
 
 open.onclick=function(){
 
-modal.style.display="block";
+modal.style.display = "flex";
 
 }
 
@@ -325,25 +334,31 @@ if (form) {
 
         e.preventDefault();
 
-        const newDocument = {
+        
+        const trackingNumber =
+`DHSUD-${new Date().getFullYear()}-${String(documents.length + 1).padStart(4,"0")}`;
 
-            tracking: document.getElementById("trackingNo").value,
+const newDocument = {
 
-            sender: document.getElementById("sender").value,
+    tracking: trackingNumber,
 
-            office: document.getElementById("office").value,
+    dateReceived: document.getElementById("dateReceived").value,
 
-            category: "Request",
+    sender: document.getElementById("sender").value,
 
-            subcategory: document.getElementById("subject").value,
+    office: document.getElementById("office").value,
 
-            division: "Administrative and Finance Division",
+    category: document.getElementById("category").value,
 
-            ageing: "1 DAY OF 3 DAYS",
+    subcategory: document.getElementById("subject").value,
 
-            status: document.getElementById("status").value
+    division: document.getElementById("division").value,
 
-        };
+    ageing: "1 DAY OF 3 DAYS",
+
+    status: document.getElementById("status").value
+
+};
 
         documents.unshift(newDocument);
 
@@ -369,44 +384,135 @@ function renderTable() {
 
     tbody.innerHTML = "";
 
-    documents.forEach((doc) => {
+    documents.forEach((doc, index) => {
 
         const row = document.createElement("tr");
 
         row.innerHTML = `
-            <td>${doc.tracking}</td>
 
-            <td>${doc.sender}</td>
+<td>${doc.tracking}</td>
 
-            <td>${doc.office}</td>
+<td>${doc.dateReceived || "-"}</td>
 
-            <td>${doc.category}</td>
+<td>${doc.sender}</td>
 
-            <td>${doc.subcategory}</td>
+<td>${doc.office}</td>
 
-            <td>${doc.division}</td>
+<td>${doc.category}</td>
 
-            <td>
-                <span class="age-badge">
-                    ${doc.ageing}
-                </span>
-            </td>
+<td>${doc.subcategory}</td>
 
-            <td>
-                <span class="status ${doc.status.toLowerCase()}">
-                    ${doc.status}
-                </span>
-            </td>
+<td>${doc.division}</td>
 
-            <td>
-                <button class="view-btn">
-                    <i class="fa-solid fa-eye"></i>
-                    View
-                </button>
-            </td>
-        `;
+<td>
+<span class="age-badge">
+${doc.ageing}
+</span>
+</td>
+
+<td>
+<span class="status ${doc.status.toLowerCase()}">
+${doc.status}
+</span>
+</td>
+
+<td class="action-buttons">
+
+<button class="view-btn">
+<i class="fa-solid fa-eye"></i>
+</button>
+
+<button class="edit-btn">
+<i class="fa-solid fa-pen"></i>
+</button>
+
+
+<button class="delete-btn">
+<i class="fa-solid fa-trash"></i>
+</button>
+
+</td>
+
+`;
 
         tbody.appendChild(row);
+
+
+// ======================================
+// VIEW DOCUMENT
+// ======================================
+
+row.querySelector(".view-btn").addEventListener("click", function () {
+
+    document.getElementById("viewTracking").textContent = doc.tracking;
+
+    document.getElementById("viewDate").textContent =
+        doc.dateReceived || "-";
+
+    document.getElementById("viewSender").textContent =
+        doc.sender;
+
+    document.getElementById("viewOffice").textContent =
+        doc.office;
+
+    document.getElementById("viewCategory").textContent =
+        doc.category;
+
+    document.getElementById("viewSubject").textContent =
+        doc.subcategory;
+
+    document.getElementById("viewDivision").textContent =
+        doc.division;
+
+    document.getElementById("viewStatus").textContent =
+        doc.status;
+
+    document.getElementById("viewAgeing").textContent =
+        doc.ageing;
+
+    document.getElementById("viewRemarks").textContent =
+        doc.remarks || "-";
+
+    document.getElementById("viewModal").style.display = "flex";
+
+});
+
+// ======================================
+// EDIT DOCUMENT
+// ======================================
+
+row.querySelector(".edit-btn").addEventListener("click", function () {
+
+    editingIndex = index;
+
+    document.getElementById("trackingNo").value = doc.tracking;
+    document.getElementById("dateReceived").value = doc.dateReceived || "";
+    document.getElementById("sender").value = doc.sender;
+    document.getElementById("office").value = doc.office;
+    document.getElementById("category").value = doc.category;
+    document.getElementById("subject").value = doc.subcategory;
+    document.getElementById("division").value = doc.division;
+    document.getElementById("status").value = doc.status;
+    document.getElementById("remarks").value = doc.remarks || "";
+
+    document.querySelector(".save-btn").innerHTML =
+        '<i class="fa-solid fa-pen"></i> Update Document';
+
+    modal.style.display = "flex";
+
+});
+
+// Delete button
+row.querySelector(".delete-btn").addEventListener("click", function () {
+    if (confirm("Are you sure you want to delete this document?")) {
+        row.remove();
+    }
+
+});
+
+modal.style.display = "none";
+
+form.reset();
 
     });
 
@@ -414,3 +520,31 @@ function renderTable() {
 
 // Load existing data
 renderTable();
+
+// ======================================
+// CLOSE VIEW MODAL
+// ======================================
+
+const viewModal = document.getElementById("viewModal");
+
+document.getElementById("closeView").onclick = function () {
+
+    viewModal.style.display = "none";
+
+};
+
+document.getElementById("closeViewBtn").onclick = function () {
+
+    viewModal.style.display = "none";
+
+};
+
+window.addEventListener("click", function (e) {
+
+    if (e.target === viewModal) {
+
+        viewModal.style.display = "none";
+
+    }
+
+});

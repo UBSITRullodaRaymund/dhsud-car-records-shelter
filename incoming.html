@@ -249,52 +249,23 @@ Clear Filters
 <thead>
 
 <tr>
-
-<th>
-TRANSACTION NO.
-<i class="fa-solid fa-chevron-down"></i>
-</th>
-
-<th>
-SENDER
-<i class="fa-solid fa-chevron-down"></i>
-</th>
-
-<th>
-ORIGINATING OFFICE
-<i class="fa-solid fa-chevron-down"></i>
-</th>
-
-<th>
-CATEGORY
-<i class="fa-solid fa-chevron-down"></i>
-</th>
-
-<th>
-SUBCATEGORY
-<i class="fa-solid fa-chevron-down"></i>
-</th>
-
-<th>
-DIVISION
-<i class="fa-solid fa-chevron-down"></i>
-</th>
-
-<th>
-AGEING
-<i class="fa-solid fa-chevron-down"></i>
-</th>
-
-<th>
-STATUS
-<i class="fa-solid fa-chevron-down"></i>
-</th>
-
+<th>Transaction No.</th>
+<th>Date Received</th>
+<th>Sender</th>
+<th>Originating Office</th>
+<th>Category</th>
+<th>Subject</th>
+<th>Division</th>
+<th>Ageing</th>
+<th>Status</th>
+<th>Action</th>
 </tr>
 
 </thead>
 
 <tbody id="recordsBody">
+
+<!-- JavaScript will load rows here -->
 
 </tbody>
 
@@ -304,25 +275,25 @@ STATUS
 
 <div class="table-info">
 
-Showing <strong>1–2</strong> of <strong>2</strong> records
+Showing
+<strong id="showingCount">1</strong>
+of
+<strong id="totalCount">1</strong>
+documents
 
 </div>
 
 <div class="rows-select">
 
-<label>Rows per page</label>
+<button class="page-btn">
+<i class="fa-solid fa-angle-left"></i>
+</button>
 
-<select>
+<button class="page-btn active">1</button>
 
-<option>10</option>
-
-<option>25</option>
-
-<option>50</option>
-
-<option>100</option>
-
-</select>
+<button class="page-btn">
+<i class="fa-solid fa-angle-right"></i>
+</button>
 
 </div>
 
@@ -355,109 +326,243 @@ ADD DOCUMENT MODAL
 
 <div class="form-grid">
 
-<div class="form-group">
+    <div class="form-group">
+        <label>Tracking Number</label>
+        <input
+            type="text"
+            id="trackingNo"
+            readonly
+            placeholder="Automatically Generated">
+    </div>
 
-<label>Tracking Number</label>
+    <div class="form-group">
+        <label>Date Received</label>
+        <input
+            type="date"
+            id="dateReceived"
+            required>
+    </div>
 
-<input type="text" id="trackingNo" required>
+    <div class="form-group">
+        <label>Sender</label>
+        <input
+            type="text"
+            id="sender"
+            placeholder="Enter sender"
+            required>
+    </div>
 
-</div>
+    <div class="form-group">
+        <label>Originating Office</label>
 
-<div class="form-group">
+        <select id="office">
 
-<label>Date Received</label>
+            <option>Administrative Division</option>
 
-<input type="date" id="dateReceived" required>
+            <option>Finance Division</option>
 
-</div>
+            <option>Planning Division</option>
 
-<div class="form-group">
+            <option>Housing Division</option>
 
-<label>Sender</label>
+            <option>Regional Office</option>
 
-<input type="text" id="sender" required>
+            <option>LGU</option>
 
-</div>
+            <option>Private Individual</option>
 
-<div class="form-group">
+        </select>
 
-<label>Office</label>
+    </div>
 
-<select id="office">
+    <div class="form-group">
 
-<option>Administrative Division</option>
+        <label>Category</label>
 
-<option>Planning Division</option>
+        <select id="category">
 
-<option>Finance Division</option>
+            <option>Request</option>
 
-<option>Housing Division</option>
+            <option>Memorandum</option>
 
-</select>
+            <option>Letter</option>
 
-</div>
+            <option>Billing</option>
 
-<div class="form-group full">
+            <option>Complaint</option>
 
-<label>Subject</label>
+            <option>FOI</option>
 
-<input type="text" id="subject" required>
+        </select>
 
-</div>
+    </div>
 
-<div class="form-group full">
+    <div class="form-group">
 
-<label>Remarks</label>
+        <label>Status</label>
 
-<textarea id="remarks" rows="4"></textarea>
+        <select id="status">
 
-</div>
+            <option>Pending</option>
 
-<div class="form-group">
+            <option>Processing</option>
 
-<label>Status</label>
+            <option>Completed</option>
 
-<select id="status">
+            <option>Released</option>
 
-<option>Pending</option>
+        </select>
 
-<option>Processing</option>
+    </div>
 
-<option>Completed</option>
+    <div class="form-group full">
 
-<option>Released</option>
+        <label>Subject</label>
 
-</select>
+        <input
+            type="text"
+            id="subject"
+            placeholder="Document Subject"
+            required>
 
-</div>
+    </div>
 
-<div class="form-group">
+    <div class="form-group full">
 
-<label>Upload File</label>
+        <label>Assigned Division</label>
 
-<input type="file">
+        <select id="division">
 
-</div>
+            <option>Administrative and Finance Division</option>
+
+            <option>Housing Real Estate Development Regulation Division</option>
+
+            <option>Homeowners Association and Community Development Division</option>
+
+            <option>Environmental, Land Use and Urban Planning Division</option>
+
+            <option>Office of the Regional Director</option>
+
+        </select>
+
+    </div>
+
+    <div class="form-group full">
+
+        <label>Remarks</label>
+
+        <textarea
+            id="remarks"
+            rows="4"
+            placeholder="Additional remarks"></textarea>
+
+    </div>
+
+    <div class="form-group full">
+
+        <label>Attach Document</label>
+
+        <input
+            type="file"
+            id="documentFile"
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png">
+
+    </div>
 
 </div>
 
 <div class="modal-buttons">
 
-<button type="submit" class="save-btn">
+    <button
+        type="submit"
+        class="save-btn">
 
-Save Document
+        <i class="fa-solid fa-floppy-disk"></i>
 
-</button>
+        Save Document
 
-<button type="button" class="cancel-btn" id="closeModal">
+    </button>
 
-Cancel
+    <button
+        type="button"
+        class="cancel-btn"
+        id="closeModal">
 
-</button>
+        Cancel
+
+    </button>
 
 </div>
 
 </form>
+
+</div>
+
+</div>
+<!-- ==========================================
+VIEW DOCUMENT MODAL
+========================================== -->
+
+<div id="viewModal" class="view-modal">
+
+<div class="modal-content">
+
+<span class="close" id="closeView">&times;</span>
+
+<h2>
+
+<i class="fa-solid fa-file-lines"></i>
+
+Document Details
+
+</h2>
+
+<div class="view-grid">
+
+<p><strong>Tracking Number:</strong></p>
+<p id="viewTracking"></p>
+
+<p><strong>Date Received:</strong></p>
+<p id="viewDate"></p>
+
+<p><strong>Sender:</strong></p>
+<p id="viewSender"></p>
+
+<p><strong>Originating Office:</strong></p>
+<p id="viewOffice"></p>
+
+<p><strong>Category:</strong></p>
+<p id="viewCategory"></p>
+
+<p><strong>Subject:</strong></p>
+<p id="viewSubject"></p>
+
+<p><strong>Assigned Division:</strong></p>
+<p id="viewDivision"></p>
+
+<p><strong>Status:</strong></p>
+<p id="viewStatus"></p>
+
+<p><strong>Ageing:</strong></p>
+<p id="viewAgeing"></p>
+
+<p><strong>Remarks:</strong></p>
+<p id="viewRemarks"></p>
+
+</div>
+
+<div class="modal-buttons">
+
+<button
+type="button"
+class="cancel-btn"
+id="closeViewBtn">
+
+Close
+
+</button>
+
+</div>
 
 </div>
 
