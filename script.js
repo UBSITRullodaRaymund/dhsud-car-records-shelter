@@ -5,22 +5,7 @@
 // ======================================
 // DOCUMENT DATABASE
 // ======================================
-let documents = [
-
-    
-
-{
-    tracking:"DHSUD-RQST-27419",
-    sender:"Lovelyn Sotelo",
-    office:"CAR",
-    category:"Request",
-    subcategory:"Request for Library Services",
-    division:"Housing Real Estate Development Regulation Division",
-    ageing:"2 DAYS OF 3 DAYS",
-    status:"Completed"
-}
-
-];
+let documents = [];
 
 // ===============================
 // EDIT MODE
@@ -520,7 +505,9 @@ row.querySelector(".edit-btn").addEventListener("click", function () {
 // Delete button
 row.querySelector(".delete-btn").addEventListener("click", function () {
     if (confirm("Are you sure you want to delete this document?")) {
-        row.remove();
+         documents.splice(index, 1);
+
+        renderTable();
     }
 
 });
