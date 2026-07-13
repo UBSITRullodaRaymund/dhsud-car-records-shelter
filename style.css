@@ -1719,3 +1719,46 @@ margin-top:4px;
     color:#005BAC;
 
 }
+
+
+/* ======================================
+   EMPTY STATE
+====================================== */
+
+.empty-state{
+
+    display:none;
+
+    text-align:center;
+
+    padding:60px 20px;
+
+    color:#6b7280;
+
+}
+
+.empty-state i{
+
+    font-size:60px;
+
+    color:#0B3D91;
+
+    margin-bottom:15px;
+
+}
+
+.empty-state h3{
+
+    font-size:24px;
+
+    color:#1f2937;
+
+    margin-bottom:10px;
+
+}
+
+.empty-state p{
+
+    font-size:15px;
+
+}

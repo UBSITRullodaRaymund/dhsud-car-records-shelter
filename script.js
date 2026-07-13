@@ -5,7 +5,7 @@
 // ======================================
 // DOCUMENT DATABASE
 // ======================================
-let documents = [];
+let documents = JSON.parse(localStorage.getItem("documents")) || [];
 
 // ===============================
 // EDIT MODE
@@ -362,6 +362,8 @@ if (editingIndex !== -1) {
 
 }
 
+localStorage.setItem("documents", JSON.stringify(documents));
+
 renderTable();
 
 modal.style.display = "none";
@@ -383,8 +385,32 @@ function renderTable() {
     if (!tbody) return;
 
     tbody.innerHTML = "";
+    const officeFilter = document.getElementById("officeFilter").value;
+    const yearFilter = document.getElementById("yearFilter").value;
+    const statusFilter = document.getElementById("statusFilter").value;
 
-    documents.forEach((doc, index) => {
+    documents
+.filter(doc => {
+
+    const officeMatch =
+    officeFilter === "All Offices" ||
+    doc.office === officeFilter;
+
+const yearMatch =
+    yearFilter === "All Years" ||
+    (doc.dateReceived &&
+    new Date(doc.dateReceived).getFullYear().toString() === yearFilter);
+
+const statusMatch =
+    statusFilter === "All Status" ||
+    doc.status === statusFilter;
+
+return officeMatch &&
+       yearMatch &&
+       statusMatch;
+
+})
+.forEach((doc, index) => {
 
         const row = document.createElement("tr");
 
@@ -505,9 +531,11 @@ row.querySelector(".edit-btn").addEventListener("click", function () {
 // Delete button
 row.querySelector(".delete-btn").addEventListener("click", function () {
     if (confirm("Are you sure you want to delete this document?")) {
-         documents.splice(index, 1);
+         documents.splice(index,1);
 
-        renderTable();
+localStorage.setItem("documents", JSON.stringify(documents));
+
+renderTable();
     }
 
 });
@@ -519,12 +547,24 @@ form.reset();
     });
 
 updateDashboard();
+// ===============================
+// UPDATE TABLE FOOTER
+// ===============================
+
+const visibleDocuments = tbody.querySelectorAll("tr").length;
+
+document.getElementById("showingCount").textContent = visibleDocuments;
+
+document.getElementById("totalCount").textContent = documents.length;
 
 }
 
 // Load existing data
 renderTable();
 updateDashboard();
+document.getElementById("officeFilter").addEventListener("change", renderTable);
+document.getElementById("yearFilter").addEventListener("change", renderTable);
+document.getElementById("statusFilter").addEventListener("change", renderTable);
 
 // ======================================
 // UPDATE DASHBOARD COUNTERS
