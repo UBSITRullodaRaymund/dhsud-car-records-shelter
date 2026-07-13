@@ -162,7 +162,7 @@ placeholder="Search Tracking No., Subject, Sender..."
 
 <label>Office</label>
 
-<select>
+<select id="officeFilter">
 
 <option>All Offices</option>
 
@@ -182,7 +182,7 @@ placeholder="Search Tracking No., Subject, Sender..."
 
 <label>Year</label>
 
-<select>
+<select id="yearFilter">
 
 <option>All Years</option>
 
@@ -200,7 +200,7 @@ placeholder="Search Tracking No., Subject, Sender..."
 
 <label>Status</label>
 
-<select>
+<select id="statusFilter">
 
 <option>All Status</option>
 
@@ -270,6 +270,17 @@ Clear Filters
 </tbody>
 
 </table>
+<div id="emptyState" class="empty-state" style="display:none;">
+
+    <i class="fa-solid fa-folder-open"></i>
+
+    <h3>No Documents Found</h3>
+
+    <p>
+        There are no documents matching your current search or filters.
+    </p>
+
+</div>
 
 <div class="table-footer">
 
