@@ -1,17 +1,136 @@
-/* ==========================================
+/* ==========================================================
    DHSUD-CAR RECORDS SHELTER
-   Version 1.0
-========================================== */
-// ======================================
-// DOCUMENT DATABASE
-// ======================================
-let documents = JSON.parse(localStorage.getItem("documents")) || [];
+   Version 2.0
+   Developed for DHSUD-CAR
+========================================================== */
 
-// ===============================
-// EDIT MODE
-// ===============================
+/* ==========================================================
+   CONFIGURATION
+========================================================== */
 
+const API_URL =
+"https://script.google.com/macros/s/AKfycbxQAh3bOHZc-c1gZpOtpSF4SaQSd8XV-g_OWnbM8h628C9uPPEdsVdEtrw0yabpNSn_3Q/exec";
+
+/* ==========================================================
+   GLOBAL VARIABLES
+========================================================== */
+
+let documents = [];
 let editingIndex = -1;
+
+/* ==========================================================
+   DOM ELEMENTS
+========================================================== */
+
+const modal = document.getElementById("documentModal");
+const form = document.getElementById("documentForm");
+
+const openModalBtn = document.getElementById("openModal");
+const closeModalBtn = document.querySelector(".close");
+const cancelModalBtn = document.getElementById("closeModal");
+
+const officeFilter = document.getElementById("officeFilter");
+const yearFilter = document.getElementById("yearFilter");
+const statusFilter = document.getElementById("statusFilter");
+const searchInput = document.getElementById("searchInput");
+
+const tbody = document.getElementById("recordsBody");
+
+/* ==========================================================
+   GOOGLE SHEETS API
+========================================================== */
+
+async function loadDocuments() {
+
+    try {
+
+        const response =
+        await fetch(API_URL + "?action=getDocuments");
+
+        documents = await response.json();
+
+        renderTable();
+        updateDashboard();
+
+    } catch (error) {
+
+        console.error("Load Error:", error);
+
+    }
+
+}
+
+/* ==========================================================
+   SAVE DOCUMENT
+========================================================== */
+
+async function saveDocument(documentData){
+
+    try{
+
+        const formData = new FormData();
+
+        Object.keys(documentData).forEach(key=>{
+
+            formData.append(key,documentData[key]);
+
+        });
+
+        await fetch(API_URL,{
+
+            method:"POST",
+            mode:"no-cors",
+            body:formData
+
+        });
+
+        await loadDocuments();
+
+    }catch(error){
+
+        console.error("Save Error:",error);
+
+    }
+
+}
+
+/* ==========================================================
+   DELETE DOCUMENT
+========================================================== */
+
+async function deleteDocument(tracking){
+
+    if(!confirm("Are you sure you want to delete this document?"))
+        return;
+
+    try{
+
+        const formData=new FormData();
+
+        formData.append("action","delete");
+        formData.append("tracking",tracking);
+
+        await fetch(API_URL,{
+
+            method:"POST",
+
+            body:formData
+
+        });
+
+        await loadDocuments();
+
+        alert("Document deleted successfully.");
+
+    }catch(error){
+
+        console.error(error);
+
+        alert("Unable to delete document.");
+
+    }
+
+}
 
 // ===============================
 // Animated Counter
@@ -233,8 +352,6 @@ console.log("Version 1.0 Loaded Successfully");
 // LIVE TABLE SEARCH
 // =============================
 
-const searchInput = document.getElementById("searchInput");
-
 if(searchInput){
 
 searchInput.addEventListener("keyup",function(){
@@ -255,170 +372,188 @@ row.style.display=row.innerText.toLowerCase().includes(value)
 
 }
 
-// ======================================
-// MODAL
-// ======================================
+/* ==========================================================
+   MODAL FUNCTIONS
+========================================================== */
 
-const modal=document.getElementById("documentModal");
+function openModal(){
 
-const open=document.getElementById("openModal");
-
-const close=document.querySelector(".close");
-
-const cancel=document.getElementById("closeModal");
-
-if(open){
-
-open.onclick=function(){
-
-modal.style.display = "flex";
+    modal.style.display="flex";
 
 }
 
-}
+function closeModal(){
 
-if(close){
+    modal.style.display="none";
 
-close.onclick=function(){
+    form.reset();
 
-modal.style.display="none";
+    editingIndex=-1;
 
-}
+    const saveBtn=document.querySelector(".save-btn");
 
-}
+    if(saveBtn){
 
-if(cancel){
+        saveBtn.innerHTML=
+        '<i class="fa-solid fa-floppy-disk"></i> Save Document';
 
-cancel.onclick=function(){
-
-modal.style.display="none";
-
-}
+    }
 
 }
 
-window.onclick=function(e){
+/* ==========================================================
+   EVENT LISTENERS
+========================================================== */
 
-if(e.target==modal){
+if(openModalBtn){
 
-modal.style.display="none";
+    openModalBtn.addEventListener("click",openModal);
 
 }
 
+if(closeModalBtn){
+
+    closeModalBtn.addEventListener("click",closeModal);
+
 }
 
-// ======================================
-// ADD NEW DOCUMENT
-// ======================================
+if(cancelModalBtn){
 
-const form = document.getElementById("documentForm");
+    cancelModalBtn.addEventListener("click",closeModal);
 
-if (form) {
+}
 
-    form.addEventListener("submit", function (e) {
+window.addEventListener("click",function(e){
 
-        e.preventDefault();
+    if(e.target===modal){
 
-        
-        const trackingNumber =
-`DHSUD-${new Date().getFullYear()}-${String(documents.length + 1).padStart(4,"0")}`;
+        closeModal();
 
-const newDocument = {
+    }
 
-    tracking: trackingNumber,
+});
 
-    dateReceived: document.getElementById("dateReceived").value,
+/* ==========================================================
+   ADD / UPDATE DOCUMENT
+========================================================== */
 
-    sender: document.getElementById("sender").value,
+if(form){
 
-    office: document.getElementById("office").value,
+form.addEventListener("submit",async function(e){
 
-    category: document.getElementById("category").value,
+e.preventDefault();
 
-    subcategory: document.getElementById("subject").value,
+const file=document.getElementById("documentFile").files[0];
 
-    division: document.getElementById("division").value,
+const trackingNumber=
+editingIndex===-1
+? `DHSUD-${new Date().getFullYear()}-${String(documents.length+1).padStart(4,"0")}`
+: documents[editingIndex].tracking;
 
-    ageing: "1 DAY OF 3 DAYS",
+const newDocument={
 
-    status: document.getElementById("status").value
+tracking:trackingNumber,
+
+dateReceived:document.getElementById("dateReceived").value,
+
+sender:document.getElementById("sender").value,
+
+office:document.getElementById("office").value,
+
+category:document.getElementById("category").value,
+
+subcategory:document.getElementById("subject").value,
+
+division:document.getElementById("division").value,
+
+status:document.getElementById("status").value,
+
+remarks:document.getElementById("remarks")?.value || "",
+
+attachmentName:file ? file.name : "",
+
+attachmentType:file ? file.type : "",
+
+attachmentSize:file ? file.size : 0,
+
+driveUrl:"",
+
+ageing:"1 DAY OF 3 DAYS"
 
 };
 
-        // If editing an existing document
-if (editingIndex !== -1) {
+if (editingIndex === -1) {
 
-    documents[editingIndex] = newDocument;
+    await saveDocument(newDocument);
+
+} else {    
+
+    await updateDocument(newDocument);
 
     editingIndex = -1;
 
-    document.querySelector(".save-btn").innerHTML =
-        '<i class="fa-solid fa-floppy-disk"></i> Save Document';
-
-} else {
-
-    // Add new document
-    documents.unshift(newDocument);
-
 }
 
-localStorage.setItem("documents", JSON.stringify(documents));
-
+closeModal();
+await loadDocuments();
 renderTable();
+updateDashboard();
 
-modal.style.display = "none";
-
-form.reset();
-
-    });
+});
 
 }
-
-// ======================================
-// RENDER DOCUMENT TABLE
-// ======================================
+/* ==========================================================
+   RENDER DOCUMENT TABLE
+========================================================== */
 
 function renderTable() {
-
-    const tbody = document.getElementById("recordsBody");
 
     if (!tbody) return;
 
     tbody.innerHTML = "";
-    const officeFilter = document.getElementById("officeFilter").value;
-    const yearFilter = document.getElementById("yearFilter").value;
-    const statusFilter = document.getElementById("statusFilter").value;
 
-    documents
-.filter(doc => {
+    const office = officeFilter ? officeFilter.value : "All Offices";
+    const year = yearFilter ? yearFilter.value : "All Years";
+    const status = statusFilter ? statusFilter.value : "All Status";
 
-    const officeMatch =
-    officeFilter === "All Offices" ||
-    doc.office === officeFilter;
+    const filteredDocuments = documents.filter(doc => {
 
-const yearMatch =
-    yearFilter === "All Years" ||
-    (doc.dateReceived &&
-    new Date(doc.dateReceived).getFullYear().toString() === yearFilter);
+        const officeMatch =
+            office === "All Offices" ||
+            doc.office === office;
 
-const statusMatch =
-    statusFilter === "All Status" ||
-    doc.status === statusFilter;
+        const yearMatch =
+            year === "All Years" ||
+            (
+                doc.dateReceived &&
+                new Date(doc.dateReceived).getFullYear().toString() === year
+            );
 
-return officeMatch &&
-       yearMatch &&
-       statusMatch;
+        const statusMatch =
+            status === "All Status" ||
+            doc.status === status;
 
-})
-.forEach((doc, index) => {
+        return officeMatch && yearMatch && statusMatch;
 
-        const row = document.createElement("tr");
+    });
 
-        row.innerHTML = `
+    filteredDocuments.forEach((doc,index)=>{
+
+        const row=document.createElement("tr");
+
+        row.innerHTML=`
 
 <td>${doc.tracking}</td>
 
-<td>${doc.dateReceived || "-"}</td>
+<td>${
+doc.dateReceived
+? new Date(doc.dateReceived).toLocaleDateString("en-US",{
+    year:"numeric",
+    month:"long",
+    day:"numeric"
+})
+: "-"
+}</td>
 
 <td>${doc.sender}</td>
 
@@ -431,30 +566,43 @@ return officeMatch &&
 <td>${doc.division}</td>
 
 <td>
+
 <span class="age-badge">
-${doc.ageing}
+
+${doc.ageing || "-"}
+
 </span>
+
 </td>
 
 <td>
-<span class="status ${doc.status.toLowerCase()}">
-${doc.status}
+
+<span class="status ${(doc.status || "").toLowerCase()}">
+
+${doc.status || "-"}
+
 </span>
+
 </td>
 
 <td class="action-buttons">
 
 <button class="view-btn">
+
 <i class="fa-solid fa-eye"></i>
+
 </button>
 
 <button class="edit-btn">
+
 <i class="fa-solid fa-pen"></i>
+
 </button>
 
-
 <button class="delete-btn">
+
 <i class="fa-solid fa-trash"></i>
+
 </button>
 
 </td>
@@ -463,88 +611,190 @@ ${doc.status}
 
         tbody.appendChild(row);
 
-
-// ======================================
-// VIEW DOCUMENT
-// ======================================
-
-row.querySelector(".view-btn").addEventListener("click", function () {
-
-    document.getElementById("viewTracking").textContent = doc.tracking;
-
-    document.getElementById("viewDate").textContent =
-        doc.dateReceived || "-";
-
-    document.getElementById("viewSender").textContent =
-        doc.sender;
-
-    document.getElementById("viewOffice").textContent =
-        doc.office;
-
-    document.getElementById("viewCategory").textContent =
-        doc.category;
-
-    document.getElementById("viewSubject").textContent =
-        doc.subcategory;
-
-    document.getElementById("viewDivision").textContent =
-        doc.division;
-
-    document.getElementById("viewStatus").textContent =
-        doc.status;
-
-    document.getElementById("viewAgeing").textContent =
-        doc.ageing;
-
-    document.getElementById("viewRemarks").textContent =
-        doc.remarks || "-";
-
-    document.getElementById("viewModal").style.display = "flex";
-
-});
-
-// ======================================
-// EDIT DOCUMENT
-// ======================================
-
-row.querySelector(".edit-btn").addEventListener("click", function () {
-
-    editingIndex = index;
-
-    document.getElementById("trackingNo").value = doc.tracking;
-    document.getElementById("dateReceived").value = doc.dateReceived || "";
-    document.getElementById("sender").value = doc.sender;
-    document.getElementById("office").value = doc.office;
-    document.getElementById("category").value = doc.category;
-    document.getElementById("subject").value = doc.subcategory;
-    document.getElementById("division").value = doc.division;
-    document.getElementById("status").value = doc.status;
-    document.getElementById("remarks").value = doc.remarks || "";
-
-    document.querySelector(".save-btn").innerHTML =
-        '<i class="fa-solid fa-pen"></i> Update Document';
-
-    modal.style.display = "flex";
-
-});
-
-// Delete button
-row.querySelector(".delete-btn").addEventListener("click", function () {
-    if (confirm("Are you sure you want to delete this document?")) {
-         documents.splice(index,1);
-
-localStorage.setItem("documents", JSON.stringify(documents));
-
-renderTable();
-    }
-
-});
-
-modal.style.display = "none";
-
-form.reset();
+        attachRowEvents(row,doc,index);
 
     });
+
+    updateDashboard();
+
+    document.getElementById("showingCount").textContent =
+    filteredDocuments.length;
+
+    document.getElementById("totalCount").textContent =
+    documents.length;
+
+}
+
+async function saveDocument(doc){
+
+    const formData = new FormData();
+
+    formData.append("action","save");
+
+    formData.append("tracking",doc.tracking);
+    formData.append("dateReceived",doc.dateReceived);
+    formData.append("sender",doc.sender);
+    formData.append("office",doc.office);
+    formData.append("category",doc.category);
+    formData.append("subject",doc.subcategory);
+    formData.append("division",doc.division);
+    formData.append("status",doc.status);
+    formData.append("remarks",doc.remarks || "");
+    formData.append("fileName",doc.attachmentName || "");
+    formData.append("driveUrl","");
+
+    await fetch(API_URL,{
+        method:"POST",
+        body:formData
+    });
+
+    await loadDocuments();
+
+}
+
+async function updateDocument(doc){
+
+    const formData = new FormData();
+
+    formData.append("action","update");
+
+    formData.append("tracking",doc.tracking);
+    formData.append("dateReceived",doc.dateReceived);
+    formData.append("sender",doc.sender);
+    formData.append("office",doc.office);
+    formData.append("category",doc.category);
+    formData.append("subject",doc.subcategory);
+    formData.append("division",doc.division);
+    formData.append("status",doc.status);
+    formData.append("remarks",doc.remarks || "");
+    formData.append("fileName",doc.attachmentName || "");
+    formData.append("driveUrl","");
+
+    await fetch(API_URL,{
+        method:"POST",
+        body:formData
+    });
+
+    await loadDocuments();
+
+}
+
+
+/* ==========================================================
+   ATTACH BUTTON EVENTS
+========================================================== */
+
+function attachRowEvents(row, doc, index){
+
+    // View
+    row.querySelector(".view-btn")
+    .addEventListener("click",()=>{
+
+        viewDocument(doc);
+
+    });
+
+    // Edit
+    row.querySelector(".edit-btn")
+    .addEventListener("click",()=>{
+
+        editDocument(doc,index);
+
+    });
+
+    // Delete
+    row.querySelector(".delete-btn")
+    .addEventListener("click",()=>{
+
+        deleteDocument(doc.tracking);
+
+    });
+
+}
+
+/* ==========================================================
+   VIEW DOCUMENT
+========================================================== */
+
+function viewDocument(doc){
+
+    document.getElementById("viewTracking").textContent =
+    doc.tracking;
+
+    document.getElementById("viewDate").textContent =
+    doc.dateReceived || "-";
+
+    document.getElementById("viewSender").textContent =
+    doc.sender;
+
+    document.getElementById("viewOffice").textContent =
+    doc.office;
+
+    document.getElementById("viewCategory").textContent =
+    doc.category;
+
+    document.getElementById("viewSubject").textContent =
+    doc.subcategory;
+
+    document.getElementById("viewDivision").textContent =
+    doc.division;
+
+    document.getElementById("viewStatus").textContent =
+    doc.status;
+
+    document.getElementById("viewAgeing").textContent =
+    doc.ageing;
+
+    document.getElementById("viewRemarks").textContent =
+    doc.remarks || "-";
+
+    document.getElementById("viewModal").style.display="flex";
+
+}
+
+/* ==========================================================
+   EDIT DOCUMENT
+========================================================== */
+
+function editDocument(doc,index){
+
+    editingIndex=index;
+
+    document.getElementById("trackingNo").value =
+    doc.tracking;
+
+    document.getElementById("dateReceived").value =
+    doc.dateReceived || "";
+
+    document.getElementById("sender").value =
+    doc.sender;
+
+    document.getElementById("office").value =
+    doc.office;
+
+    document.getElementById("category").value =
+    doc.category;
+
+    document.getElementById("subject").value =
+    doc.subcategory;
+
+    document.getElementById("division").value =
+    doc.division;
+
+    document.getElementById("status").value =
+    doc.status;
+
+    document.getElementById("remarks").value =
+    doc.remarks || "";
+
+    document.querySelector(".save-btn").innerHTML =
+    '<i class="fa-solid fa-pen"></i> Update Document';
+
+    openModal();
+
+}
+
+
 
 updateDashboard();
 // ===============================
@@ -557,11 +807,9 @@ document.getElementById("showingCount").textContent = visibleDocuments;
 
 document.getElementById("totalCount").textContent = documents.length;
 
-}
 
 // Load existing data
-renderTable();
-updateDashboard();
+loadDocuments();
 document.getElementById("officeFilter").addEventListener("change", renderTable);
 document.getElementById("yearFilter").addEventListener("change", renderTable);
 document.getElementById("statusFilter").addEventListener("change", renderTable);
@@ -617,3 +865,84 @@ window.addEventListener("click", function (e) {
     }
 
 });
+
+// ======================================
+// EXPORT TO EXCEL
+// ======================================
+
+const exportBtn = document.getElementById("exportExcel");
+
+if (exportBtn) {
+
+    exportBtn.addEventListener("click", function () {
+
+        if (documents.length === 0) {
+
+            alert("There are no documents to export.");
+
+            return;
+
+        }
+
+        const exportData = documents.map(doc => ({
+
+            "Tracking No.": doc.tracking,
+
+            "Date Received": doc.dateReceived,
+
+            "Sender": doc.sender,
+
+            "Office": doc.office,
+
+            "Category": doc.category,
+
+            "Subject": doc.subcategory,
+
+            "Division": doc.division,
+
+            "Ageing": doc.ageing,
+
+            "Status": doc.status
+
+        }));
+
+        // Create workbook
+        const worksheet = XLSX.utils.json_to_sheet(exportData);
+
+        const workbook = XLSX.utils.book_new();
+
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Incoming Documents");
+
+        // Auto column widths
+        worksheet["!cols"] = [
+
+            { wch: 22 },
+
+            { wch: 15 },
+
+            { wch: 25 },
+
+            { wch: 25 },
+
+            { wch: 18 },
+
+            { wch: 35 },
+
+            { wch: 35 },
+
+            { wch: 18 },
+
+            { wch: 15 }
+
+        ];
+
+        // File name
+        const today = new Date().toISOString().split("T")[0];
+
+        XLSX.writeFile(
+            workbook,
+            `Incoming_Documents_${today}.xlsx`
+        );
+
+    });
+}

@@ -1762,3 +1762,50 @@ margin-top:4px;
     font-size:15px;
 
 }
+
+/* ======================================
+   HEADER BUTTONS
+====================================== */
+
+.header-buttons{
+
+display:flex;
+
+gap:12px;
+
+}
+
+.export-btn{
+
+background:#16a34a;
+
+color:white;
+
+border:none;
+
+padding:14px 24px;
+
+border-radius:10px;
+
+cursor:pointer;
+
+font-weight:600;
+
+transition:.3s;
+
+}
+
+.export-btn:hover{
+
+background:#15803d;
+
+transform:translateY(-2px);
+
+}
+
+.export-btn i{
+
+margin-right:8px;
+
+}
+
