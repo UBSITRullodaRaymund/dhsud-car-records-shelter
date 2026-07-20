@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Incoming Documents | DHSUD-CAR Records Shelter</title>
+
+<link rel="stylesheet" href="style.css">
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+<link rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+
+</head>
+
+<body>
+
+<header>
+
+<nav>
+
+<div class="logo">
+
+<img src="logo.png">
+
+<div>
+
+<h2>DHSUD-CAR</h2>
+
+<span>Records Shelter</span>
+
+</div>
+
+</div>
+
+<ul>
+
+<li><a href="index.html">Home</a></li>
+
+<li><a href="documents.html">Documents Monitoring</a></li>
+
+<li><a href="outgoing.html" class="active">Outgoing Documents</a></li>
+
+</ul>
+
+</nav>
+
+</header>
+
+<section class="page-banner">
+
+<div class="page-banner-content">
+
+<h1>Outgoing Documents</h1>
+
+<p>
+
+Track all outgoing communications and releases.
+
+</p>
+
+</div>
+
+</section>
+
+<section class="records-page">
+
+    <div class="dashboard-cards">
+
+<div class="dashboard-card total">
+
+<i class="fa-solid fa-folder-open"></i>
+
+<div>
+
+<h4>Total Documents</h4>
+
+<h2 id="totalDocuments">0</h2>
+
+</div>
+
+</div>
+
+<div class="dashboard-card pending">
+
+<i class="fa-solid fa-clock"></i>
+
+<div>
+
+<h4>Pending</h4>
+
+<h2 id="pendingDocuments">0</h2>
+
+</div>
+
+</div>
+
+<div class="dashboard-card processing">
+
+<i class="fa-solid fa-spinner"></i>
+
+<div>
+
+<h4>Processing</h4>
+
+<h2 id="processingDocuments">0</h2>
+
+</div>
+
+</div>
+
+<div class="dashboard-card completed">
+
+<i class="fa-solid fa-circle-check"></i>
+
+<div>
+
+<h4>Completed</h4>
+
+<h2 id="completedDocuments">0</h2>
+
+</div>
+
+</div>
+
+</div>
+
+<div class="records-header">
+
+    <h2>Outgoing Documents</h2>
+
+    <div class="header-buttons">
+
+        <button class="export-btn" id="exportExcel">
+
+            <i class="fa-solid fa-file-excel"></i>
+
+            Export Excel
+
+        </button>
+
+        <button class="add-btn" id="openModal">
+
+            <i class="fa-solid fa-plus"></i>
+
+            Add Document
+
+        </button>
+
+    </div>
+
+</div>
+
+</div>
+
+<div class="filter-panel">
+
+<div class="filter-row">
+
+<div class="filter-box">
+
+<label>Search Documents</label>
+
+<input
+type="text"
+id="searchInput"
+placeholder="Search Tracking No., Subject, Sender..."
+>
+
+</div>
+
+<div class="filter-box">
+
+<label>Office</label>
+
+<select id="officeFilter">
+
+<option>All Offices</option>
+
+<option>Administrative Division</option>
+
+<option>Planning Division</option>
+
+<option>Finance Division</option>
+
+<option>Housing Division</option>
+
+</select>
+
+</div>
+
+<div class="filter-box">
+
+<label>Year</label>
+
+<select id="yearFilter">
+
+<option>All Years</option>
+
+<option>2026</option>
+
+<option>2025</option>
+
+<option>2024</option>
+
+</select>
+
+</div>
+
+<div class="filter-box">
+
+<label>Status</label>
+
+<select id="statusFilter">
+
+<option>All Status</option>
+
+<option>Pending</option>
+
+<option>Processing</option>
+
+<option>Completed</option>
+
+<option>Released</option>
+
+</select>
+
+</div>
+
+</div>
+
+<div class="filter-actions">
+
+<button class="search-btn">
+
+<i class="fa-solid fa-magnifying-glass"></i>
+
+Search
+
+</button>
+
+<button class="clear-btn">
+
+<i class="fa-solid fa-filter-circle-xmark"></i>
+
+Clear Filters
+
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+<div class="table-container">
+
+<table class="records-table modern-table">
+
+<thead>
+
+<tr>
+<th>Transaction No.</th>
+<th>Date Received</th>
+<th>Sender</th>
+<th>Originating Office</th>
+<th>Category</th>
+<th>Subject</th>
+<th>Division</th>
+<th>Ageing</th>
+<th>Status</th>
+<th>Action</th>
+</tr>
+
+</thead>
+
+<tbody id="recordsBody">
+
+<!-- JavaScript will load rows here -->
+
+</tbody>
+
+</table>
+<div id="emptyState" class="empty-state" style="display:none;">
+
+    <i class="fa-solid fa-folder-open"></i>
+
+    <h3>No Documents Found</h3>
+
+    <p>
+        There are no documents matching your current search or filters.
+    </p>
+
+</div>
+
+<div class="table-footer">
+
+<div class="table-info">
+
+Showing
+<strong id="showingCount">1</strong>
+of
+<strong id="totalCount">1</strong>
+documents
+
+</div>
+
+<div class="rows-select">
+
+<button class="page-btn">
+<i class="fa-solid fa-angle-left"></i>
+</button>
+
+<button class="page-btn active">1</button>
+
+<button class="page-btn">
+<i class="fa-solid fa-angle-right"></i>
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+</section>
+
+<footer>
+
+<h3>DHSUD-CAR RECORDS SHELTER</h3>
+
+<p>Department of Human Settlements and Urban Development</p>
+
+</footer>
+<!-- ==========================================
+ADD DOCUMENT MODAL
+========================================== -->
+
+<div id="documentModal" class="modal">
+
+<div class="modal-content">
+
+<span class="close">&times;</span>
+
+<h2>Add New Incoming Document</h2>
+
+<form id="documentForm">
+
+<div class="form-grid">
+
+    <div class="form-group">
+        <label>Tracking Number</label>
+        <input
+            type="text"
+            id="trackingNo"
+            readonly
+            placeholder="Automatically Generated">
+    </div>
+
+    <div class="form-group">
+        <label>Date Received</label>
+        <input
+            type="date"
+            id="dateReceived"
+            required>
+    </div>
+
+    <div class="form-group">
+        <label>Sender</label>
+        <input
+            type="text"
+            id="sender"
+            placeholder="Enter sender"
+            required>
+    </div>
+
+    <div class="form-group">
+        <label>Originating Office</label>
+
+        <select id="office">
+
+            <option>Administrative Division</option>
+
+            <option>Finance Division</option>
+
+            <option>Planning Division</option>
+
+            <option>Housing Division</option>
+
+            <option>Regional Office</option>
+
+            <option>LGU</option>
+
+            <option>Private Individual</option>
+
+        </select>
+
+    </div>
+
+    <div class="form-group">
+
+        <label>Category</label>
+
+        <select id="category">
+
+            <option>Request</option>
+
+            <option>Memorandum</option>
+
+            <option>Letter</option>
+
+            <option>Billing</option>
+
+            <option>Complaint</option>
+
+            <option>FOI</option>
+
+        </select>
+
+    </div>
+
+    <div class="form-group">
+
+        <label>Status</label>
+
+        <select id="status">
+
+            <option>Pending</option>
+
+            <option>Processing</option>
+
+            <option>Completed</option>
+
+            <option>Released</option>
+
+        </select>
+
+    </div>
+
+    <div class="form-group full">
+
+        <label>Subject</label>
+
+        <input
+            type="text"
+            id="subject"
+            placeholder="Document Subject"
+            required>
+
+    </div>
+
+    <div class="form-group full">
+
+        <label>Assigned Division</label>
+
+        <select id="division">
+
+            <option>Administrative and Finance Division</option>
+
+            <option>Housing Real Estate Development Regulation Division</option>
+
+            <option>Homeowners Association and Community Development Division</option>
+
+            <option>Environmental, Land Use and Urban Planning Division</option>
+
+            <option>Office of the Regional Director</option>
+
+        </select>
+
+    </div>
+
+    <div class="form-group full">
+
+        <label>Remarks</label>
+
+        <textarea
+            id="remarks"
+            rows="4"
+            placeholder="Additional remarks"></textarea>
+
+    </div>
+
+    <div class="form-group full">
+
+        <label>Attach Document</label>
+
+        <input
+            type="file"
+            id="documentFile"
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png">
+
+    </div>
+
+</div>
+
+<div class="modal-buttons">
+    
+
+    <button
+        type="submit"
+        class="save-btn">
+
+        <i class="fa-solid fa-floppy-disk"></i>
+
+        Save Document
+
+    </button>
+
+    <button
+        type="button"
+        class="cancel-btn"
+        id="closeModal">
+
+        Cancel
+
+    </button>
+
+</div>
+
+</form>
+
+</div>
+
+</div>
+<!-- ==========================================
+VIEW DOCUMENT MODAL
+========================================== -->
+
+<div id="viewModal" class="view-modal">
+
+<div class="modal-content">
+
+<span class="close" id="closeView">&times;</span>
+
+<h2>
+
+<i class="fa-solid fa-file-lines"></i>
+
+Document Details
+
+</h2>
+
+<div class="view-grid">
+
+<p><strong>Tracking Number:</strong></p>
+<p id="viewTracking"></p>
+
+<p><strong>Date Received:</strong></p>
+<p id="viewDate"></p>
+
+<p><strong>Sender:</strong></p>
+<p id="viewSender"></p>
+
+<p><strong>Originating Office:</strong></p>
+<p id="viewOffice"></p>
+
+<p><strong>Category:</strong></p>
+<p id="viewCategory"></p>
+
+<p><strong>Subject:</strong></p>
+<p id="viewSubject"></p>
+
+<p><strong>Assigned Division:</strong></p>
+<p id="viewDivision"></p>
+
+<p><strong>Status:</strong></p>
+<p id="viewStatus"></p>
+
+<p><strong>Ageing:</strong></p>
+<p id="viewAgeing"></p>
+
+<p><strong>Remarks:</strong></p>
+<p id="viewRemarks"></p>
+
+</div>
+
+<div class="modal-buttons">
+
+<button
+type="button"
+class="cancel-btn"
+id="closeViewBtn">
+
+Close
+
+</button>
+
+</div>
+
+</div>
+
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="outgoing.js"></script>
+
+</body>
+
+</html>
