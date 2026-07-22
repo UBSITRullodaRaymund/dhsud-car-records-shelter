@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Dockets Issuances | DHSUD-CAR Records Shelter</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+
+</head>
+
+<body>
+
+    <!-- ==========================================
+HEADER
+========================================== -->
+
+<header>
+
+<nav>
+
+<div class="logo">
+
+<img src="logo.png" alt="DHSUD-CAR Logo">
+
+<div>
+
+<h2>DHSUD-CAR</h2>
+
+<span>Records Shelter</span>
+
+</div>
+
+</div>
+
+<ul>
+
+<li><a href="index.html">Home</a></li>
+
+<li><a href="documents.html">Documents Monitoring</a></li>
+
+<li><a href="dockets.html" class="active">Dockets Issuances</a></li>
+
+</ul>
+
+</nav>
+
+</header>
+
+<!-- ==========================================
+PAGE BANNER
+========================================== -->
+
+<section class="page-banner">
+
+<div class="page-banner-content">
+
+<h1>Dockets Issuances</h1>
+
+<p>
+
+Digital Records Transaction Management
+
+</p>
+
+</div>
+
+</section>
+
+<!-- ==========================================
+MAIN CONTENT
+========================================== -->
+
+<section class="records-page">
+
+<!-- ==========================================
+DASHBOARD
+========================================== -->
+
+<div class="dashboard-cards">
+
+    <div class="dashboard-card total">
+
+        <i class="fa-solid fa-folder-open"></i>
+
+        <div>
+
+            <h4>Total Transactions</h4>
+
+            <h2 id="totalDocuments">0</h2>
+
+        </div>
+
+    </div>
+
+    <div class="dashboard-card pending">
+
+        <i class="fa-solid fa-clock"></i>
+
+        <div>
+
+            <h4>Pending</h4>
+
+            <h2 id="pendingDocuments">0</h2>
+
+        </div>
+
+    </div>
+
+    <div class="dashboard-card processing">
+
+        <i class="fa-solid fa-paper-plane"></i>
+
+        <div>
+
+            <h4>Released</h4>
+
+            <h2 id="releasedDocuments">0</h2>
+
+        </div>
+
+    </div>
+
+    <div class="dashboard-card completed">
+
+        <i class="fa-solid fa-circle-check"></i>
+
+        <div>
+
+            <h4>Returned</h4>
+
+            <h2 id="returnedDocuments">0</h2>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- ==========================================
+HEADER
+========================================== -->
+
+<div class="records-header">
+
+    <h2>
+
+        <i class="fa-solid fa-file-signature"></i>
+
+        Records Transaction Log
+
+    </h2>
+
+    <div class="header-buttons">
+
+        <button
+            class="export-btn"
+            id="exportExcel">
+
+            <i class="fa-solid fa-file-excel"></i>
+
+            Export Excel
+
+        </button>
+
+        <button
+            class="add-btn"
+            id="openModal">
+
+            <i class="fa-solid fa-plus"></i>
+
+            New Transaction
+
+        </button>
+
+    </div>
+
+</div>
+
+<!-- ==========================================
+SEARCH
+========================================== -->
+
+<div class="filter-panel">
+
+    <div class="filter-row">
+
+        <div class="filter-box" style="flex:1;">
+
+            <label>Search Transactions</label>
+
+            <input
+                type="text"
+                id="searchInput"
+                placeholder="Search Transaction No., Document Name or Requested By">
+
+        </div>
+
+    </div>
+
+    <div class="filter-actions">
+
+        <button
+            class="search-btn"
+            id="searchBtn">
+
+            <i class="fa-solid fa-magnifying-glass"></i>
+
+            Search
+
+        </button>
+
+        <button
+            class="clear-btn"
+            id="clearFilters">
+
+            <i class="fa-solid fa-filter-circle-xmark"></i>
+
+            Clear Filters
+
+        </button>
+
+    </div>
+
+</div>
+
+    <!-- ==========================================
+TRANSACTION TABLE
+========================================== -->
+
+<div class="table-container">
+
+    <table class="records-table modern-table">
+
+        <thead>
+
+            <tr>
+
+                <th>Transaction No.</th>
+
+                <th>Date Request</th>
+
+                <th>Document / File Name</th>
+
+                <th>Classification</th>
+
+                <th>Requested By</th>
+
+                <th>Released By</th>
+
+                <th>Date Received</th>
+
+                <th>Status</th>
+
+                <th>Action</th>
+
+            </tr>
+
+        </thead>
+
+        <tbody id="recordsBody">
+
+            <!-- JavaScript will load records here -->
+
+        </tbody>
+
+    </table>
+
+    <!-- Empty State -->
+
+    <div
+        id="emptyState"
+        class="empty-state"
+        style="display:none;">
+
+        <i class="fa-solid fa-folder-open"></i>
+
+        <h3>No Transactions Found</h3>
+
+        <p>
+
+            No records match your current search.
+
+        </p>
+
+    </div>
+
+    <!-- Footer -->
+
+    <div class="table-footer">
+
+        <div class="table-info">
+
+            Showing
+
+            <strong id="showingCount">0</strong>
+
+            of
+
+            <strong id="totalCount">0</strong>
+
+            transactions
+
+        </div>
+
+        <div class="rows-select">
+
+            <button class="page-btn">
+
+                <i class="fa-solid fa-angle-left"></i>
+
+            </button>
+
+            <button class="page-btn active">
+
+                1
+
+            </button>
+
+            <button class="page-btn">
+
+                <i class="fa-solid fa-angle-right"></i>
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+</section>
+
+
+<!-- ==========================================
+RECORDS TRANSACTION FORM MODAL
+========================================== -->
+
+<div id="documentModal" class="modal">
+
+<div class="modal-content transaction-modal">
+
+<span class="close" id="closeModal">&times;</span>
+
+<h2>
+
+<i class="fa-solid fa-file-signature"></i>
+
+Records Transaction Form
+
+</h2>
+
+<form id="documentForm">
+
+<div class="form-grid">
+
+<div class="form-group">
+
+<label>Transaction No.</label>
+
+<input
+type="text"
+id="transactionNo"
+readonly
+placeholder="Automatically Generated">
+
+</div>
+
+<div class="form-group">
+
+<label>Date of Request</label>
+
+<input
+type="date"
+id="dateRequest"
+required>
+
+</div>
+
+<div class="form-group full-width">
+
+<label>Document / File Name</label>
+
+<input
+type="text"
+id="documentName"
+required>
+
+</div>
+
+<div class="form-group full-width">
+
+<label>Classification</label>
+
+<div class="classification-grid">
+
+<label><input type="radio" name="classification" value="Condominium"> Condominium</label>
+
+<label><input type="radio" name="classification" value="CLUP"> CLUP</label>
+
+<label><input type="radio" name="classification" value="Memorial Park"> Memorial Park</label>
+
+<label><input type="radio" name="classification" value="HOA"> HOA</label>
+
+<label><input type="radio" name="classification" value="Subdivision"> Subdivision</label>
+
+<label><input type="radio" name="classification" value="Others"> Others</label>
+
+</div>
+
+</div>
+
+<div class="form-group">
+
+<label>Requested By</label>
+
+<input
+type="text"
+id="requestedBy">
+
+</div>
+
+<div class="form-group">
+
+<label>Released By</label>
+
+<input
+type="text"
+id="releasedBy">
+
+</div>
+
+<div class="form-group">
+
+<label>Date Received</label>
+
+<input
+type="date"
+id="dateReceived">
+
+</div>
+
+<div class="form-group">
+
+<label>Date Returned</label>
+
+<input
+type="date"
+id="dateReturned">
+
+</div>
+
+<div class="form-group">
+
+<label>Returned By</label>
+
+<input
+type="text"
+id="returnedBy">
+
+</div>
+
+<div class="form-group">
+
+<label>Verified By</label>
+
+<input
+type="text"
+id="verifiedBy">
+
+</div>
+
+<div class="form-group">
+
+<label>Status</label>
+
+<select id="status">
+
+<option>Pending</option>
+
+<option>Released</option>
+
+<option>Returned</option>
+
+</select>
+
+</div>
+
+<div class="form-group full-width">
+
+<label>Remarks</label>
+
+<textarea
+id="remarks"
+rows="4"></textarea>
+
+</div>
+
+</div>
+
+<div class="modal-buttons">
+
+<button
+type="submit"
+class="save-btn">
+
+<i class="fa-solid fa-floppy-disk"></i>
+
+Save Transaction
+
+</button>
+
+<button
+type="button"
+class="cancel-btn"
+id="cancelModal">
+
+Cancel
+
+</button>
+
+</div>
+
+</form>
+
+</div>
+
+</div>
+
+<!-- ==========================================
+VIEW RECORDS TRANSACTION FORM
+========================================== -->
+
+<div id="viewModal" class="modal">
+
+<div class="modal-content rtf-view">
+
+<span class="close" id="closeView">&times;</span>
+
+<div class="rtf-header">
+
+<img src="logo.png" class="rtf-logo">
+
+<div>
+
+<h3>DEPARTMENT OF HUMAN SETTLEMENTS</h3>
+
+<h3>AND URBAN DEVELOPMENT - CAR</h3>
+
+<h2>RECORDS TRANSACTION FORM</h2>
+
+</div>
+
+</div>
+
+<hr>
+
+<div class="rtf-row">
+
+<label>Transaction No.</label>
+
+<span id="viewTransactionNo"></span>
+
+</div>
+
+<div class="rtf-row">
+
+<label>Date Request</label>
+
+<span id="viewDateRequest"></span>
+
+</div>
+
+<div class="rtf-row">
+
+<label>Document / File Name</label>
+
+<span id="viewDocumentName"></span>
+
+</div>
+
+<h3 class="section-title">
+
+Classification
+
+</h3>
+
+<div class="classification-view">
+
+<div id="checkCondo">☐ Condominium</div>
+
+<div id="checkSubdivision">☐ Subdivision</div>
+
+<div id="checkCLUP">☐ CLUP</div>
+
+<div id="checkHOA">☐ HOA</div>
+
+<div id="checkMemorial">☐ Memorial Park</div>
+
+<div id="checkOthers">☐ Others</div>
+
+</div>
+
+<hr>
+
+<div class="rtf-grid">
+
+<div>
+
+<label>Requested By</label>
+
+<span id="viewRequestedBy"></span>
+
+</div>
+
+<div>
+
+<label>Released By</label>
+
+<span id="viewReleasedBy"></span>
+
+</div>
+
+<div>
+
+<label>Date Received</label>
+
+<span id="viewDateReceived"></span>
+
+</div>
+
+<div>
+
+<label>Date Returned</label>
+
+<span id="viewDateReturned"></span>
+
+</div>
+
+<div>
+
+<label>Returned By</label>
+
+<span id="viewReturnedBy"></span>
+
+</div>
+
+<div>
+
+<label>Verified By</label>
+
+<span id="viewVerifiedBy"></span>
+
+</div>
+
+</div>
+
+<hr>
+
+<div class="rtf-row">
+
+<label>Status</label>
+
+<span id="viewStatus" class="status-view"></span>
+
+</div>
+
+<div class="rtf-row">
+
+<label>Remarks</label>
+
+<div id="viewRemarks" class="remarks-box"></div>
+
+</div>
+
+<div class="modal-buttons">
+
+<button
+class="cancel-btn"
+id="closeViewBtn">
+
+Close
+
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+<!-- ==========================================
+FOOTER
+========================================== -->
+
+<footer>
+
+<h3>DHSUD-CAR RECORDS SHELTER</h3>
+
+<p>
+
+Department of Human Settlements and Urban Development
+
+</p>
+
+</footer>
+
+</body>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="dockets.js"></script>
+
+</html>

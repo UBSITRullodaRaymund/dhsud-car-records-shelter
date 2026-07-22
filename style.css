@@ -847,46 +847,38 @@ font-size:38px;
 
 }
 
-/* =========================================
-   STATUS
-========================================= */
-
-.status{
-
-    padding:8px 16px;
-
-    border-radius:30px;
-
-    color:white;
-
-    font-size:14px;
-
+.status-badge{
+    display:inline-block;
+    padding:6px 14px;
+    border-radius:999px;
+    font-size:13px;
     font-weight:600;
-
+    text-align:center;
 }
 
-.completed{
-
-    background:#28a745;
-
+/* Pending */
+.status-pending{
+    background:#FEF3C7;
+    color:#B45309;
 }
 
-.pending{
-
-    background:#ff9800;
-
+/* Released / Completed */
+.status-released,
+.status-completed{
+    background:#DCFCE7;
+    color:#15803D;
 }
 
-.processing{
-
-    background:#2196f3;
-
+/* Returned */
+.status-returned{
+    background:#DBEAFE;
+    color:#1D4ED8;
 }
 
-.released{
-
-    background:#6f42c1;
-
+/* Processing */
+.status-processing{
+    background:#E0E7FF;
+    color:#4338CA;
 }
 
 /* =========================================
@@ -1531,56 +1523,46 @@ margin-top:4px;
 
 }
 
-/* ===========================
-   ACTION BUTTONS
-=========================== */
+/*==============================
+ACTION BUTTONS
+==============================*/
 
 .action-buttons{
     display:flex;
-    gap:8px;
     justify-content:center;
+    align-items:center;
+    gap:8px;
 }
 
-.view-btn,
-.edit-btn,
-.delete-btn{
-
+.icon-btn{
+    width:36px;
+    height:36px;
     border:none;
-    color:white;
-    padding:8px 14px;
     border-radius:8px;
     cursor:pointer;
-    font-size:13px;
-    font-weight:600;
-    transition:.3s;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#fff;
+    font-size:14px;
+    transition:.25s;
+}
+
+.icon-btn:hover{
+    transform:translateY(-2px);
+    box-shadow:0 6px 14px rgba(0,0,0,.18);
 }
 
 .view-btn{
-    background:#0d6efd;
-}
-
-.view-btn:hover{
-    background:#0b5ed7;
+    background:#2563eb;
 }
 
 .edit-btn{
     background:#f59e0b;
 }
 
-.edit-btn:hover{
-    background:#d97706;
-}
-
 .delete-btn{
-    background:#dc3545;
-}
-
-.delete-btn:hover{
-    background:#bb2d3b;
-}
-
-.action-buttons i{
-    margin-right:5px;
+    background:#ef4444;
 }
 
 /* =======================================
@@ -1809,3 +1791,199 @@ margin-right:8px;
 
 }
 
+/*=========================================================
+RECORDS TRANSACTION FORM (RTF VIEW)
+=========================================================*/
+
+.rtf-view{
+
+    max-width:900px;
+    width:95%;
+
+    background:#fff;
+
+    border-radius:12px;
+
+    padding:35px;
+
+}
+
+.rtf-header{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:20px;
+
+    margin-bottom:20px;
+
+}
+
+.rtf-logo{
+
+    width:90px;
+
+    height:90px;
+
+}
+
+.rtf-header h2{
+
+    margin:6px 0 0;
+
+    color:#003366;
+
+    font-size:28px;
+
+    font-weight:700;
+
+}
+
+.rtf-header h3{
+
+    margin:0;
+
+    font-size:16px;
+
+    color:#444;
+
+    font-weight:600;
+
+}
+
+.rtf-view hr{
+
+    border:none;
+
+    border-top:2px solid #003366;
+
+    margin:25px 0;
+
+}
+
+.rtf-row{
+
+    display:flex;
+
+    margin:16px 0;
+
+    align-items:flex-start;
+
+}
+
+.rtf-row label{
+
+    width:220px;
+
+    font-weight:600;
+
+    color:#003366;
+
+}
+
+.rtf-row span{
+
+    flex:1;
+
+    border-bottom:1px solid #999;
+
+    padding-bottom:6px;
+
+    min-height:22px;
+
+}
+
+.section-title{
+
+    margin-top:20px;
+
+    color:#003366;
+
+}
+
+.classification-view{
+
+    display:grid;
+
+    grid-template-columns:repeat(2,1fr);
+
+    gap:12px;
+
+    margin-top:15px;
+
+    margin-bottom:20px;
+
+}
+
+.classification-view div{
+
+    border:1px solid #ccc;
+
+    border-radius:8px;
+
+    padding:10px;
+
+    background:#fafafa;
+
+}
+
+.rtf-grid{
+
+    display:grid;
+
+    grid-template-columns:repeat(2,1fr);
+
+    gap:25px;
+
+}
+
+.rtf-grid label{
+
+    display:block;
+
+    font-weight:600;
+
+    color:#003366;
+
+    margin-bottom:6px;
+
+}
+
+.rtf-grid span{
+
+    display:block;
+
+    border-bottom:1px solid #999;
+
+    padding-bottom:6px;
+
+    min-height:22px;
+
+}
+
+.status-view{
+
+    font-weight:700;
+
+    color:#006400;
+
+}
+
+.remarks-box{
+
+    width:100%;
+
+    min-height:120px;
+
+    border:1px solid #999;
+
+    border-radius:8px;
+
+    padding:15px;
+
+    white-space:pre-wrap;
+
+    background:#fafafa;
+
+}

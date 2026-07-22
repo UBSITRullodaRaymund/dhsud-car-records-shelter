@@ -1,6 +1,6 @@
 /* ==========================================================
    DHSUD-CAR RECORDS SHELTER
-   Outgoing Documents Module
+   Incoming Documents Module
    Version 1.0
 ========================================================== */
 
@@ -11,7 +11,7 @@
 const API_URL =
 "https://script.google.com/macros/s/AKfycbxQAh3bOHZc-c1gZpOtpSF4SaQSd8XV-g_OWnbM8h628C9uPPEdsVdEtrw0yabpNSn_3Q/exec";
 
-const SHEET_NAME = "Outgoing Documents";
+const SHEET_NAME = "Incoming Documents";
 
 /* ==========================================================
    GLOBAL VARIABLES
@@ -140,12 +140,12 @@ function renderTable(data = documents) {
             <td>${doc.ageing || "-"}</td>
 
             <td>
-                <span class="status-badge ${String(doc.status || "").toLowerCase()}">
-                    ${doc.status || "-"}
-                </span>
-            </td>
+    <span class="status-badge ${doc.status.toLowerCase()}">
+        ${doc.status}
+    </span>
+</td>
 
-            <td class="action-buttons">
+           <td class="action-buttons">
 
     <button class="icon-btn view-btn" onclick="viewDocument(${index})" title="View">
         <i class="fa-solid fa-eye"></i>
@@ -667,9 +667,9 @@ if(exportBtn){
 
         const workbook = XLSX.utils.book_new();
 
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Outgoing Documents");
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Incoming Documents");
 
-        XLSX.writeFile(workbook,"Outgoing_Documents.xlsx");
+        XLSX.writeFile(workbook,"Incoming_Documents.xlsx");
 
     });
 
