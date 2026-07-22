@@ -1,7 +1,7 @@
 /* ==========================================================
    DHSUD-CAR RECORDS SHELTER
-   Version 2.0
-   Developed for DHSUD-CAR
+   Outgoing Documents Module
+   Version 1.0
 ========================================================== */
 
 /* ==========================================================
@@ -10,6 +10,8 @@
 
 const API_URL =
 "https://script.google.com/macros/s/AKfycbxQAh3bOHZc-c1gZpOtpSF4SaQSd8XV-g_OWnbM8h628C9uPPEdsVdEtrw0yabpNSn_3Q/exec";
+
+const SHEET_NAME = "Outgoing Documents";
 
 /* ==========================================================
    GLOBAL VARIABLES
@@ -22,356 +24,231 @@ let editingIndex = -1;
    DOM ELEMENTS
 ========================================================== */
 
-const modal = document.getElementById("documentModal");
+// Table
+const tbody = document.getElementById("recordsBody");
+
+// Form
 const form = document.getElementById("documentForm");
 
+// Modals
+const modal = document.getElementById("documentModal");
+const viewModal = document.getElementById("viewModal");
+
+// Buttons
 const openModalBtn = document.getElementById("openModal");
 const closeModalBtn = document.querySelector(".close");
 const cancelModalBtn = document.getElementById("closeModal");
+const exportBtn = document.getElementById("exportExcel");
 
+// Filters
+const searchInput = document.getElementById("searchInput");
 const officeFilter = document.getElementById("officeFilter");
 const yearFilter = document.getElementById("yearFilter");
 const statusFilter = document.getElementById("statusFilter");
-const searchInput = document.getElementById("searchInput");
-
-const tbody = document.getElementById("recordsBody");
-
 /* ==========================================================
-   GOOGLE SHEETS API
+   HELPER FUNCTIONS
 ========================================================== */
 
-async function loadDocuments() {
+function formatDate(dateString){
 
-    try {
+    if(!dateString) return "-";
 
-        const response = await fetch(
-    API_URL +
-    "?action=getDocuments&sheet=Outgoing Documents"
-    );
+    return new Date(dateString).toLocaleDateString("en-US",{
+        year:"numeric",
+        month:"long",
+        day:"numeric"
+    });
 
-        documents = await response.json();
+}
 
-        renderTable();
-        updateDashboard();
+function generateTrackingNumber(){
 
-    } catch (error) {
+    const year = new Date().getFullYear();
 
-        console.error("Load Error:", error);
-
-    }
+    return `DHSUD-${year}-${String(documents.length + 1).padStart(4,"0")}`;
 
 }
 
 /* ==========================================================
-   SAVE DOCUMENT
+   LOAD DOCUMENTS
 ========================================================== */
 
-async function saveDocument(documentData){
+async function loadDocuments(){
 
-    try{
+    const url =
+        `${API_URL}?action=getDocuments&sheet=${encodeURIComponent(SHEET_NAME)}`;
 
-        const formData = new FormData();
+    console.log(url);
 
-        Object.keys(documentData).forEach(key=>{
+    const response = await fetch(url);
 
-            formData.append(key,documentData[key]);
+    documents = await response.json();
 
-        });
+    console.log(documents);
 
-        await fetch(API_URL,{
+    renderTable();
 
-            method:"POST",
-            mode:"no-cors",
-            body:formData
+    populateFilters();
 
-        });
-
-        await loadDocuments();
-
-    }catch(error){
-
-        console.error("Save Error:",error);
-
-    }
+    updateDashboard();
 
 }
 
+
+
 /* ==========================================================
-   DELETE DOCUMENT
+   RENDER TABLE
 ========================================================== */
 
-async function deleteDocument(tracking){
+function renderTable(data = documents) {
 
-    if(!confirm("Are you sure you want to delete this document?"))
+    tbody.innerHTML = "";
+
+    if (!data || data.length === 0) {
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="10" style="text-align:center;padding:30px;">
+                    No records found.
+                </td>
+            </tr>
+        `;
+
         return;
-
-    try{
-
-        const formData=new FormData();
-
-        formData.append("action","delete");
-        formData.append("sheet","Outgoing Documents");
-        formData.append("tracking",tracking);
-
-        await fetch(API_URL,{
-
-            method:"POST",
-
-            body:formData
-
-        });
-
-        await loadDocuments();
-
-        alert("Document deleted successfully.");
-
-    }catch(error){
-
-        console.error(error);
-
-        alert("Unable to delete document.");
-
     }
 
-}
+    data.forEach((doc, index) => {
 
-// ===============================
-// Animated Counter
-// ===============================
+        const row = document.createElement("tr");
 
-const counters = document.querySelectorAll(".counter");
+        row.innerHTML = `
 
-const speed = 200;
+            <td>${doc.tracking || "-"}</td>
 
-counters.forEach(counter => {
+            <td>${formatDate(doc.dateReceived)}</td>
 
-    const updateCount = () => {
+            <td>${doc.sender || "-"}</td>
 
-        const target = +counter.getAttribute("data-target");
-        const count = +counter.innerText.replace(/,/g,'');
+            <td>${doc.office || "-"}</td>
 
-        const increment = target / speed;
+            <td>${doc.category || "-"}</td>
 
-        if(count < target){
+            <td>${doc.subject || "-"}</td>
 
-            counter.innerText = Math.ceil(count + increment).toLocaleString();
+            <td>${doc.division || "-"}</td>
 
-            setTimeout(updateCount,10);
+            <td>${doc.ageing || "-"}</td>
 
-        }else{
+            <td>
+                <span class="status-badge ${String(doc.status || "").toLowerCase()}">
+                    ${doc.status || "-"}
+                </span>
+            </td>
 
-            counter.innerText = target.toLocaleString();
+            <td class="action-buttons">
 
-        }
+    <button class="icon-btn view-btn" onclick="viewDocument(${index})" title="View">
+        <i class="fa-solid fa-eye"></i>
+    </button>
 
-    }
+    <button class="icon-btn edit-btn" onclick="editDocument(${index})" title="Edit">
+        <i class="fa-solid fa-pen"></i>
+    </button>
 
-    updateCount();
+    <button class="icon-btn delete-btn" onclick="deleteDocument(${index})" title="Delete">
+        <i class="fa-solid fa-trash"></i>
+    </button>
 
-});
+</td>
 
-// ===============================
-// Scroll Reveal Animation
-// ===============================
+        `;
 
-const observer = new IntersectionObserver((entries)=>{
-
-    entries.forEach(entry=>{
-
-        if(entry.isIntersecting){
-
-            entry.target.classList.add("show");
-
-        }
+        tbody.appendChild(row);
 
     });
 
-},{
-    threshold:0.15
-});
+}
 
-document.querySelectorAll(".card,.stat-box,.container").forEach(el=>{
+/* ==========================================================
+   DASHBOARD
+========================================================== */
 
-    el.classList.add("hidden");
+function updateDashboard() {
 
-    observer.observe(el);
+    const total = documents.length;
 
-});
+    const processing = documents.filter(d => d.status === "Processing").length;
 
-// ===============================
-// Sticky Navbar Effect
-// ===============================
+    const completed = documents.filter(d => d.status === "Completed").length;
 
-const header = document.querySelector("header");
+    const pending = documents.filter(d => d.status === "Pending").length;
 
-window.addEventListener("scroll",()=>{
+    const totalEl = document.getElementById("totalDocuments");
+    const processingEl = document.getElementById("processingDocuments");
+    const completedEl = document.getElementById("completedDocuments");
+    const pendingEl = document.getElementById("pendingDocuments");
 
-    if(window.scrollY > 80){
-
-        header.style.background="#003C88";
-        header.style.boxShadow="0 5px 20px rgba(0,0,0,.2)";
-
-    }else{
-
-        header.style.background="transparent";
-        header.style.boxShadow="none";
-
-    }
-
-});
-
-// ===============================
-// Back To Top Button
-// ===============================
-
-const topButton = document.createElement("button");
-
-topButton.innerHTML = "↑";
-
-topButton.id = "topButton";
-
-document.body.appendChild(topButton);
-
-topButton.style.position="fixed";
-topButton.style.right="30px";
-topButton.style.bottom="30px";
-topButton.style.width="50px";
-topButton.style.height="50px";
-topButton.style.borderRadius="50%";
-topButton.style.border="none";
-topButton.style.background="#005BAC";
-topButton.style.color="#fff";
-topButton.style.fontSize="22px";
-topButton.style.cursor="pointer";
-topButton.style.display="none";
-topButton.style.boxShadow="0 10px 20px rgba(0,0,0,.2)";
-topButton.style.transition=".3s";
-topButton.style.zIndex="999";
-
-window.addEventListener("scroll",()=>{
-
-    if(window.scrollY > 500){
-
-        topButton.style.display="block";
-
-    }else{
-
-        topButton.style.display="none";
-
-    }
-
-});
-
-topButton.onclick=()=>{
-
-    window.scrollTo({
-
-        top:0,
-
-        behavior:"smooth"
-
-    });
-
-};
-
-// ===============================
-// Card Hover Animation
-// ===============================
-
-document.querySelectorAll(".card").forEach(card=>{
-
-    card.addEventListener("mouseenter",()=>{
-
-        card.style.transform="translateY(-12px) scale(1.02)";
-
-    });
-
-    card.addEventListener("mouseleave",()=>{
-
-        card.style.transform="translateY(0px) scale(1)";
-
-    });
-
-});
-
-
-// ===============================
-// Smooth Fade-In on Page Load
-// ===============================
-
-window.addEventListener("load",()=>{
-
-    document.body.style.opacity="1";
-
-});
-
-// ===============================
-// Hidden Animation
-// ===============================
-
-const style = document.createElement("style");
-
-style.innerHTML=`
-
-body{
-
-opacity:0;
-
-transition:opacity .8s;
+    if (totalEl) totalEl.textContent = total;
+    if (processingEl) processingEl.textContent = processing;
+    if (completedEl) completedEl.textContent = completed;
+    if (pendingEl) pendingEl.textContent = pending;
 
 }
 
-.hidden{
+/* ==========================================================
+   SEARCH & FILTERS
+========================================================== */
 
-opacity:0;
+function filterDocuments() {
 
-transform:translateY(50px);
+    const keyword = searchInput.value.toLowerCase();
 
-transition:all .8s ease;
+    const office = officeFilter.value;
 
-}
+    const year = yearFilter.value;
 
-.show{
+    const status = statusFilter.value;
 
-opacity:1;
+    const filtered = documents.filter(doc => {
 
-transform:translateY(0);
+        const searchMatch =
 
-}
+            (doc.tracking || "").toLowerCase().includes(keyword) ||
 
-`;
+            (doc.sender || "").toLowerCase().includes(keyword) ||
 
-document.head.appendChild(style);
+            (doc.category || "").toLowerCase().includes(keyword) ||
 
-// ===============================
-// Console Message
-// ===============================
+            (doc.subject || "").toLowerCase().includes(keyword) ||
 
-console.log("%cDHSUD-CAR RECORDS SHELTER","color:#005BAC;font-size:22px;font-weight:bold;");
-console.log("Version 1.0 Loaded Successfully");
+            (doc.division || "").toLowerCase().includes(keyword);
 
+        const officeMatch =
 
-// =============================
-// LIVE TABLE SEARCH
-// =============================
+            office === "All Offices" ||
 
-if(searchInput){
+            doc.office === office;
 
-searchInput.addEventListener("keyup",function(){
+        const yearMatch =
 
-let value=this.value.toLowerCase();
+            year === "All Years" ||
 
-let rows=document.querySelectorAll(".records-table tbody tr");
+            new Date(doc.dateReceived).getFullYear().toString() === year;
 
-rows.forEach(row=>{
+        const statusMatch =
 
-row.style.display=row.innerText.toLowerCase().includes(value)
-? ""
-: "none";
+            status === "All Status" ||
 
-});
+            doc.status === status;
 
-});
+        return searchMatch &&
+               officeMatch &&
+               yearMatch &&
+               statusMatch;
+
+    });
+
+    renderTable(filtered);
 
 }
 
@@ -379,33 +256,26 @@ row.style.display=row.innerText.toLowerCase().includes(value)
    MODAL FUNCTIONS
 ========================================================== */
 
-function openModal(){
+function openModal() {
 
-    modal.style.display="flex";
+    modal.style.display = "flex";
 
 }
 
-function closeModal(){
+function closeModal() {
 
-    modal.style.display="none";
+    modal.style.display = "none";
 
     form.reset();
 
-    editingIndex=-1;
+    editingIndex = -1;
 
-    const saveBtn=document.querySelector(".save-btn");
-
-    if(saveBtn){
-
-        saveBtn.innerHTML=
+    document.querySelector(".save-btn").innerHTML =
         '<i class="fa-solid fa-floppy-disk"></i> Save Document';
 
-    }
-
 }
-
 /* ==========================================================
-   EVENT LISTENERS
+   MODAL EVENTS
 ========================================================== */
 
 if(openModalBtn){
@@ -437,213 +307,25 @@ window.addEventListener("click",function(e){
 });
 
 /* ==========================================================
-   ADD / UPDATE DOCUMENT
+   SAVE DOCUMENT
 ========================================================== */
-
-if(form){
-
-form.addEventListener("submit",async function(e){
-
-e.preventDefault();
-
-const file=document.getElementById("documentFile").files[0];
-
-const trackingNumber=
-editingIndex===-1
-? `DHSUD-${new Date().getFullYear()}-${String(documents.length+1).padStart(4,"0")}`
-: documents[editingIndex].tracking;
-
-const newDocument={
-
-tracking:trackingNumber,
-
-dateReceived:document.getElementById("dateReceived").value,
-
-sender:document.getElementById("sender").value,
-
-office:document.getElementById("office").value,
-
-category:document.getElementById("category").value,
-
-subcategory:document.getElementById("subject").value,
-
-division:document.getElementById("division").value,
-
-status:document.getElementById("status").value,
-
-remarks:document.getElementById("remarks")?.value || "",
-
-attachmentName:file ? file.name : "",
-
-attachmentType:file ? file.type : "",
-
-attachmentSize:file ? file.size : 0,
-
-driveUrl:"",
-
-ageing:"1 DAY OF 3 DAYS"
-
-};
-
-if (editingIndex === -1) {
-
-    await saveDocument(newDocument);
-
-} else {    
-
-    await updateDocument(newDocument);
-
-    editingIndex = -1;
-
-}
-
-closeModal();
-await loadDocuments();
-renderTable();
-updateDashboard();
-
-});
-
-}
-/* ==========================================================
-   RENDER DOCUMENT TABLE
-========================================================== */
-
-function renderTable() {
-
-    if (!tbody) return;
-
-    tbody.innerHTML = "";
-
-    const office = officeFilter ? officeFilter.value : "All Offices";
-    const year = yearFilter ? yearFilter.value : "All Years";
-    const status = statusFilter ? statusFilter.value : "All Status";
-
-    const filteredDocuments = documents.filter(doc => {
-
-        const officeMatch =
-            office === "All Offices" ||
-            doc.office === office;
-
-        const yearMatch =
-            year === "All Years" ||
-            (
-                doc.dateReceived &&
-                new Date(doc.dateReceived).getFullYear().toString() === year
-            );
-
-        const statusMatch =
-            status === "All Status" ||
-            doc.status === status;
-
-        return officeMatch && yearMatch && statusMatch;
-
-    });
-
-    filteredDocuments.forEach((doc,index)=>{
-
-        const row=document.createElement("tr");
-
-        row.innerHTML=`
-
-<td>${doc.tracking}</td>
-
-<td>${
-doc.dateReceived
-? new Date(doc.dateReceived).toLocaleDateString("en-US",{
-    year:"numeric",
-    month:"long",
-    day:"numeric"
-})
-: "-"
-}</td>
-
-<td>${doc.sender}</td>
-
-<td>${doc.office}</td>
-
-<td>${doc.category}</td>
-
-<td>${doc.subcategory}</td>
-
-<td>${doc.division}</td>
-
-<td>
-
-<span class="age-badge">
-
-${doc.ageing || "-"}
-
-</span>
-
-</td>
-
-<td>
-
-<span class="status ${(doc.status || "").toLowerCase()}">
-
-${doc.status || "-"}
-
-</span>
-
-</td>
-
-<td class="action-buttons">
-
-<button class="view-btn">
-
-<i class="fa-solid fa-eye"></i>
-
-</button>
-
-<button class="edit-btn">
-
-<i class="fa-solid fa-pen"></i>
-
-</button>
-
-<button class="delete-btn">
-
-<i class="fa-solid fa-trash"></i>
-
-</button>
-
-</td>
-
-`;
-
-        tbody.appendChild(row);
-
-        attachRowEvents(row,doc,index);
-
-    });
-
-    updateDashboard();
-
-    document.getElementById("showingCount").textContent =
-    filteredDocuments.length;
-
-    document.getElementById("totalCount").textContent =
-    documents.length;
-
-}
 
 async function saveDocument(doc){
 
     const formData = new FormData();
 
     formData.append("action","save");
-    formData.append("sheet","Outgoing Documents");
+    formData.append("sheet",SHEET_NAME);
 
     formData.append("tracking",doc.tracking);
     formData.append("dateReceived",doc.dateReceived);
     formData.append("sender",doc.sender);
     formData.append("office",doc.office);
     formData.append("category",doc.category);
-    formData.append("subject",doc.subcategory);
+    formData.append("subject",doc.subject);
     formData.append("division",doc.division);
     formData.append("status",doc.status);
-    formData.append("remarks",doc.remarks || "");
+    formData.append("remarks",doc.remarks);
     formData.append("fileName",doc.attachmentName || "");
     formData.append("driveUrl","");
 
@@ -655,22 +337,27 @@ async function saveDocument(doc){
     await loadDocuments();
 
 }
+
+/* ==========================================================
+   UPDATE DOCUMENT
+========================================================== */
 
 async function updateDocument(doc){
 
     const formData = new FormData();
 
     formData.append("action","update");
-    formData.append("sheet","Outgoing Documents");
+    formData.append("sheet",SHEET_NAME);
+
     formData.append("tracking",doc.tracking);
     formData.append("dateReceived",doc.dateReceived);
     formData.append("sender",doc.sender);
     formData.append("office",doc.office);
     formData.append("category",doc.category);
-    formData.append("subject",doc.subcategory);
+    formData.append("subject",doc.subject);
     formData.append("division",doc.division);
     formData.append("status",doc.status);
-    formData.append("remarks",doc.remarks || "");
+    formData.append("remarks",doc.remarks);
     formData.append("fileName",doc.attachmentName || "");
     formData.append("driveUrl","");
 
@@ -679,54 +366,203 @@ async function updateDocument(doc){
         body:formData
     });
 
+    editingIndex = -1;
+
     await loadDocuments();
 
 }
 
 
 /* ==========================================================
-   ATTACH BUTTON EVENTS
+   DELETE DOCUMENT
 ========================================================== */
 
-function attachRowEvents(row, doc, index){
+async function deleteDocument(index){
 
-    // View
-    row.querySelector(".view-btn")
-    .addEventListener("click",()=>{
+    const doc = documents[index];
 
-        viewDocument(doc);
+    if (!confirm(`Delete ${doc.tracking}?`)) return;
+
+    const formData = new FormData();
+
+    formData.append("action", "delete");
+    formData.append("sheet", SHEET_NAME);
+    formData.append("tracking", doc.tracking);
+
+    await fetch(API_URL, {
+        method: "POST",
+        body: formData
+    });
+
+    await loadDocuments();
+
+}
+
+/* ==========================================================
+   SEARCH DOCUMENTS
+========================================================== */
+
+function filterDocuments() {
+
+    const search = searchInput.value.toLowerCase().trim();
+
+    const office = officeFilter.value;
+    const year = yearFilter.value;
+    const status = statusFilter.value;
+
+    const filtered = documents.filter(doc => {
+
+        const matchesSearch =
+
+            !search ||
+
+            String(doc.tracking).toLowerCase().includes(search) ||
+            String(doc.sender).toLowerCase().includes(search) ||
+            String(doc.office).toLowerCase().includes(search) ||
+            String(doc.category).toLowerCase().includes(search) ||
+            String(doc.subject).toLowerCase().includes(search) ||
+            String(doc.division).toLowerCase().includes(search) ||
+            String(doc.status).toLowerCase().includes(search) ||
+            String(doc.remarks).toLowerCase().includes(search);
+
+        const matchesOffice =
+            !office || doc.office === office;
+
+        const matchesStatus =
+            !status || doc.status === status;
+
+        let matchesYear = true;
+
+        if(year){
+
+            matchesYear =
+                new Date(doc.dateReceived).getFullYear().toString() === year;
+
+        }
+
+        return (
+            matchesSearch &&
+            matchesOffice &&
+            matchesStatus &&
+            matchesYear
+        );
 
     });
 
-    // Edit
-    row.querySelector(".edit-btn")
-    .addEventListener("click",()=>{
+    renderTable(filtered);
 
-        editDocument(doc,index);
+}
+
+/* ==========================================================
+   POPULATE FILTERS
+========================================================== */
+
+function populateFilters() {
+
+    // Office Filter
+    const offices = [...new Set(
+        documents
+            .map(doc => doc.office)
+            .filter(Boolean)
+    )].sort();
+
+    officeFilter.innerHTML =
+        `<option value="">All Offices</option>`;
+
+    offices.forEach(office => {
+
+        officeFilter.innerHTML +=
+            `<option value="${office}">${office}</option>`;
 
     });
 
-    // Delete
-    row.querySelector(".delete-btn")
-    .addEventListener("click",()=>{
+    // Year Filter
+    const years = [...new Set(
+        documents
+            .map(doc => new Date(doc.dateReceived).getFullYear())
+            .filter(Boolean)
+    )].sort((a, b) => b - a);
 
-        deleteDocument(doc.tracking);
+    yearFilter.innerHTML =
+        `<option value="">All Years</option>`;
+
+    years.forEach(year => {
+
+        yearFilter.innerHTML +=
+            `<option value="${year}">${year}</option>`;
 
     });
 
 }
 
 /* ==========================================================
+   FORM SUBMIT
+========================================================== */
+
+form.addEventListener("submit", async function(e){
+
+    e.preventDefault();
+
+    const file = document.getElementById("documentFile").files[0];
+
+    const doc = {
+
+        tracking:
+            editingIndex === -1
+            ? generateTrackingNumber()
+            : documents[editingIndex].tracking,
+
+        dateReceived: document.getElementById("dateReceived").value,
+
+        sender: document.getElementById("sender").value,
+
+        office: document.getElementById("office").value,
+
+        category: document.getElementById("category").value,
+
+        subject: document.getElementById("subject").value,
+
+        division: document.getElementById("division").value,
+
+        status: document.getElementById("status").value,
+
+        remarks: document.getElementById("remarks").value,
+
+        attachmentName: file ? file.name : "",
+
+        ageing: "1 DAY OF 3 DAYS"
+
+    };
+
+    if(editingIndex === -1){
+
+        await saveDocument(doc);
+
+    }else{
+
+        await updateDocument(doc);
+
+    }
+
+    closeModal();
+
+    loadDocuments();
+
+});
+
+/* ==========================================================
    VIEW DOCUMENT
 ========================================================== */
 
-function viewDocument(doc){
+function viewDocument(index){
+
+    const doc = documents[index];
 
     document.getElementById("viewTracking").textContent =
     doc.tracking;
 
     document.getElementById("viewDate").textContent =
-    doc.dateReceived || "-";
+    formatDate(doc.dateReceived);
 
     document.getElementById("viewSender").textContent =
     doc.sender;
@@ -738,7 +574,7 @@ function viewDocument(doc){
     doc.category;
 
     document.getElementById("viewSubject").textContent =
-    doc.subcategory;
+    doc.subject;
 
     document.getElementById("viewDivision").textContent =
     doc.division;
@@ -752,7 +588,7 @@ function viewDocument(doc){
     document.getElementById("viewRemarks").textContent =
     doc.remarks || "-";
 
-    document.getElementById("viewModal").style.display="flex";
+    viewModal.style.display = "flex";
 
 }
 
@@ -760,129 +596,46 @@ function viewDocument(doc){
    EDIT DOCUMENT
 ========================================================== */
 
-function editDocument(doc,index){
+function editDocument(index){
 
-    editingIndex=index;
+    editingIndex = index;
 
-    document.getElementById("trackingNo").value =
-    doc.tracking;
+    const doc = documents[index];
 
-    document.getElementById("dateReceived").value =
-    doc.dateReceived || "";
+    document.getElementById("dateReceived").value = doc.dateReceived
+        ? doc.dateReceived.split("T")[0]
+        : "";
 
-    document.getElementById("sender").value =
-    doc.sender;
+    document.getElementById("sender").value = doc.sender || "";
 
-    document.getElementById("office").value =
-    doc.office;
+    document.getElementById("office").value = doc.office || "";
 
-    document.getElementById("category").value =
-    doc.category;
+    document.getElementById("category").value = doc.category || "";
 
-    document.getElementById("subject").value =
-    doc.subcategory;
+    document.getElementById("subject").value = doc.subject || "";
 
-    document.getElementById("division").value =
-    doc.division;
+    document.getElementById("division").value = doc.division || "";
 
-    document.getElementById("status").value =
-    doc.status;
+    document.getElementById("status").value = doc.status || "";
 
-    document.getElementById("remarks").value =
-    doc.remarks || "";
+    document.getElementById("remarks").value = doc.remarks || "";
 
-    document.querySelector(".save-btn").innerHTML =
-    '<i class="fa-solid fa-pen"></i> Update Document';
-
-    openModal();
+    modal.style.display = "flex";
 
 }
 
 
+/* ==========================================================
+   EXPORT TO EXCEL
+========================================================== */
 
-updateDashboard();
-// ===============================
-// UPDATE TABLE FOOTER
-// ===============================
+if(exportBtn){
 
-const visibleDocuments = tbody.querySelectorAll("tr").length;
+    exportBtn.addEventListener("click", function(){
 
-document.getElementById("showingCount").textContent = visibleDocuments;
+        if(documents.length === 0){
 
-document.getElementById("totalCount").textContent = documents.length;
-
-
-// Load existing data
-loadDocuments();
-document.getElementById("officeFilter").addEventListener("change", renderTable);
-document.getElementById("yearFilter").addEventListener("change", renderTable);
-document.getElementById("statusFilter").addEventListener("change", renderTable);
-
-// ======================================
-// UPDATE DASHBOARD COUNTERS
-// ======================================
-
-function updateDashboard() {
-
-    const total = documents.length;
-
-    const pending = documents.filter(doc => doc.status === "Pending").length;
-
-    const processing = documents.filter(doc => doc.status === "Processing").length;
-
-    const completed = documents.filter(doc => doc.status === "Completed").length;
-
-    document.getElementById("totalDocuments").textContent = total;
-
-    document.getElementById("pendingDocuments").textContent = pending;
-
-    document.getElementById("processingDocuments").textContent = processing;
-
-    document.getElementById("completedDocuments").textContent = completed;
-
-}
-
-// ======================================
-// CLOSE VIEW MODAL
-// ======================================
-
-const viewModal = document.getElementById("viewModal");
-
-document.getElementById("closeView").onclick = function () {
-
-    viewModal.style.display = "none";
-
-};
-
-document.getElementById("closeViewBtn").onclick = function () {
-
-    viewModal.style.display = "none";
-
-};
-
-window.addEventListener("click", function (e) {
-
-    if (e.target === viewModal) {
-
-        viewModal.style.display = "none";
-
-    }
-
-});
-
-// ======================================
-// EXPORT TO EXCEL
-// ======================================
-
-const exportBtn = document.getElementById("exportExcel");
-
-if (exportBtn) {
-
-    exportBtn.addEventListener("click", function () {
-
-        if (documents.length === 0) {
-
-            alert("There are no documents to export.");
+            alert("No documents to export.");
 
             return;
 
@@ -892,7 +645,7 @@ if (exportBtn) {
 
             "Tracking No.": doc.tracking,
 
-            "Date Received": doc.dateReceived,
+            "Date Received": formatDate(doc.dateReceived),
 
             "Sender": doc.sender,
 
@@ -900,53 +653,96 @@ if (exportBtn) {
 
             "Category": doc.category,
 
-            "Subject": doc.subcategory,
+            "Subject": doc.subject,
 
             "Division": doc.division,
 
-            "Ageing": doc.ageing,
+            "Status": doc.status,
 
-            "Status": doc.status
+            "Remarks": doc.remarks
 
         }));
 
-        // Create workbook
         const worksheet = XLSX.utils.json_to_sheet(exportData);
 
         const workbook = XLSX.utils.book_new();
 
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Incoming Documents");
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Outgoing Documents");
 
-        // Auto column widths
-        worksheet["!cols"] = [
-
-            { wch: 22 },
-
-            { wch: 15 },
-
-            { wch: 25 },
-
-            { wch: 25 },
-
-            { wch: 18 },
-
-            { wch: 35 },
-
-            { wch: 35 },
-
-            { wch: 18 },
-
-            { wch: 15 }
-
-        ];
-
-        // File name
-        const today = new Date().toISOString().split("T")[0];
-
-        XLSX.writeFile(
-            workbook,
-            `Incoming_Documents_${today}.xlsx`
-        );
+        XLSX.writeFile(workbook,"Outgoing_Documents.xlsx");
 
     });
+
 }
+
+/* ==========================================================
+   FILTER EVENTS
+========================================================== */
+
+if(searchInput){
+
+    searchInput.addEventListener("keyup",filterDocuments);
+
+}
+
+if(officeFilter){
+
+    officeFilter.addEventListener("change",filterDocuments);
+
+}
+
+if(yearFilter){
+
+    yearFilter.addEventListener("change",filterDocuments);
+
+}
+
+if(statusFilter){
+
+    statusFilter.addEventListener("change",filterDocuments);
+
+}
+
+/* ==========================================================
+   VIEW MODAL
+========================================================== */
+
+document.getElementById("closeView").onclick=function(){
+
+    viewModal.style.display="none";
+
+};
+
+document.getElementById("closeViewBtn").onclick=function(){
+
+    viewModal.style.display="none";
+
+};
+
+window.addEventListener("click",function(e){
+
+    if(e.target===viewModal){
+
+        viewModal.style.display="none";
+
+    }
+
+});
+
+/* ==========================================================
+   START APPLICATION
+========================================================== */
+
+window.addEventListener("DOMContentLoaded", () => {
+
+    loadDocuments();
+
+    searchInput.addEventListener("input", filterDocuments);
+
+    officeFilter.addEventListener("change", filterDocuments);
+
+    yearFilter.addEventListener("change", filterDocuments);
+
+    statusFilter.addEventListener("change", filterDocuments);
+
+});
