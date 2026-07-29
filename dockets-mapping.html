@@ -110,7 +110,7 @@ STATISTICS
 
 <i class="fa-solid fa-layer-group"></i>
 
-<h3 id="totalCategories">10</h3>
+<h3 id="totalCategories">0</h3>
 
 <p>Categories</p>
 
@@ -140,7 +140,7 @@ STATISTICS
 
 <i class="fa-solid fa-file-lines"></i>
 
-<h3 id="totalFiles">0</h3>
+<h3 id="totalDocuments">0</h3>
 
 <p>Documents</p>
 
@@ -158,18 +158,46 @@ SEARCH
 
 <section class="search-section">
 
-<div class="container">
-
 <div class="search-box">
 
 <i class="fa-solid fa-search"></i>
 
 <input
+id="searchInput"
 type="text"
-id="globalSearch"
-placeholder="Search categories, projects or documents...">
+placeholder="Search files, projects, folders..."
+onkeyup="applyFilters()">
 
-</div>
+<select id="categoryFilter"
+onchange="applyFilters()">
+
+<option value="">All Categories</option>
+
+</select>
+
+<select id="projectFilter"
+onchange="applyFilters()">
+
+<option value="">All Projects</option>
+
+</select>
+
+<select id="folderFilter"
+onchange="applyFilters()">
+
+<option value="">All Folders</option>
+
+</select>
+
+<button
+class="primary-btn"
+onclick="clearFilters()">
+
+<i class="fa-solid fa-filter-circle-xmark"></i>
+
+Clear
+
+</button>
 
 </div>
 
@@ -216,6 +244,16 @@ Categories
 Explorer
 
 </h3>
+
+<!-- Breadcrumb -->
+
+<div id="breadcrumb" class="breadcrumb">
+
+    <span onclick="goHome()">
+        <i class="fa-solid fa-house"></i> Home
+    </span>
+
+</div>
 
 <div id="explorerContent">
 

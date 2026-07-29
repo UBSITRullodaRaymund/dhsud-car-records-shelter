@@ -229,9 +229,13 @@ EXPLORER
 }
 
 .explorer-layout{
+
     display:grid;
-    grid-template-columns:280px 1fr 380px;
+
+    grid-template-columns:260px 1fr 500px;
+
     gap:25px;
+
 }
 
 /*==================================================
@@ -625,6 +629,438 @@ BUTTON
 .primary-btn:hover{
 
     background:#083d82;
+
+}
+
+/*==================================================
+PREVIEW PANEL
+==================================================*/
+
+.preview-file{
+
+    text-align:center;
+
+}
+
+.preview-file i{
+
+    font-size:70px;
+
+    color:#E53935;
+
+    margin-bottom:20px;
+
+}
+
+.preview-file h2{
+
+    font-size:22px;
+
+    color:#0B4EA2;
+
+    margin-bottom:15px;
+
+    word-break:break-word;
+
+}
+
+.preview-file p{
+
+    color:#666;
+
+    margin-bottom:8px;
+
+}
+
+.preview-placeholder{
+
+    height:300px;
+
+    border:2px dashed #d6dce5;
+
+    border-radius:15px;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    background:#f8fafc;
+
+    color:#999;
+
+    margin:25px 0;
+
+    font-size:15px;
+
+}
+
+/*==================================================
+PDF PREVIEW
+==================================================*/
+
+.pdf-preview{
+
+    margin:25px 0;
+
+    border:1px solid #d8e2ee;
+
+    border-radius:15px;
+
+    overflow:hidden;
+
+    background:white;
+
+}
+
+.pdf-preview iframe{
+
+    display:block;
+
+    width:100%;
+
+    height:420px;
+
+    border:none;
+
+}
+
+/*==================================================
+BREADCRUMB
+==================================================*/
+
+.breadcrumb{
+
+    padding:14px 22px;
+
+    background:#f5f8fc;
+
+    border-bottom:1px solid #e4ecf5;
+
+    font-size:14px;
+
+    color:#666;
+
+}
+
+.breadcrumb span{
+
+    color:#0B4EA2;
+
+    cursor:pointer;
+
+    font-weight:600;
+
+}
+
+.breadcrumb span:hover{
+
+    text-decoration:underline;
+
+}
+
+.breadcrumb .separator{
+
+    margin:0 8px;
+
+    color:#999;
+
+}
+
+/*==================================================
+BREADCRUMB
+==================================================*/
+
+.breadcrumb{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:8px;
+
+    padding:14px 22px;
+
+    background:#f8fafc;
+
+    border-bottom:1px solid #e4ecf5;
+
+    font-size:14px;
+
+}
+
+.breadcrumb span{
+
+    color:#0B4EA2;
+
+    cursor:pointer;
+
+    font-weight:600;
+
+    transition:.2s;
+
+}
+
+.breadcrumb span:hover{
+
+    color:#1565C0;
+
+    text-decoration:underline;
+
+}
+
+.separator{
+
+    color:#999;
+
+}
+
+/*==================================================
+SEARCH RESULTS
+==================================================*/
+
+.search-result{
+
+    cursor:pointer;
+
+    transition:.25s;
+
+}
+
+.search-result:hover{
+
+    transform:translateY(-3px);
+
+    border-color:#0B4EA2;
+
+    background:#f8fbff;
+
+}
+
+/*==================================================
+BREADCRUMB
+==================================================*/
+
+.breadcrumb{
+
+    padding:14px 20px;
+
+    background:#f8fafc;
+
+    border-bottom:1px solid #e5ebf3;
+
+    display:flex;
+
+    align-items:center;
+
+    flex-wrap:wrap;
+
+    gap:8px;
+
+    font-size:14px;
+
+}
+
+.breadcrumb span{
+
+    color:#0B4EA2;
+
+    font-weight:600;
+
+    cursor:pointer;
+
+    transition:.2s;
+
+}
+
+.breadcrumb span:hover{
+
+    text-decoration:underline;
+
+}
+
+.breadcrumb .separator{
+
+    color:#999;
+
+}
+
+/*==========================================
+SELECTED DOCUMENT
+==========================================*/
+
+.active-document{
+
+    border:2px solid #0B4EA2;
+
+    background:#EEF5FF;
+
+    box-shadow:0 8px 20px rgba(11,78,162,.15);
+
+}
+
+.active-document .document-name{
+
+    color:#0B4EA2;
+
+    font-weight:700;
+
+}
+
+/*==================================================
+PROFESSIONAL PREVIEW PANEL
+==================================================*/
+
+.preview-header{
+
+    margin-bottom:20px;
+
+}
+
+.preview-title{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:15px;
+
+}
+
+.preview-title i{
+
+    font-size:42px;
+
+    color:#E53935;
+
+}
+
+.preview-title h2{
+
+    color:#0B4EA2;
+
+    font-size:22px;
+
+    margin:0;
+
+}
+
+.preview-title span{
+
+    color:#777;
+
+    font-size:14px;
+
+}
+
+.preview-pdf{
+
+    border:1px solid #dbe5f0;
+
+    border-radius:12px;
+
+    overflow:hidden;
+
+    margin-bottom:20px;
+
+}
+
+.details-grid{
+
+    display:grid;
+
+    grid-template-columns:repeat(2,1fr);
+
+    gap:12px;
+
+    margin-bottom:20px;
+
+}
+
+.detail-card{
+
+    background:#f8fbff;
+
+    border:1px solid #dce7f4;
+
+    border-radius:10px;
+
+    padding:12px;
+
+}
+
+.detail-card span{
+
+    display:block;
+
+    font-size:12px;
+
+    color:#666;
+
+    margin-bottom:5px;
+
+}
+
+.detail-card strong{
+
+    color:#0B4EA2;
+
+}
+
+.preview-actions{
+
+    display:flex;
+
+    gap:12px;
+
+}
+
+.preview-actions .primary-btn{
+
+    flex:1;
+
+    text-align:center;
+
+    text-decoration:none;
+
+}
+
+.search-box{
+
+display:flex;
+
+align-items:center;
+
+gap:15px;
+
+flex-wrap:wrap;
+
+}
+
+.search-box input{
+
+flex:1;
+
+min-width:250px;
+
+}
+
+.search-box select{
+
+padding:11px 14px;
+
+border:1px solid #d7e2ef;
+
+border-radius:10px;
+
+font-family:Poppins,sans-serif;
+
+background:white;
+
+min-width:180px;
+
+cursor:pointer;
 
 }
 
