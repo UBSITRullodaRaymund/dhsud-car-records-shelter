@@ -1,602 +1,402 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Outgoing Documents | DHSUD-CAR</title>
 
-<title>Incoming Documents | DHSUD-CAR Records Shelter</title>
-<link rel="icon" type="image/png" href="logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-<link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+  >
 
-<link rel="stylesheet"
-href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
-
+  <link rel="stylesheet" href="outgoing.css">
 </head>
 
 <body>
 
-<header>
-
-<nav>
-
-<div class="logo">
-
-<img src="logo.png">
-
-<div>
-
-<h2>DHSUD-CAR</h2>
-
-<span>Records Shelter</span>
-
-</div>
-
-</div>
-
-<ul>
-
-<li><a href="index.html">Home</a></li>
-
-<li><a href="documents.html">Documents Monitoring</a></li>
-
-<li><a href="outgoing.html" class="active">Outgoing Documents</a></li>
-
-</ul>
-
-</nav>
-
-</header>
-
-<section class="page-banner">
-
-<div class="page-banner-content">
-
-<h1>Outgoing Documents</h1>
-
-<p>
-
-Track all outgoing communications and releases.
-
-</p>
-
-</div>
-
-</section>
-
-<section class="records-page">
-
-    <div class="dashboard-cards">
-
-<div class="dashboard-card total">
-
-<i class="fa-solid fa-folder-open"></i>
-
-<div>
-
-<h4>Total Documents</h4>
-
-<h2 id="totalDocuments">0</h2>
-
-</div>
-
-</div>
-
-<div class="dashboard-card pending">
-
-<i class="fa-solid fa-clock"></i>
-
-<div>
-
-<h4>Pending</h4>
-
-<h2 id="pendingDocuments">0</h2>
-
-</div>
-
-</div>
-
-<div class="dashboard-card processing">
-
-<i class="fa-solid fa-spinner"></i>
-
-<div>
-
-<h4>Processing</h4>
-
-<h2 id="processingDocuments">0</h2>
-
-</div>
-
-</div>
-
-<div class="dashboard-card completed">
-
-<i class="fa-solid fa-circle-check"></i>
-
-<div>
-
-<h4>Completed</h4>
-
-<h2 id="completedDocuments">0</h2>
-
-</div>
-
-</div>
-
-</div>
-
-<div class="records-header">
-
-    <h2>Outgoing Documents</h2>
-
-    <div class="header-buttons">
-
-        <button class="export-btn" id="exportExcel">
-
-            <i class="fa-solid fa-file-excel"></i>
-
-            Export Excel
-
-        </button>
-
-        <button class="add-btn" id="openModal">
-
-            <i class="fa-solid fa-plus"></i>
-
-            Add Document
-
-        </button>
-
+  <!-- =========================================================
+       TOP BAR
+  ========================================================== -->
+
+  <header class="topbar">
+
+    <div class="brand">
+      <img src="logo.png" alt="DHSUD Logo">
+
+      <div class="brand-text">
+        <strong>DHSUD-CAR</strong>
+        <span>Document Monitoring System</span>
+      </div>
     </div>
 
-</div>
+    <nav class="navigation">
 
-</div>
+      <a href="index.html">
+        <i class="fa-solid fa-house"></i>
+        Home
+      </a>
 
-<div class="filter-panel">
+      <a href="documents.html" class="active">
+        <i class="fa-solid fa-file-lines"></i>
+        Documents Monitoring
+      </a>
 
-<div class="filter-row">
+      <a href="dockets.html">
+        <i class="fa-solid fa-folder-open"></i>
+        Dockets Issuances
+      </a>
 
-<div class="filter-box">
+    </nav>
 
-<label>Search Documents</label>
+  </header>
 
-<input
-type="text"
-id="searchInput"
-placeholder="Search Tracking No., Subject, Sender..."
->
 
-</div>
+  <!-- =========================================================
+       MAIN CONTENT
+  ========================================================== -->
 
-<div class="filter-box">
+  <main class="main-container">
 
-<label>Office</label>
+    <!-- Back Button -->
 
-<select id="officeFilter">
+    <div class="back-container">
 
-<option>All Offices</option>
-
-<option>Administrative Division</option>
-
-<option>Planning Division</option>
-
-<option>Finance Division</option>
-
-<option>Housing Division</option>
-
-</select>
-
-</div>
-
-<div class="filter-box">
-
-<label>Year</label>
-
-<select id="yearFilter">
-
-<option>All Years</option>
-
-<option>2026</option>
-
-<option>2025</option>
-
-<option>2024</option>
-
-</select>
-
-</div>
-
-<div class="filter-box">
-
-<label>Status</label>
-
-<select id="statusFilter">
-
-<option>All Status</option>
-
-<option>Pending</option>
-
-<option>Processing</option>
-
-<option>Completed</option>
-
-<option>Released</option>
-
-</select>
-
-</div>
-
-</div>
-
-<div class="filter-actions">
-
-<button class="search-btn">
-
-<i class="fa-solid fa-magnifying-glass"></i>
-
-Search
-
-</button>
-
-<button class="clear-btn">
-
-<i class="fa-solid fa-filter-circle-xmark"></i>
-
-Clear Filters
-
-</button>
-
-</div>
-
-</div>
-
-</div>
-
-<div class="table-container">
-
-<table class="records-table modern-table">
-
-<thead>
-
-<tr>
-<th>Transaction No.</th>
-<th>Date Received</th>
-<th>Sender</th>
-<th>Originating Office</th>
-<th>Category</th>
-<th>Subject</th>
-<th>Division</th>
-<th>Ageing</th>
-<th>Status</th>
-<th>Action</th>
-</tr>
-
-</thead>
-
-<tbody id="recordsBody">
-
-<!-- JavaScript will load rows here -->
-
-</tbody>
-
-</table>
-<div id="emptyState" class="empty-state" style="display:none;">
-
-    <i class="fa-solid fa-folder-open"></i>
-
-    <h3>No Documents Found</h3>
-
-    <p>
-        There are no documents matching your current search or filters.
-    </p>
-
-</div>
-
-<div class="table-footer">
-
-<div class="table-info">
-
-Showing
-<strong id="showingCount">1</strong>
-of
-<strong id="totalCount">1</strong>
-documents
-
-</div>
-
-<div class="rows-select">
-
-<button class="page-btn">
-<i class="fa-solid fa-angle-left"></i>
-</button>
-
-<button class="page-btn active">1</button>
-
-<button class="page-btn">
-<i class="fa-solid fa-angle-right"></i>
-</button>
-
-</div>
-
-</div>
-
-</div>
-
-</section>
-
-<footer>
-
-<h3>DHSUD-CAR RECORDS SHELTER</h3>
-
-<p>Department of Human Settlements and Urban Development</p>
-
-</footer>
-<!-- ==========================================
-ADD DOCUMENT MODAL
-========================================== -->
-
-<div id="documentModal" class="modal">
-
-<div class="modal-content">
-
-<span class="close">&times;</span>
-
-<h2>Add New Incoming Document</h2>
-
-<form id="documentForm">
-
-<div class="form-grid">
-
-    <div class="form-group">
-        <label>Tracking Number</label>
-        <input
-            type="text"
-            id="trackingNo"
-            readonly
-            placeholder="Automatically Generated">
-    </div>
-
-    <div class="form-group">
-        <label>Date Received</label>
-        <input
-            type="date"
-            id="dateReceived"
-            required>
-    </div>
-
-    <div class="form-group">
-        <label>Sender</label>
-        <input
-            type="text"
-            id="sender"
-            placeholder="Enter sender"
-            required>
-    </div>
-
-    <div class="form-group">
-        <label>Originating Office</label>
-
-        <select id="office">
-
-            <option>Administrative Division</option>
-
-            <option>Finance Division</option>
-
-            <option>Planning Division</option>
-
-            <option>Housing Division</option>
-
-            <option>Regional Office</option>
-
-            <option>LGU</option>
-
-            <option>Private Individual</option>
-
-        </select>
-
-    </div>
-
-    <div class="form-group">
-
-        <label>Category</label>
-
-        <select id="category">
-
-            <option>Request</option>
-
-            <option>Memorandum</option>
-
-            <option>Letter</option>
-
-            <option>Billing</option>
-
-            <option>Complaint</option>
-
-            <option>FOI</option>
-
-        </select>
-
-    </div>
-
-    <div class="form-group">
-
-        <label>Status</label>
-
-        <select id="status">
-
-            <option>Pending</option>
-
-            <option>Processing</option>
-
-            <option>Completed</option>
-
-            <option>Released</option>
-
-        </select>
-
-    </div>
-
-    <div class="form-group full">
-
-        <label>Subject</label>
-
-        <input
-            type="text"
-            id="subject"
-            placeholder="Document Subject"
-            required>
-
-    </div>
-
-    <div class="form-group full">
-
-        <label>Assigned Division</label>
-
-        <select id="division">
-
-            <option>Administrative and Finance Division</option>
-
-            <option>Housing Real Estate Development Regulation Division</option>
-
-            <option>Homeowners Association and Community Development Division</option>
-
-            <option>Environmental, Land Use and Urban Planning Division</option>
-
-            <option>Office of the Regional Director</option>
-
-        </select>
-
-    </div>
-
-    <div class="form-group full">
-
-        <label>Remarks</label>
-
-        <textarea
-            id="remarks"
-            rows="4"
-            placeholder="Additional remarks"></textarea>
-
-    </div>
-
-    <div class="form-group full">
-
-        <label>Attach Document</label>
-
-        <input
-            type="file"
-            id="documentFile"
-            accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png">
-
-    </div>
-
-</div>
-
-<div class="modal-buttons">
-    
-
-    <button
-        type="submit"
-        class="save-btn">
-
-        <i class="fa-solid fa-floppy-disk"></i>
-
-        Save Document
-
-    </button>
-
-    <button
+      <button
         type="button"
-        class="cancel-btn"
-        id="closeModal">
+        class="back-monitoring-btn"
+        onclick="goToDocumentsMonitoring()"
+      >
+        <i class="fa-solid fa-arrow-left"></i>
+        Back to Documents Monitoring
+      </button>
 
-        Cancel
+    </div>
 
-    </button>
 
-</div>
+    <!-- =======================================================
+         HERO
+    ======================================================== -->
 
-</form>
+    <section class="hero">
 
-</div>
+      <div class="hero-icon">
+        <i class="fa-solid fa-paper-plane"></i>
+      </div>
 
-</div>
-<!-- ==========================================
-VIEW DOCUMENT MODAL
-========================================== -->
+      <div class="hero-content">
 
-<div id="viewModal" class="view-modal">
+        <h1>Outgoing Documents</h1>
 
-<div class="modal-content">
+        <p>
+          Monitor and manage documents routed to DHSUD-CAR departments.
+        </p>
 
-<span class="close" id="closeView">&times;</span>
+      </div>
 
-<h2>
+    </section>
 
-<i class="fa-solid fa-file-lines"></i>
 
-Document Details
+    <!-- =======================================================
+         OVERALL STATISTICS
+    ======================================================== -->
 
-</h2>
+    <section class="statistics-grid">
 
-<div class="view-grid">
+      <!-- TOTAL -->
 
-<p><strong>Tracking Number:</strong></p>
-<p id="viewTracking"></p>
+      <div class="stat-card">
 
-<p><strong>Date Received:</strong></p>
-<p id="viewDate"></p>
+        <div class="stat-icon">
+          <i class="fa-solid fa-folder-open"></i>
+        </div>
 
-<p><strong>Sender:</strong></p>
-<p id="viewSender"></p>
+        <div class="stat-content">
 
-<p><strong>Originating Office:</strong></p>
-<p id="viewOffice"></p>
+          <span class="stat-label">
+            Total Documents
+          </span>
 
-<p><strong>Category:</strong></p>
-<p id="viewCategory"></p>
+          <strong id="totalOutgoing">
+            0
+          </strong>
 
-<p><strong>Subject:</strong></p>
-<p id="viewSubject"></p>
+        </div>
 
-<p><strong>Assigned Division:</strong></p>
-<p id="viewDivision"></p>
+      </div>
 
-<p><strong>Status:</strong></p>
-<p id="viewStatus"></p>
 
-<p><strong>Ageing:</strong></p>
-<p id="viewAgeing"></p>
+      <!-- PENDING -->
 
-<p><strong>Remarks:</strong></p>
-<p id="viewRemarks"></p>
+      <div class="stat-card">
 
-</div>
+        <div class="stat-icon">
+          <i class="fa-solid fa-clock"></i>
+        </div>
 
-<div class="modal-buttons">
+        <div class="stat-content">
 
-<button
-type="button"
-class="cancel-btn"
-id="closeViewBtn">
+          <span class="stat-label">
+            Pending
+          </span>
 
-Close
+          <strong id="pendingOutgoing">
+            0
+          </strong>
 
-</button>
+        </div>
 
-</div>
+      </div>
 
-</div>
 
-</div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="outgoing.js"></script>
+      <!-- PROCESSING -->
+
+      <div class="stat-card">
+
+        <div class="stat-icon">
+          <i class="fa-solid fa-spinner"></i>
+        </div>
+
+        <div class="stat-content">
+
+          <span class="stat-label">
+            Processing
+          </span>
+
+          <strong id="processingOutgoing">
+            0
+          </strong>
+
+        </div>
+
+      </div>
+
+
+      <!-- COMPLETED -->
+
+      <div class="stat-card">
+
+        <div class="stat-icon">
+          <i class="fa-solid fa-circle-check"></i>
+        </div>
+
+        <div class="stat-content">
+
+          <span class="stat-label">
+            Completed
+          </span>
+
+          <strong id="completedOutgoing">
+            0
+          </strong>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- =======================================================
+         SEARCH
+    ======================================================== -->
+
+    <section class="search-section">
+
+      <div class="search-box">
+
+        <i class="fa-solid fa-magnifying-glass"></i>
+
+        <input
+          type="text"
+          id="outgoingSearch"
+          placeholder="Search departments or documents..."
+          autocomplete="off"
+        >
+
+      </div>
+
+    </section>
+
+
+    <!-- =======================================================
+         DEPARTMENT VIEW
+    ======================================================== -->
+
+    <section id="departmentsView">
+
+      <div class="section-heading">
+
+        <div>
+          <h2>Departments</h2>
+
+          <p>
+            Select a department to view its outgoing documents.
+          </p>
+        </div>
+
+      </div>
+
+
+      <!-- Department cards are generated by JavaScript -->
+
+      <div
+        id="departmentGrid"
+        class="department-grid"
+      ></div>
+
+    </section>
+
+
+    <!-- =======================================================
+         DEPARTMENT DOCUMENTS
+    ======================================================== -->
+
+    <section
+      id="departmentDocuments"
+      class="department-documents hidden"
+    >
+
+      <div class="documents-header">
+
+        <div class="documents-title-area">
+
+          <button
+            type="button"
+            id="departmentBackBtn"
+            class="department-back-btn"
+          >
+            <i class="fa-solid fa-arrow-left"></i>
+            Back to Departments
+          </button>
+
+          <h2 id="departmentDocumentsTitle">
+            Department Documents
+          </h2>
+
+          <p id="departmentDocumentsSubtitle">
+            Documents routed to this department.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <!-- Department Search -->
+
+      <div class="department-search">
+
+        <div class="search-box">
+
+          <i class="fa-solid fa-magnifying-glass"></i>
+
+          <input
+            type="text"
+            id="departmentDocumentsSearch"
+            placeholder="Search documents..."
+            autocomplete="off"
+          >
+
+        </div>
+
+      </div>
+
+
+      <!-- Document Table -->
+
+      <div class="table-wrapper">
+
+        <table class="documents-table">
+
+          <thead>
+
+            <tr>
+
+              <th>Routing Slip No.</th>
+
+              <th>Date of Document</th>
+
+              <th>Date Received</th>
+
+              <th>Sender</th>
+
+              <th>Signatory</th>
+
+              <th>Subject</th>
+
+              <th>From</th>
+
+              <th>Action No.</th>
+
+              <th>Status</th>
+
+              <th>Deadline</th>
+
+              <th>Comments / Remarks</th>
+
+              <th>Received By</th>
+
+            </tr>
+
+          </thead>
+
+          <tbody id="departmentDocumentsBody">
+
+            <tr>
+
+              <td
+                colspan="12"
+                class="empty-cell"
+              >
+                No documents found.
+              </td>
+
+            </tr>
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+    </section>
+
+
+    <!-- =======================================================
+         LOADING
+    ======================================================== -->
+
+    <div
+      id="loadingMessage"
+      class="loading-message hidden"
+    >
+
+      <i class="fa-solid fa-spinner fa-spin"></i>
+
+      <span>
+        Loading documents...
+      </span>
+
+    </div>
+
+  </main>
+
+
+  <!-- =========================================================
+       JAVASCRIPT
+  ========================================================== -->
+
+  <script
+    src="outgoing.js"
+    defer
+  ></script>
 
 </body>
-
 </html>
