@@ -1,0 +1,131 @@
+/*==================================================
+DHSUD-CAR RECORDS SHELTER — LOGIN
+==================================================*/
+
+.login-body{
+    margin:0;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:linear-gradient(135deg,#0B4EA2,#1565C0);
+    font-family:'Poppins',sans-serif;
+}
+
+.login-wrap{
+    width:100%;
+    padding:20px;
+    display:flex;
+    justify-content:center;
+}
+
+.login-card{
+    background:#fff;
+    width:100%;
+    max-width:400px;
+    border-radius:20px;
+    padding:40px 35px;
+    box-shadow:0 25px 60px rgba(0,0,0,.25);
+    text-align:center;
+}
+
+.login-brand img{
+    width:64px;
+    margin-bottom:8px;
+}
+
+.login-brand h2{
+    color:#0B4EA2;
+    margin:0;
+    font-size:20px;
+}
+
+.login-brand span{
+    color:#777;
+    font-size:13px;
+}
+
+.login-card h1{
+    margin:22px 0 4px;
+    color:#0B4EA2;
+    font-size:24px;
+}
+
+.login-sub{
+    color:#777;
+    font-size:14px;
+    margin-bottom:25px;
+}
+
+.login-card .form-group{
+    text-align:left;
+    margin-bottom:16px;
+}
+
+.login-card label{
+    display:block;
+    font-size:13px;
+    font-weight:600;
+    color:#333;
+    margin-bottom:6px;
+}
+
+.login-card input{
+    width:100%;
+    padding:12px 14px;
+    border:1px solid #d7e2ef;
+    border-radius:10px;
+    font-family:'Poppins',sans-serif;
+    font-size:14px;
+    box-sizing:border-box;
+}
+
+.login-card input:focus{
+    outline:none;
+    border-color:#0B4EA2;
+}
+
+.login-error{
+    background:#fdecea;
+    color:#c0392b;
+    border:1px solid #f5c6c0;
+    border-radius:10px;
+    padding:10px 14px;
+    font-size:13px;
+    margin-bottom:16px;
+    text-align:left;
+}
+
+.login-btn{
+    width:100%;
+    background:#0B4EA2;
+    color:#fff;
+    border:none;
+    border-radius:10px;
+    padding:13px;
+    font-size:15px;
+    font-weight:600;
+    font-family:'Poppins',sans-serif;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    transition:.25s;
+}
+
+.login-btn:hover{
+    background:#083d82;
+}
+
+.login-btn:disabled{
+    opacity:.7;
+    cursor:default;
+}
+
+.login-footnote{
+    margin-top:22px;
+    font-size:12px;
+    color:#999;
+    line-height:1.6;
+}
