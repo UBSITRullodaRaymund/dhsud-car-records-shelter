@@ -73,10 +73,41 @@ const loginForm = document.getElementById("loginForm");
 const loginBtn = document.getElementById("loginBtn");
 const loginError = document.getElementById("loginError");
 
-const currentSession = getSession();
-if (currentSession && currentSession.token) {
-    window.location.href = "index.html";
+async function validateSession(token) {
+    const response = await fetch(`${API_URL}?action=validateSession&token=${encodeURIComponent(token)}`);
+    const result = await response.json();
+
+    if (result.success && result.user) return result.user;
+    if (["Missing session token", "Invalid session", "Session expired"].includes(result.error)) return null;
+    throw new Error(result.error || "Could not verify the current session.");
 }
+
+async function checkExistingSession() {
+    const session = getSession();
+    if (!session || !session.token) return;
+
+    loginBtn.disabled = true;
+    loginBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Checking session...`;
+
+    try {
+        const user = await validateSession(session.token);
+        if (user) {
+            loginBtn.hidden = true;
+            window.location.replace("index.html");
+            return;
+        }
+        clearSession();
+    } catch (err) {
+        console.error(err);
+        loginError.textContent = "Could not verify your current session. Please try again.";
+        loginError.style.display = "block";
+    }
+
+    loginBtn.disabled = false;
+    loginBtn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> Sign In`;
+}
+
+checkExistingSession();
 
 loginForm.addEventListener("submit", async function (e) {
 
@@ -90,6 +121,15 @@ loginForm.addEventListener("submit", async function (e) {
     const password = document.getElementById("loginPassword").value;
 
     try {
+        const existingToken = getToken();
+        if (existingToken) {
+            const user = await validateSession(existingToken);
+            if (user) {
+                window.location.replace("index.html");
+                return;
+            }
+            clearSession();
+        }
 
         const formData = new FormData();
         formData.append("action", "login");
@@ -99,8 +139,8 @@ loginForm.addEventListener("submit", async function (e) {
         const response = await fetch(API_URL, { method: "POST", body: formData });
         const result = await response.json();
 
-        if (result.error) {
-            loginError.textContent = result.error;
+        if (!response.ok || result.error || !result.token || !result.user) {
+            loginError.textContent = result.error || "Sign in failed. Please check your credentials and try again.";
             loginError.style.display = "block";
             loginBtn.disabled = false;
             loginBtn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> Sign In`;

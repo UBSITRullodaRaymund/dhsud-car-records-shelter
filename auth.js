@@ -14,30 +14,19 @@ const API_URL =
 "https://script.google.com/macros/s/AKfycbz-QHC1nioYNOrFQw7h2q6M44Barh7rwYjDzFZ1I1PdU6f24tkncUjJEWTvqS1WtTfr/exec";
 
 const SESSION_KEY = "dhsud_session";
-const DEFAULT_REQUEST_OFFICE = "Office of the Regional Director";
 
 /*=========================================================
  SAVE / READ / CLEAR SESSION
 =========================================================*/
 
 function saveSession(token, user) {
-    const payload = JSON.stringify({ token, user });
-    localStorage.setItem(SESSION_KEY, payload);
-    sessionStorage.setItem(SESSION_KEY, payload);
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ token, user }));
 }
 
 function getSession() {
     try {
-        const raw = localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY);
-        if (!raw) return null;
-
-        const session = JSON.parse(raw);
-        if (session && session.token) {
-            localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-            sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
-        }
-
-        return session;
+        const raw = localStorage.getItem(SESSION_KEY);
+        return raw ? JSON.parse(raw) : null;
     } catch (e) {
         return null;
     }
@@ -53,14 +42,8 @@ function getCurrentUser() {
     return session ? session.user : null;
 }
 
-function getRequestOffice() {
-    const user = getCurrentUser();
-    return user && user.office ? user.office : DEFAULT_REQUEST_OFFICE;
-}
-
 function clearSession() {
     localStorage.removeItem(SESSION_KEY);
-    sessionStorage.removeItem(SESSION_KEY);
 }
 
 /*=========================================================
@@ -72,31 +55,39 @@ function clearSession() {
 =========================================================*/
 
 function requireLogin() {
+    document.documentElement.dataset.requiresAuth = "true";
     const session = getSession();
     if (!session || !session.token) {
-        clearSession();
-        window.location.href = "login.html";
-        return null;
+        window.location.replace("login.html");
     }
     return session;
 }
+
+window.addEventListener("pageshow", function () {
+    if (document.documentElement.dataset.requiresAuth === "true" && !getToken()) {
+        window.location.replace("login.html");
+    }
+});
+
+window.addEventListener("storage", function (event) {
+    if (event.key === SESSION_KEY && !event.newValue &&
+        document.documentElement.dataset.requiresAuth === "true") {
+        window.location.replace("login.html");
+    }
+});
 
 /*=========================================================
  LOGOUT
 =========================================================*/
 
-async function logout() {
+function logout() {
     const token = getToken();
 
     if (token) {
-        try {
-            const formData = new FormData();
-            formData.append("action", "logout");
-            formData.append("token", token);
-            await fetch(API_URL, { method: "POST", body: formData });
-        } catch (e) {
-            // Non-fatal — clear locally regardless.
-        }
+        const formData = new FormData();
+        formData.append("action", "logout");
+        formData.append("token", token);
+        fetch(API_URL, { method: "POST", body: formData, keepalive: true }).catch(() => {});
     }
 
     clearSession();
@@ -116,9 +107,9 @@ async function authedGet(params) {
     const response = await fetch(`${API_URL}?${query}`);
     const result = await response.json();
 
-    if (response.status === 401) {
+    if (isSessionError(response, result)) {
         clearSession();
-        window.location.href = "login.html";
+        window.location.replace("login.html");
         return null;
     }
 
@@ -132,80 +123,18 @@ async function authedPost(formData) {
     const response = await fetch(API_URL, { method: "POST", body: formData });
     const result = await response.json();
 
-    if (response.status === 401) {
+    if (isSessionError(response, result)) {
         clearSession();
-        window.location.href = "login.html";
+        window.location.replace("login.html");
         return null;
     }
 
     return result;
 }
 
-function normalizeRecordFields(record, moduleName) {
-    const normalized = {};
-    const isDockets = moduleName === "dockets";
-    const aliases = {
-        tracking: "tracking",
-        transactionno: isDockets ? "transactionNo" : "tracking",
-        transactionnumber: isDockets ? "transactionNo" : "tracking",
-        trackingno: "tracking",
-        trackingnumber: "tracking",
-        routingslipno: "tracking",
-        routingslipnumber: "tracking",
-        datereceived: "dateReceived",
-        receiveddate: "dateReceived",
-        sender: "sender",
-        originatingoffice: "office",
-        originoffice: "office",
-        office: "office",
-        category: "category",
-        subject: "subject",
-        division: "division",
-        assigneddivision: "division",
-        ageing: "ageing",
-        status: "status",
-        remarks: "remarks",
-        filename: "fileName",
-        documentfile: "fileName",
-        driveurl: "driveUrl",
-        daterequest: "dateRequest",
-        documentfilename: "documentName",
-        documentname: "documentName",
-        classification: "classification",
-        requestedby: "requestedBy",
-        releasedby: "releasedBy",
-        datereturned: "dateReturned",
-        returnedby: "returnedBy",
-        verifiedby: "verifiedBy"
-        ,transactionno: "transactionNo"
-        ,title: "title"
-        ,contactnoemail: "contactEmail"
-        ,modeofcommunication: "communicationMode"
-        ,typeofid: "idType"
-        ,agencyconnectingagency: "agency"
-        ,titleofdocumentrecordrequested: "documentRequested"
-        ,dateperiod: "datePeriod"
-        ,purposeofrequest: "purpose"
-        ,documenttype: "documentType"
-        ,referenceno: "referenceNo"
-        ,additionalinformation: "additionalInformation"
-        ,dateaccomplished: "dateAccomplished"
-        ,dateenteredonefoi: "dateEnteredEfoi"
-        ,proofofidpresented: "proofOfId"
-        ,requestisrecommendedtobe: "recommendation"
-        ,ifdeniedreasondenial: "denialReason"
-        ,secondreceivingofficerassigned: "secondOfficer"
-        ,decisiononapplication: "decision"
-        ,daterequestfinished: "dateFinished"
-        ,foiregistryaccomplished: "registryAccomplished"
-    };
-
-    Object.entries(record || {}).forEach(([key, value]) => {
-        const compactKey = key.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
-        normalized[aliases[compactKey] || key] = value;
-    });
-
-    return normalized;
+function isSessionError(response, result) {
+    const sessionErrors = ["Missing session token", "Invalid session", "Session expired"];
+    return response.status === 401 || sessionErrors.includes(result && result.error);
 }
 
 /*=========================================================
@@ -213,6 +142,20 @@ function normalizeRecordFields(record, moduleName) {
  Call this on page load, passing the ID of a container
  element in your nav (e.g. a <div id="userMenu"></div>).
 =========================================================*/
+
+/*=========================================================
+ NORMALIZE RECORD FIELDS
+ The backend already renames sheet headers into camelCase
+ field keys before sending data (see normalizeDocumentHeader
+ in Code.gs). This is a defensive pass-through so a page
+ never breaks if a future header/module mapping gap slips
+ a raw header through unmapped — it just returns the record
+ as-is rather than throwing.
+=========================================================*/
+
+function normalizeRecordFields(record, module) {
+    return record || {};
+}
 
 function renderUserMenu(containerId) {
     const container = document.getElementById(containerId);
@@ -232,4 +175,46 @@ function renderUserMenu(containerId) {
             </button>
         </div>
     `;
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    const nav = document.querySelector("header nav");
+    if (!nav || !getToken()) return;
+
+    const loginLink = nav.querySelector('a[href="login.html"]');
+    if (loginLink) {
+        const loginItem = loginLink.closest("li");
+        if (loginItem) loginItem.hidden = true;
+        else loginLink.hidden = true;
+    }
+
+    let container = document.getElementById("userMenu");
+    if (!container) {
+        container = document.createElement("div");
+        container.id = "userMenu";
+        nav.appendChild(container);
+    }
+
+    renderUserMenu("userMenu");
+});
+
+/*=========================================================
+ ADMIN NAV LINKS — only SuperAdmin / OfficeAdmin see the
+ User Accounts and Activity Log links. Call on any page
+ that has an element with this ID inside its <ul> nav.
+=========================================================*/
+
+function renderAdminLinks(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const user = getCurrentUser();
+    if (!user) return;
+
+    if (user.role === "SuperAdmin" || user.role === "OfficeAdmin") {
+        container.innerHTML = `
+            <li><a href="users.html">User Accounts</a></li>
+            <li><a href="activity-log.html">Activity Log</a></li>
+        `;
+    }
 }

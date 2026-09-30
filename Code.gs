@@ -25,12 +25,46 @@ const SESSION_DURATION_MS = 8 * 60 * 60 * 1000; // 8 hours
 =========================================================*/
 
 const OFFICE_SHEETS = {
-  "Administrative and Finance Office": "",
+  "Administrative and Finance Office": "1V6LdSOpvElmKKsceyh8XR2h_VW0fKNh47jLj0xSu1Tw",
   "Housing Real Estate Development Regulation Office": "",
   "Homeowners Association and Community Development Office": "",
   "Environmental, Land Use and Urban Planning Office": "",
   "Office of the Regional Director": ""
 };
+const FOI_SPREADSHEET_ID = "1V6LdSOpvElmKKsceyh8XR2h_VW0fKNh47jLj0xSu1Tw";
+const FOI_HEADERS = [
+  "TRANSACTION NO", "TITLE", "NAME", "ADDRESS", "CONTACT NO / EMAIL",
+  "MODE OF COMMUNICATION", "TYPE OF ID", "AGENCY / CONNECTING AGENCY",
+  "TITLE OF DOCUMENT / RECORD REQUESTED", "DATE / PERIOD", "PURPOSE",
+  "DOCUMENT TYPE", "REFERENCE NO", "ADDITIONAL INFORMATION",
+  "DATE ACCOMPLISHED", "NAME", "AGENCY-CONNECTING AGENCY",
+  "DATE ENTERED ON E-FOI", "PROOF OF ID PRESENTED",
+  "REQUEST IS RECOMMENDED TO BE", "IF DENIED: REASON FOR DENIAL",
+  "SECOND RECEIVING OFFICER ASSIGNED", "DECISION ON APPLICATION",
+  "IF DENIED REASON DENIAL", "DATE REQUEST FINISHED",
+  "FOI REGISTRY ACCOMPLISHED", "DATE RECEIVED", "Record Office"
+];
+
+function ensureFoiSheet(spreadsheet) {
+  let sheet = spreadsheet.getSheetByName("FOI");
+  if (!sheet) sheet = spreadsheet.insertSheet("FOI");
+
+  if (sheet.getLastRow() === 0) {
+    sheet.getRange(1, 1, 1, FOI_HEADERS.length).setValues([FOI_HEADERS]);
+    sheet.setFrozenRows(1);
+  }
+
+  return sheet;
+}
+
+function setupFoiSpreadsheet() {
+  const spreadsheet = SpreadsheetApp.openById(FOI_SPREADSHEET_ID);
+  const sheet = spreadsheet.getSheetByName("FOI");
+  if (!sheet) throw new Error("The existing spreadsheet does not contain an FOI tab");
+  const result = "Using existing FOI sheet: " + spreadsheet.getUrl();
+  Logger.log(result);
+  return result;
+}   
 
 // Opens the correct office spreadsheet and returns the requested tab.
 // Throws if the office or tab name isn't recognized, rather than
@@ -39,13 +73,38 @@ function getOfficeSheet(officeName, tabName) {
   if (!Object.prototype.hasOwnProperty.call(OFFICE_SHEETS, officeName)) {
     throw new Error("Unknown office: " + officeName);
   }
-  const spreadsheetId = OFFICE_SHEETS[officeName] || DEFAULT_DATA_SPREADSHEET_ID;
+  const configuredSpreadsheetId = tabName === "FOI"
+    ? FOI_SPREADSHEET_ID
+    : OFFICE_SHEETS[officeName];
+  const spreadsheetId = configuredSpreadsheetId || DEFAULT_DATA_SPREADSHEET_ID;
   const ss = SpreadsheetApp.openById(spreadsheetId);
   const sheet = ss.getSheetByName(tabName);
   if (!sheet) {
     throw new Error("Tab '" + tabName + "' not found in " + officeName);
   }
   return sheet;
+}
+
+function ensureFoiOfficeColumn(sheet) {
+  const lastColumn = sheet.getLastColumn();
+  if (!lastColumn) throw new Error("The FOI sheet needs a header row before records can be saved");
+
+  const headers = sheet.getRange(1, 1, 1, lastColumn).getValues()[0];
+  let officeColumn = headers.findIndex(header =>
+    String(header || "").trim().toLowerCase().replace(/[^a-z0-9]/g, "") === "recordoffice"
+  );
+
+  if (officeColumn === -1) {
+    officeColumn = lastColumn;
+    sheet.getRange(1, officeColumn + 1).setValue("Record Office");
+    const lastRow = sheet.getLastRow();
+    if (lastRow > 1) {
+      sheet.getRange(2, officeColumn + 1, lastRow - 1, 1)
+        .setValues(Array.from({ length: lastRow - 1 }, () => ["Administrative and Finance Office"]));
+    }
+  }
+
+  return officeColumn;
 }
 
 // Decides which office's data a request is allowed to touch.
@@ -98,6 +157,27 @@ function hasPermission(user, code) {
 function doGet(e) {
   const action = e.parameter.action;
 
+  if (action === "validateSession") {
+    const auth = requireAuth(e.parameter.token);
+    if (!auth.ok) return jsonResponse({ error: auth.error }, 401);
+    return jsonResponse({ success: true, user: auth.user });
+  }
+
+  if (action === "getFoiValidationOptions") {
+    const auth = requireAuth(e.parameter.token);
+    if (!auth.ok) return jsonResponse({ error: auth.error }, 401);
+    if (!hasPermission(auth.user, "foi:view")) {
+      return jsonResponse({ error: "Forbidden" }, 403);
+    }
+
+    try {
+      const sheet = getOfficeSheet(resolveOffice(auth, e.parameter.office), "FOI");
+      return jsonResponse(getFoiValidationOptions(sheet));
+    } catch (err) {
+      return jsonResponse({ error: err.message }, 400);
+    }
+  }
+
   if (action === "getDocuments") {
     const auth = requireAuth(e.parameter.token);
     if (!auth.ok) return jsonResponse({ error: auth.error }, 401);
@@ -110,10 +190,14 @@ function doGet(e) {
     try {
       const office = resolveOffice(auth, e.parameter.office);
       const sheet = getOfficeSheet(office, e.parameter.sheet);
+      const officeColumn = -1;
 
       const data = sheet.getDataRange().getValues();
       const headers = data.shift();
-      const records = data.map(row => {
+      const rows = officeColumn === -1
+        ? data
+        : data.filter(row => String(row[officeColumn] || "") === office);
+      const records = rows.map(row => {
         const record = {};
         const occurrences = {};
         headers.forEach((header, index) => {
@@ -132,6 +216,60 @@ function doGet(e) {
   }
 
   return jsonResponse({ error: "Unknown action" }, 400);
+}
+
+function getFoiValidationOptions(sheet) {
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const options = {};
+  const fieldByHeader = {
+    modeofcommunication: "communicationMode",
+    typeofid: "idType",
+    documenttype: "documentType",
+    proofofidpresented: "proofOfId",
+    requestisrecommendedtobe: "recommendation",
+    requestisrecommenedtobe: "recommendation",
+    decisiononapplication: "decision",
+    foiregistryaccomplished: "registryAccomplished"
+  };
+
+  headers.forEach((header, columnIndex) => {
+    const field = fieldByHeader[String(header || "")
+      .trim().toLowerCase().replace(/[^a-z0-9]/g, "")];
+    if (!field) return;
+
+    const rules = sheet.getRange(2, columnIndex + 1, Math.max(1, sheet.getMaxRows() - 1), 1)
+      .getDataValidations().flat().filter(Boolean);
+    const values = [];
+    rules.forEach(rule => {
+      const criteriaValues = rule.getCriteriaValues();
+      if (rule.getCriteriaType() === SpreadsheetApp.DataValidationCriteria.VALUE_IN_LIST) {
+        values.push(...criteriaValues[0]);
+      } else if (rule.getCriteriaType() === SpreadsheetApp.DataValidationCriteria.VALUE_IN_RANGE) {
+        values.push(...criteriaValues[0].getDisplayValues().flat());
+      }
+    });
+
+    const uniqueValues = [...new Set(values.map(value => String(value).trim()).filter(Boolean))];
+    if (uniqueValues.length) options[field] = uniqueValues;
+  });
+
+  return options;
+}
+
+function findFoiInsertRow(sheet, headers) {
+  const transactionColumn = headers.findIndex(header => {
+    const key = String(header || "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+    return key === "transactionno" || key === "transanctionno";
+  });
+  if (transactionColumn === -1) return sheet.getLastRow() + 1;
+
+  const rowCount = Math.max(1, sheet.getMaxRows() - 1);
+  const transactionValues = sheet
+    .getRange(2, transactionColumn + 1, rowCount, 1)
+    .getDisplayValues();
+  const emptyRow = transactionValues.findIndex(([value]) => !String(value).trim());
+
+  return emptyRow === -1 ? sheet.getLastRow() + 1 : emptyRow + 2;
 }
 
 function normalizeDocumentHeader(header, sheetName, occurrence = 0) {
@@ -181,7 +319,9 @@ function normalizeDocumentHeader(header, sheetName, occurrence = 0) {
   };
 
   const foi = {
+    recordoffice: "recordOffice",
     transactionno: "transactionNo",
+    transanctionno: "transactionNo",
     title: "title",
     name: occurrence > 0 ? "accomplishedBy" : "name",
     address: "address",
@@ -199,6 +339,7 @@ function normalizeDocumentHeader(header, sheetName, occurrence = 0) {
     dateenteredonefoi: "dateEnteredEfoi",
     proofofidpresented: "proofOfId",
     requestisrecommendedtobe: "recommendation",
+    requestisrecommenedtobe: "recommendation",
     ifdeniedreasondenial: occurrence > 0 ? "decisionDenialReason" : "denialReason",
     secondreceivingofficerassigned: "secondOfficer",
     decisiononapplication: "decision",
@@ -227,12 +368,14 @@ function doPost(e) {
     try {
       const office = resolveOffice(auth, e.parameter.office);
       const sheet = getOfficeSheet(office, e.parameter.sheet);
+      const officeColumn = -1;
       const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
 
       // Build the row in header order from whatever fields the
       // frontend sent, and stamp who created it + when.
       const saveOccurrences = {};
-      const row = headers.map(h => {
+      const row = headers.map((h, columnIndex) => {
+        if (columnIndex === officeColumn) return office;
         if (h === "CreatedBy") return auth.user.email;
         if (h === "CreatedAt") return new Date();
         const baseKey = String(h || "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -242,10 +385,22 @@ function doPost(e) {
         return e.parameter[field] !== undefined ? e.parameter[field] : "";
       });
 
-      sheet.appendRow(row);
+      const insertRow = e.parameter.sheet === "FOI"
+        ? findFoiInsertRow(sheet, headers)
+        : sheet.getLastRow() + 1;
+      sheet.getRange(insertRow, 1, 1, row.length).setValues([row]);
+      SpreadsheetApp.flush();
 
       logActivity(auth.user, module, "Create", e.parameter.recordId || "");
-      return jsonResponse({ success: true });
+      const spreadsheet = sheet.getParent();
+      return jsonResponse({
+        success: true,
+        office: office,
+        spreadsheetName: spreadsheet.getName(),
+        spreadsheetUrl: spreadsheet.getUrl(),
+        sheetName: sheet.getName(),
+        row: insertRow
+      });
     } catch (err) {
       return jsonResponse({ error: err.message }, 400);
     }
@@ -259,6 +414,7 @@ function doPost(e) {
     try {
       const office = resolveOffice(auth, e.parameter.office);
       const sheet = getOfficeSheet(office, e.parameter.sheet);
+      const officeColumn = -1;
       const idField = e.parameter.idField;   // e.g. "transactionNo"
       const idValue = e.parameter.idValue;
 
@@ -273,7 +429,10 @@ function doPost(e) {
       });
       if (idCol === -1) throw new Error("ID field not found: " + idField);
 
-      const rowIndex = data.findIndex((r, i) => i > 0 && String(r[idCol]) === String(idValue));
+      const rowIndex = data.findIndex((r, i) =>
+        i > 0 && String(r[idCol]) === String(idValue) &&
+        (officeColumn === -1 || String(r[officeColumn] || "") === office)
+      );
       if (rowIndex === -1) return jsonResponse({ error: "Record not found" }, 404);
 
       const updateOccurrences = {};
@@ -282,7 +441,7 @@ function doPost(e) {
         const occurrence = updateOccurrences[baseKey] || 0;
         updateOccurrences[baseKey] = occurrence + 1;
         const field = normalizeDocumentHeader(h, e.parameter.sheet, occurrence);
-        if (e.parameter[field] !== undefined) {
+        if (colIndex !== officeColumn && e.parameter[field] !== undefined) {
           sheet.getRange(rowIndex + 1, colIndex + 1).setValue(e.parameter[field]);
         }
       });
@@ -302,6 +461,7 @@ function doPost(e) {
     try {
       const office = resolveOffice(auth, e.parameter.office);
       const sheet = getOfficeSheet(office, e.parameter.sheet);
+      const officeColumn = -1;
       const idField = e.parameter.idField;
       const idValue = e.parameter.idValue;
 
@@ -316,7 +476,10 @@ function doPost(e) {
       });
       if (idCol === -1) throw new Error("ID field not found: " + idField);
 
-      const rowIndex = data.findIndex((r, i) => i > 0 && String(r[idCol]) === String(idValue));
+      const rowIndex = data.findIndex((r, i) =>
+        i > 0 && String(r[idCol]) === String(idValue) &&
+        (officeColumn === -1 || String(r[officeColumn] || "") === office)
+      );
       if (rowIndex === -1) return jsonResponse({ error: "Record not found" }, 404);
 
       sheet.deleteRow(rowIndex + 1);

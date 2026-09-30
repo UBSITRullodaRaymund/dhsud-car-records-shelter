@@ -323,11 +323,12 @@ async function saveDocument(doc){
     formData.append("action","save");
     formData.append("module", MODULE_NAME);
     formData.append("sheet",SHEET_NAME);
+    formData.append("office", getRequestOffice());
 
     formData.append("tracking",doc.tracking);
     formData.append("dateReceived",doc.dateReceived);
     formData.append("sender",doc.sender);
-    formData.append("office",doc.office);
+    formData.append("originatingOffice",doc.office);
     formData.append("category",doc.category);
     formData.append("subject",doc.subject);
     formData.append("division",doc.division);
@@ -357,13 +358,14 @@ async function updateDocument(doc){
     formData.append("action","update");
     formData.append("module", MODULE_NAME);
     formData.append("sheet",SHEET_NAME);
+    formData.append("office", getRequestOffice());
     formData.append("idField", "tracking");
     formData.append("idValue", doc.tracking);
 
     formData.append("tracking",doc.tracking);
     formData.append("dateReceived",doc.dateReceived);
     formData.append("sender",doc.sender);
-    formData.append("office",doc.office);
+    formData.append("originatingOffice",doc.office);
     formData.append("category",doc.category);
     formData.append("subject",doc.subject);
     formData.append("division",doc.division);
