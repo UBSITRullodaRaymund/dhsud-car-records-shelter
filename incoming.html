@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<<<<<<< HEAD
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,10 +16,27 @@
 <link rel="stylesheet"
 href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 
+=======
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Incoming Documents - DHSUD-CAR</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+    <link rel="stylesheet" href="incoming.css">
+>>>>>>> 8bc4fdc795ce57389f57fd985c7ac49cd63b3fb5
 </head>
 
 <body>
 
+<<<<<<< HEAD
 <header>
 
 <nav>
@@ -492,11 +510,568 @@ ADD DOCUMENT MODAL
             type="file"
             id="documentFile"
             accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png">
+=======
+<!-- ==================================================
+     TOP NAVIGATION
+================================================== -->
+
+<header class="topbar">
+
+    <div class="nav-container">
+
+        <a href="documents.html" class="brand">
+
+            <img src="logo.png" alt="DHSUD Logo">
+
+            <div class="brand-text">
+                <div class="brand-title">DHSUD-CAR</div>
+
+                <div class="brand-subtitle">
+                    Department of Human Settlements and Urban Development
+                </div>
+            </div>
+
+        </a>
+
+        <nav class="navigation">
+
+            <a href="documents.html">
+                <i class="fa-solid fa-house"></i>
+                Documents Monitoring
+            </a>
+
+            <a href="incoming.html" class="active-page">
+                <i class="fa-solid fa-inbox"></i>
+                Incoming
+            </a>
+
+            <a href="outgoing.html">
+                <i class="fa-solid fa-paper-plane"></i>
+                Outgoing
+            </a>
+
+        </nav>
+
+    </div>
+
+</header>
+
+
+<!-- ==================================================
+     HERO
+================================================== -->
+
+<section class="hero">
+
+    <div class="hero-content">
+
+        <div class="hero-icon">
+            <i class="fa-solid fa-inbox"></i>
+        </div>
+
+        <div>
+
+            <h1>Incoming Documents</h1>
+
+            <p>
+                Add and monitor newly received documents before routing them
+                to the appropriate department.
+            </p>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- ==================================================
+     MAIN
+================================================== -->
+
+<main class="main-container">
+
+
+    <!-- BACK TO DOCUMENT MONITORING -->
+
+    <div class="back-section">
+
+        <button class="back-btn"
+                onclick="window.location.href='documents.html'">
+
+            <i class="fa-solid fa-arrow-left"></i>
+
+            Back to Documents Monitoring
+
+        </button>
+
+    </div>
+
+
+    <!-- ==================================================
+         ADD INCOMING DOCUMENT
+    ================================================== -->
+
+    <section class="add-document-section">
+
+        <div>
+
+            <h2>
+                <i class="fa-solid fa-file-circle-plus"></i>
+                Add Incoming Document
+            </h2>
+
+            <p>
+                Add a newly received incoming document to the masterlist.
+            </p>
+
+        </div>
+
+        <button class="add-document-btn"
+                onclick="openIncomingModal()">
+
+            <i class="fa-solid fa-plus"></i>
+
+            Add Incoming Document
+
+        </button>
+
+    </section>
+
+
+    <!-- ==================================================
+         INCOMING MASTERLIST
+    ================================================== -->
+
+    <section class="masterlist-section">
+
+        <div class="masterlist-header">
+
+            <div>
+
+                <h2>
+                    Incoming Documents Masterlist
+                </h2>
+
+                <p>
+                    Newly added incoming documents are displayed here.
+                    Select a department under Route To to forward the document.
+                </p>
+
+            </div>
+
+            <div class="masterlist-count"
+                 id="masterlistCount">
+
+                0 Documents
+
+            </div>
+
+        </div>
+
+
+        <!-- SEARCH -->
+
+        <div class="masterlist-search">
+
+            <i class="fa-solid fa-magnifying-glass"></i>
+
+            <input
+                type="text"
+                id="masterlistSearch"
+                placeholder="Search incoming documents..."
+            >
+
+        </div>
+
+
+        <!-- TABLE -->
+
+        <div class="masterlist-table-container">
+
+            <table class="masterlist-table">
+
+                <thead>
+
+                    <tr>
+
+                        <th>Routing Slip No.</th>
+
+                        <th>Date Received</th>
+
+                        <th>Sender</th>
+
+                        <th>Subject</th>
+
+                        <th>Mode</th>
+
+                        <th>Status</th>
+
+                        <th>Route To</th>
+
+                        <th>Action</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody id="masterlistBody">
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+</main>
+
+
+<!-- ==================================================
+     ADD / EDIT DOCUMENT MODAL
+================================================== -->
+
+<div class="modal"
+     id="incomingModal">
+
+    <div class="modal-content">
+
+
+        <div class="modal-header">
+
+            <div>
+
+                <h2 id="modalTitle">
+                    Add Incoming Document
+                </h2>
+
+                <p id="modalDescription">
+                    Enter the information of the newly received document.
+                </p>
+
+            </div>
+
+            <button class="modal-close"
+                    onclick="closeIncomingModal()">
+
+                <i class="fa-solid fa-xmark"></i>
+
+            </button>
+
+        </div>
+
+
+        <form id="incomingForm">
+
+            <div class="form-grid">
+
+
+                <!-- ROUTING SLIP -->
+
+                <div class="form-group">
+
+                    <label>
+                        Routing Slip No.
+                    </label>
+
+                    <input
+                        type="text"
+                        id="routingSlip"
+                        required
+                    >
+
+                </div>
+
+
+                <!-- DATE DOCUMENT -->
+
+                <div class="form-group">
+
+                    <label>
+                        Date of Document
+                    </label>
+
+                    <input
+                        type="date"
+                        id="dateDocument"
+                    >
+
+                </div>
+
+
+                <!-- DATE RECEIVED -->
+
+                <div class="form-group">
+
+                    <label>
+                        Date Received
+                    </label>
+
+                    <input
+                        type="date"
+                        id="dateReceived"
+                        required
+                    >
+
+                </div>
+
+
+                <!-- SENDER -->
+
+                <div class="form-group">
+
+                    <label>
+                        Sender
+                    </label>
+
+                    <input
+                        type="text"
+                        id="sender"
+                        required
+                    >
+
+                </div>
+
+
+                <!-- SIGNATORY -->
+
+                <div class="form-group">
+
+                    <label>
+                        Signatory
+                    </label>
+
+                    <input
+                        type="text"
+                        id="signatory"
+                    >
+
+                </div>
+
+
+                <!-- MODE -->
+
+                <div class="form-group">
+
+                    <label>
+                        Mode of Communication
+                    </label>
+
+                    <select id="mode">
+
+                        <option value="">
+                            Select mode
+                        </option>
+
+                        <option>Email</option>
+                        <option>Personal Delivery</option>
+                        <option>Courier</option>
+                        <option>Mail</option>
+                        <option>Online</option>
+                        <option>Other</option>
+
+                    </select>
+
+                </div>
+
+
+                <!-- SUBJECT -->
+
+                <div class="form-group full-width">
+
+                    <label>
+                        Subject
+                    </label>
+
+                    <textarea
+                        id="subject"
+                        rows="3"
+                        required
+                    ></textarea>
+
+                </div>
+
+
+                <!-- FROM -->
+
+                <div class="form-group">
+
+                    <label>
+                        From
+                    </label>
+
+                    <input
+                        type="text"
+                        id="from"
+                    >
+
+                </div>
+
+
+                <!-- ACTION NO -->
+
+                <div class="form-group">
+
+                    <label>
+                        Action No.
+                    </label>
+
+                    <input
+                        type="text"
+                        id="actionNo"
+                    >
+
+                </div>
+
+
+                <!-- RECEIVED BY -->
+
+                <div class="form-group">
+
+                    <label>
+                        Received By
+                    </label>
+
+                    <input
+                        type="text"
+                        id="receivedBy"
+                    >
+
+                </div>
+
+
+                <!-- EMAIL -->
+
+                <div class="form-group">
+
+                    <label>
+                        E-mail Address
+                    </label>
+
+                    <input
+                        type="email"
+                        id="email"
+                    >
+
+                </div>
+
+
+                <!-- DEADLINE -->
+
+                <div class="form-group">
+
+                    <label>
+                        Deadline
+                    </label>
+
+                    <input
+                        type="date"
+                        id="deadline"
+                    >
+
+                </div>
+
+
+                <!-- STATUS -->
+
+                <div class="form-group">
+
+                    <label>
+                        Status
+                    </label>
+
+                    <select id="status">
+
+                        <option value="Pending">
+                            Pending
+                        </option>
+
+                        <option value="Processing">
+                            Processing
+                        </option>
+
+                        <option value="Completed">
+                            Completed
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <!-- COMMENTS -->
+
+                <div class="form-group full-width">
+
+                    <label>
+                        Comments / Remarks
+                    </label>
+
+                    <textarea
+                        id="comments"
+                        rows="3"
+                    ></textarea>
+
+                </div>
+
+
+                <!-- FILE -->
+
+                <div class="form-group full-width">
+
+                    <label>
+                        Document File
+                    </label>
+
+                    <input
+                        type="file"
+                        id="documentFile"
+                    >
+
+                    <small>
+                        File upload will be connected to Google Drive in the next phase.
+                    </small>
+
+                </div>
+
+            </div>
+
+
+            <div class="form-actions">
+
+                <button
+                    type="button"
+                    class="cancel-btn"
+                    onclick="closeIncomingModal()">
+
+                    Cancel
+
+                </button>
+
+                <button
+                    type="submit"
+                    class="save-btn"
+                    id="saveDocumentBtn">
+
+                    <i class="fa-solid fa-floppy-disk"></i>
+
+                    <span id="saveButtonText">
+                        Add Document
+                    </span>
+
+                </button>
+
+            </div>
+
+        </form>
+>>>>>>> 8bc4fdc795ce57389f57fd985c7ac49cd63b3fb5
 
     </div>
 
 </div>
 
+<<<<<<< HEAD
 <div class="modal-buttons">
     
 
@@ -600,4 +1175,10 @@ Close
 
 </body>
 
+=======
+
+<script src="incoming.js"></script>
+
+</body>
+>>>>>>> 8bc4fdc795ce57389f57fd985c7ac49cd63b3fb5
 </html>

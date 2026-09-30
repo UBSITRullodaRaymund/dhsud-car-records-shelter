@@ -33,10 +33,16 @@ header{
 }
 
 nav{
+<<<<<<< HEAD
     display:grid;
     grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
     align-items:center;
     gap:20px;
+=======
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+>>>>>>> 8bc4fdc795ce57389f57fd985c7ac49cd63b3fb5
     padding:18px 70px;
     background:rgba(0,45,120,.85);
     backdrop-filter:blur(12px);
@@ -69,6 +75,7 @@ nav ul{
     gap:35px;
 }
 
+<<<<<<< HEAD
 nav > .logo{
     grid-column:1;
 }
@@ -85,6 +92,8 @@ nav > #userMenu{
     margin-left:0;
 }
 
+=======
+>>>>>>> 8bc4fdc795ce57389f57fd985c7ac49cd63b3fb5
 nav a{
     color:white;
     text-decoration:none;
@@ -96,6 +105,7 @@ nav a:hover{
     color:#FFC72C;
 }
 
+<<<<<<< HEAD
 #userMenu{
     margin-left:auto;
     display:flex;
@@ -169,6 +179,8 @@ nav a:hover{
     }
 }
 
+=======
+>>>>>>> 8bc4fdc795ce57389f57fd985c7ac49cd63b3fb5
 /* ===========================
         HERO
 =========================== */
@@ -475,6 +487,7 @@ footer p{
 
 nav{
 
+<<<<<<< HEAD
     grid-template-columns:minmax(0,1fr) auto;
     grid-template-rows:auto auto;
     gap:8px 12px;
@@ -500,6 +513,16 @@ nav > #userMenu{
     grid-column:2;
     grid-row:1;
     justify-self:end;
+=======
+padding:15px 25px;
+
+}
+
+nav ul{
+
+display:none;
+
+>>>>>>> 8bc4fdc795ce57389f57fd985c7ac49cd63b3fb5
 }
 
 .hero-content h1{
@@ -1250,7 +1273,11 @@ gap:15px;
 
 .clear-btn{
 
+<<<<<<< HEAD
 background:#0b4ea2;
+=======
+background:#e53935;
+>>>>>>> 8bc4fdc795ce57389f57fd985c7ac49cd63b3fb5
 
 color:white;
 
@@ -1270,7 +1297,11 @@ transition:.3s;
 
 .clear-btn:hover{
 
+<<<<<<< HEAD
 background:#083d81;
+=======
+background:#c62828;
+>>>>>>> 8bc4fdc795ce57389f57fd985c7ac49cd63b3fb5
 
 }
 
@@ -1664,10 +1695,13 @@ ACTION BUTTONS
     background:#2563eb;
 }
 
+<<<<<<< HEAD
 .print-btn{
     background:#0f766e;
 }
 
+=======
+>>>>>>> 8bc4fdc795ce57389f57fd985c7ac49cd63b3fb5
 .edit-btn{
     background:#f59e0b;
 }

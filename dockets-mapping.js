@@ -789,12 +789,25 @@ function searchRecords(){
 
         Object.keys(records[category]).forEach(project => {
 
+<<<<<<< HEAD
             if(project.toLowerCase().includes(keyword)){
                 results.push({ type:"Project", category, project });
+=======
+            // Match project name
+            if(project.toLowerCase().includes(keyword)){
+
+                results.push({
+                    type:"Project",
+                    category,
+                    project
+                });
+
+>>>>>>> 8bc4fdc795ce57389f57fd985c7ac49cd63b3fb5
             }
 
             Object.keys(records[category][project]).forEach(folder => {
 
+<<<<<<< HEAD
                 if(folder.toLowerCase().includes(keyword)){
                     results.push({ type:"Folder", category, project, folder });
                 }
@@ -806,6 +819,41 @@ function searchRecords(){
                 });
             });
         });
+=======
+                // Match folder name
+                if(folder.toLowerCase().includes(keyword)){
+
+                    results.push({
+                        type:"Folder",
+                        category,
+                        project,
+                        folder
+                    });
+
+                }
+
+                records[category][project][folder].forEach(file => {
+
+                    // Match file name
+                    if(file.name.toLowerCase().includes(keyword)){
+
+                        results.push({
+                            type:"Document",
+                            category,
+                            project,
+                            folder,
+                            file
+                        });
+
+                    }
+
+                });
+
+            });
+
+        });
+
+>>>>>>> 8bc4fdc795ce57389f57fd985c7ac49cd63b3fb5
     });
 
     showSearchResults(results);
