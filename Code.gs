@@ -76,8 +76,10 @@ function getOfficeSheet(officeName, tabName) {
   const configuredSpreadsheetId = tabName === "FOI"
     ? FOI_SPREADSHEET_ID
     : OFFICE_SHEETS[officeName];
-  const spreadsheetId = configuredSpreadsheetId || DEFAULT_DATA_SPREADSHEET_ID;
-  const ss = SpreadsheetApp.openById(spreadsheetId);
+  if (!configuredSpreadsheetId) {
+    throw new Error("No spreadsheet is configured for office: " + officeName);
+  }
+  const ss = SpreadsheetApp.openById(configuredSpreadsheetId);
   const sheet = ss.getSheetByName(tabName);
   if (!sheet) {
     throw new Error("Tab '" + tabName + "' not found in " + officeName);
@@ -148,6 +150,16 @@ function hasPermission(user, code) {
   return (user.permissions || []).indexOf(code) !== -1;
 }
 
+function validateModuleSheet(module, sheet) {
+  const expectedSheets = {
+    incoming: "Incoming Documents",
+    outgoing: "Outgoing Documents",
+    dockets: "Dockets Issuances",
+    foi: "FOI"
+  };
+  return expectedSheets[module] === sheet ? "" : "Invalid module or sheet";
+}
+
 /*=========================================================
   ENTRY POINTS
   Wire your existing getDocuments/save/update/delete logic
@@ -160,7 +172,7 @@ function doGet(e) {
   if (action === "validateSession") {
     const auth = requireAuth(e.parameter.token);
     if (!auth.ok) return jsonResponse({ error: auth.error }, 401);
-    return jsonResponse({ success: true, user: auth.user });
+    return jsonResponse({ success: true, user: auth.user, csrfToken: auth.csrfToken });
   }
 
   if (action === "getFoiValidationOptions") {
@@ -178,11 +190,47 @@ function doGet(e) {
     }
   }
 
+  if (action === "getDocketsMapping") {
+    const auth = requireAuth(e.parameter.token);
+    if (!auth.ok) return jsonResponse({ error: auth.error }, 401);
+    if (!hasPermission(auth.user, "docketsMapping:view")) {
+      return jsonResponse({ error: "Forbidden" }, 403);
+    }
+
+    try {
+      const properties = PropertiesService.getScriptProperties();
+      const spreadsheetId = properties.getProperty("DOCKETS_MAPPING_SPREADSHEET_ID");
+      const sheetName = properties.getProperty("DOCKETS_MAPPING_SHEET_NAME") || "Dockets Mapping";
+      if (!spreadsheetId) throw new Error("Dockets Mapping spreadsheet is not configured");
+      const sheet = SpreadsheetApp.openById(spreadsheetId).getSheetByName(sheetName);
+      if (!sheet) throw new Error("Dockets Mapping sheet was not found");
+
+      const rows = sheet.getDataRange().getDisplayValues().slice(1);
+      const records = rows.filter(row => row.some(value => String(value || "").trim())).map(row => ({
+        category: row[0] || "",
+        project: row[1] || "",
+        folder: row[2] || "",
+        filename: row[3] || "",
+        type: row[4] || "",
+        size: row[5] || "",
+        status: row[6] || "",
+        remarks: row[7] || "",
+        url: row[8] || "",
+        uploaded: row[9] || ""
+      }));
+      return jsonResponse(records);
+    } catch (err) {
+      return jsonResponse({ error: err.message }, 400);
+    }
+  }
+
   if (action === "getDocuments") {
     const auth = requireAuth(e.parameter.token);
     if (!auth.ok) return jsonResponse({ error: auth.error }, 401);
 
     const module = e.parameter.module;
+    const sheetError = validateModuleSheet(module, e.parameter.sheet);
+    if (sheetError) return jsonResponse({ error: sheetError }, 400);
     if (!hasPermission(auth.user, module + ":view")) {
       return jsonResponse({ error: "Forbidden" }, 403);
     }
@@ -190,7 +238,7 @@ function doGet(e) {
     try {
       const office = resolveOffice(auth, e.parameter.office);
       const sheet = getOfficeSheet(office, e.parameter.sheet);
-      const officeColumn = -1;
+      const officeColumn = e.parameter.sheet === "FOI" ? ensureFoiOfficeColumn(sheet) : -1;
 
       const data = sheet.getDataRange().getValues();
       const headers = data.shift();
@@ -359,16 +407,23 @@ function doPost(e) {
   // Every other action (save/update/delete) must carry a valid token.
   const auth = requireAuth(e.parameter.token);
   if (!auth.ok) return jsonResponse({ error: auth.error }, 401);
+  if (auth.csrfToken !== String(e.parameter.csrfToken || "")) {
+    return jsonResponse({ error: "Invalid CSRF token" }, 403);
+  }
 
   if (action === "save") {
     const module = e.parameter.module;
+    const sheetError = validateModuleSheet(module, e.parameter.sheet);
+    if (sheetError) return jsonResponse({ error: sheetError }, 400);
+    const validationError = validateDocumentFields(module, e.parameter);
+    if (validationError) return jsonResponse({ error: validationError }, 400);
     if (!hasPermission(auth.user, module + ":create")) {
       return jsonResponse({ error: "Forbidden" }, 403);
     }
     try {
       const office = resolveOffice(auth, e.parameter.office);
       const sheet = getOfficeSheet(office, e.parameter.sheet);
-      const officeColumn = -1;
+      const officeColumn = e.parameter.sheet === "FOI" ? ensureFoiOfficeColumn(sheet) : -1;
       const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
 
       // Build the row in header order from whatever fields the
@@ -382,7 +437,7 @@ function doPost(e) {
         const occurrence = saveOccurrences[baseKey] || 0;
         saveOccurrences[baseKey] = occurrence + 1;
         const field = normalizeDocumentHeader(h, e.parameter.sheet, occurrence);
-        return e.parameter[field] !== undefined ? e.parameter[field] : "";
+        return e.parameter[field] !== undefined ? safeSheetValue(e.parameter[field]) : "";
       });
 
       const insertRow = e.parameter.sheet === "FOI"
@@ -408,13 +463,17 @@ function doPost(e) {
 
   if (action === "update") {
     const module = e.parameter.module;
+    const sheetError = validateModuleSheet(module, e.parameter.sheet);
+    if (sheetError) return jsonResponse({ error: sheetError }, 400);
+    const validationError = validateDocumentFields(module, e.parameter);
+    if (validationError) return jsonResponse({ error: validationError }, 400);
     if (!hasPermission(auth.user, module + ":edit")) {
       return jsonResponse({ error: "Forbidden" }, 403);
     }
     try {
       const office = resolveOffice(auth, e.parameter.office);
       const sheet = getOfficeSheet(office, e.parameter.sheet);
-      const officeColumn = -1;
+      const officeColumn = e.parameter.sheet === "FOI" ? ensureFoiOfficeColumn(sheet) : -1;
       const idField = e.parameter.idField;   // e.g. "transactionNo"
       const idValue = e.parameter.idValue;
 
@@ -441,8 +500,11 @@ function doPost(e) {
         const occurrence = updateOccurrences[baseKey] || 0;
         updateOccurrences[baseKey] = occurrence + 1;
         const field = normalizeDocumentHeader(h, e.parameter.sheet, occurrence);
-        if (colIndex !== officeColumn && e.parameter[field] !== undefined) {
-          sheet.getRange(rowIndex + 1, colIndex + 1).setValue(e.parameter[field]);
+        const protectedField = ["createdby", "createdat", "recordoffice"].indexOf(
+          String(h || "").trim().toLowerCase().replace(/[^a-z0-9]/g, "")
+        ) !== -1;
+        if (colIndex !== officeColumn && !protectedField && e.parameter[field] !== undefined) {
+          sheet.getRange(rowIndex + 1, colIndex + 1).setValue(safeSheetValue(e.parameter[field]));
         }
       });
 
@@ -455,13 +517,15 @@ function doPost(e) {
 
   if (action === "delete") {
     const module = e.parameter.module;
+    const sheetError = validateModuleSheet(module, e.parameter.sheet);
+    if (sheetError) return jsonResponse({ error: sheetError }, 400);
     if (!hasPermission(auth.user, module + ":delete")) {
       return jsonResponse({ error: "Forbidden" }, 403);
     }
     try {
       const office = resolveOffice(auth, e.parameter.office);
       const sheet = getOfficeSheet(office, e.parameter.sheet);
-      const officeColumn = -1;
+      const officeColumn = e.parameter.sheet === "FOI" ? ensureFoiOfficeColumn(sheet) : -1;
       const idField = e.parameter.idField;
       const idValue = e.parameter.idValue;
 
@@ -529,6 +593,129 @@ function doPost(e) {
   return jsonResponse({ error: "Unknown action" }, 400);
 }
 
+function safeSheetValue(value) {
+  if (typeof value !== "string") return value;
+  const cleaned = sanitizeInputText(value);
+  return /^[\s]*[=+@]/.test(cleaned) || /^[\s]*-[^\d]/.test(cleaned) ? "'" + cleaned : cleaned;
+}
+
+function sanitizeInputText(value) {
+  return String(value == null ? "" : value)
+    .normalize("NFC")
+    .replace(/\r\n?/g, "\n")
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
+    .trim();
+}
+
+function isValidIsoDate(value) {
+  const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return false;
+  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+  return date.getUTCFullYear() === Number(match[1]) &&
+    date.getUTCMonth() === Number(match[2]) - 1 &&
+    date.getUTCDate() === Number(match[3]);
+}
+
+function validateDocumentFields(module, params) {
+  const requiredByModule = {
+    incoming: ["tracking", "dateReceived", "sender", "subject"],
+    outgoing: ["tracking", "dateReceived", "sender", "subject"],
+    dockets: ["transactionNo", "dateRequest", "documentName", "classification"],
+    foi: ["transactionNo", "title", "name", "contactEmail", "documentRequested"]
+  };
+  const maxLengths = {
+    tracking: 50, transactionNo: 50, dateReceived: 10, dateReturned: 10,
+    dateRequest: 10, dateAccomplished: 10, dateEnteredEfoi: 10,
+    dateFinished: 10, sender: 150, subject: 250, documentName: 250,
+    classification: 40, requestedBy: 100, releasedBy: 100, returnedBy: 100,
+    verifiedBy: 100, originatingOffice: 150, category: 50, division: 150,
+    status: 30, remarks: 2000, fileName: 255, driveUrl: 1000,
+    title: 50, name: 100, address: 500, contactEmail: 254,
+    communicationMode: 30, idType: 50, agency: 200,
+    documentRequested: 2000, datePeriod: 100, purpose: 2000,
+    documentType: 50, referenceNo: 100, additionalInformation: 2000,
+    accomplishedBy: 100, accomplishedAgency: 150, proofOfId: 30,
+    recommendation: 50, denialReason: 1000, secondOfficer: 100,
+    decision: 50, decisionDenialReason: 1000, registryAccomplished: 10
+  };
+  const allowedValues = {
+    incoming: {
+      originatingOffice: ["Administrative Division", "Finance Division", "Planning Division", "Housing Division", "Regional Office", "LGU", "Private Individual"],
+      category: ["Request", "Memorandum", "Letter", "Billing", "Complaint", "FOI"],
+      status: ["Pending", "Processing", "Completed", "Released"],
+      division: ["Administrative and Finance Division", "Housing Real Estate Development Regulation Division", "Homeowners Association and Community Development Division", "Environmental, Land Use and Urban Planning Division", "Office of the Regional Director"]
+    },
+    outgoing: {
+      originatingOffice: ["Administrative Division", "Finance Division", "Planning Division", "Housing Division", "Regional Office", "LGU", "Private Individual"],
+      category: ["Request", "Memorandum", "Letter", "Billing", "Complaint", "FOI"],
+      status: ["Pending", "Processing", "Completed", "Released"],
+      division: ["Administrative and Finance Division", "Housing Real Estate Development Regulation Division", "Homeowners Association and Community Development Division", "Environmental, Land Use and Urban Planning Division", "Office of the Regional Director"]
+    },
+    dockets: {
+      classification: ["Condominium", "CLUP", "Memorial Park", "HOA", "Subdivision", "Others"],
+      status: ["Pending", "Released", "Returned"]
+    },
+    foi: {
+      communicationMode: ["Mobile", "Email", "Postal"],
+      idType: ["Postal ID", "Driver's License", "Passport", "Other"],
+      documentType: ["Letter", "Memorandum", "Report", "Other"],
+      proofOfId: ["Presented", "Not Presented", "N/A"],
+      recommendation: ["Approved", "Denied", "Partially Successful"],
+      decision: ["Approved", "Denied", "Partially Successful", "Incomplete"],
+      registryAccomplished: ["Yes", "No"]
+    }
+  };
+  const requiredFields = requiredByModule[module] || [];
+  const minimumLengths = { sender: 2, subject: 2, documentName: 2, title: 2, name: 2, documentRequested: 2 };
+  if (!requiredByModule[module]) return "Invalid module";
+
+  for (const field of requiredFields) {
+    if (!sanitizeInputText(params[field]).length) return `${field} is required`;
+  }
+  for (const [field, minimum] of Object.entries(minimumLengths)) {
+    const value = sanitizeInputText(params[field]);
+    if (value && value.length < minimum) return `${field} must be at least ${minimum} characters`;
+  }
+
+  const dateFields = ["dateReceived", "dateReturned", "dateRequest", "dateAccomplished", "dateEnteredEfoi", "dateFinished"];
+  for (const field of dateFields) {
+    const value = sanitizeInputText(params[field]);
+    if (value && !isValidIsoDate(value)) return `${field} must be a valid date`;
+  }
+
+  for (const [field, value] of Object.entries(params)) {
+    if (maxLengths[field] && sanitizeInputText(value).length > maxLengths[field]) {
+      return `${field} must not exceed ${maxLengths[field]} characters`;
+    }
+    if (typeof value === "string" && /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/.test(value)) {
+      return `${field} contains unsupported control characters`;
+    }
+  }
+
+  const moduleValues = allowedValues[module];
+  for (const [field, values] of Object.entries(moduleValues)) {
+    if (params[field] && values.indexOf(sanitizeInputText(params[field])) === -1) {
+      return `${field} has an unsupported value`;
+    }
+  }
+
+  if (module === "foi" && params.contactEmail) {
+    const contact = sanitizeInputText(params.contactEmail);
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact);
+    const isPhone = /^\+?[0-9().\s-]{7,25}$/.test(contact);
+    if (!isEmail && !isPhone) return "contactEmail must be a valid email address or phone number";
+  }
+
+  if (params.fileName) {
+    const fileName = sanitizeInputText(params.fileName);
+    if (!/\.(pdf|doc|docx|xls|xlsx|jpg|png)$/i.test(fileName)) {
+      return "Attachment must be PDF, Word, Excel, JPG, or PNG";
+    }
+  }
+
+  return "";
+}
+
 /*=========================================================
   ACTIVITY LOG
   Every create/edit/delete, plus login/logout, is recorded
@@ -545,12 +732,12 @@ function logActivity(user, module, action, recordId) {
     sheet.appendRow([
       new Date(),
       user.email,
-      user.fullName,
+      safeSheetValue(user.fullName),
       user.role,
       user.office,
-      module || "",
+      safeSheetValue(module || ""),
       action,
-      recordId || ""
+      safeSheetValue(recordId || "")
     ]);
   } finally {
     lock.releaseLock();
@@ -626,6 +813,35 @@ function listUsers(requestingUser) {
   return jsonResponse(users);
 }
 
+function validateUserAccount(fullName, email, role, office, status, password, requirePassword) {
+  if (!String(fullName || "").trim() || !String(email || "").trim() || !String(office || "")) {
+    return "Full name, email, and office are required";
+  }
+  if (String(fullName).trim().length < 2 || String(fullName).trim().length > 100) {
+    return "Full name must be between 2 and 100 characters";
+  }
+  if (String(email).length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email))) {
+    return "Enter a valid email address";
+  }
+  if (["SuperAdmin", "OfficeAdmin", "OfficeStaff"].indexOf(String(role)) === -1) {
+    return "Select a valid account role";
+  }
+  if (!Object.prototype.hasOwnProperty.call(OFFICE_SHEETS, String(office))) {
+    return "Select a valid office";
+  }
+  if (["Active", "Inactive"].indexOf(String(status)) === -1) {
+    return "Select a valid account status";
+  }
+  if (requirePassword || password) {
+    const value = String(password || "");
+    if (value.length < 8 || value.length > 128 ||
+        !/[A-Z]/.test(value) || !/[a-z]/.test(value) || !/[0-9]/.test(value)) {
+      return "Password must be 8-128 characters and include uppercase, lowercase, and a digit";
+    }
+  }
+  return "";
+}
+
 function createUserAccount(e, requestingUser) {
   const email = String(e.parameter.email || "").trim().toLowerCase();
   const password = String(e.parameter.password || "");
@@ -635,8 +851,11 @@ function createUserAccount(e, requestingUser) {
   const status = String(e.parameter.status || "Active");
   const permissions = String(e.parameter.permissions || ""); // "incoming:view,incoming:create,..."
 
-  if (!email || !password || !office) {
-    return jsonResponse({ error: "Email, password, and office are required" }, 400);
+  const validationError = validateUserAccount(fullName, email, role, office, status, password, true);
+  if (validationError) return jsonResponse({ error: validationError }, 400);
+
+  if (role === "SuperAdmin" && requestingUser.role !== "SuperAdmin") {
+    return jsonResponse({ error: "Only a SuperAdmin can create another SuperAdmin" }, 403);
   }
 
   // OfficeAdmin can only create accounts inside their own office.
@@ -654,7 +873,7 @@ function createUserAccount(e, requestingUser) {
   const salt = generateSalt();
   const hash = hashPassword(password, salt);
 
-  sheet.appendRow([email, hash, salt, fullName, role, office, status, new Date(), permissions]);
+  sheet.appendRow([email, hash, salt, safeSheetValue(fullName), role, office, status, new Date(), safeSheetValue(permissions)]);
 
   return jsonResponse({ success: true });
 }
@@ -683,6 +902,21 @@ function updateUserAccount(e, requestingUser) {
     return jsonResponse({ error: "You can only manage accounts in your own office" }, 403);
   }
 
+  const validationError = validateUserAccount(
+    e.parameter.fullName !== undefined ? e.parameter.fullName : data[rowIndex][idx.fullName],
+    email,
+    e.parameter.role !== undefined ? e.parameter.role : data[rowIndex][idx.role],
+    e.parameter.office !== undefined ? e.parameter.office : targetOffice,
+    e.parameter.status !== undefined ? e.parameter.status : data[rowIndex][idx.status],
+    String(e.parameter.password || ""),
+    false
+  );
+  if (validationError) return jsonResponse({ error: validationError }, 400);
+
+  if (e.parameter.role === "SuperAdmin" && requestingUser.role !== "SuperAdmin") {
+    return jsonResponse({ error: "Only a SuperAdmin can assign the SuperAdmin role" }, 403);
+  }
+
   if (e.parameter.office !== undefined) {
     const requestedOffice = String(e.parameter.office || "").trim();
     if (!Object.prototype.hasOwnProperty.call(OFFICE_SHEETS, requestedOffice)) {
@@ -695,7 +929,7 @@ function updateUserAccount(e, requestingUser) {
   }
 
   if (e.parameter.fullName !== undefined) {
-    sheet.getRange(rowIndex + 1, idx.fullName + 1).setValue(e.parameter.fullName);
+    sheet.getRange(rowIndex + 1, idx.fullName + 1).setValue(safeSheetValue(e.parameter.fullName));
   }
 
   if (e.parameter.role !== undefined) {
@@ -705,7 +939,7 @@ function updateUserAccount(e, requestingUser) {
     sheet.getRange(rowIndex + 1, idx.status + 1).setValue(e.parameter.status);
   }
   if (e.parameter.permissions !== undefined) {
-    sheet.getRange(rowIndex + 1, idx.permissions + 1).setValue(e.parameter.permissions);
+    sheet.getRange(rowIndex + 1, idx.permissions + 1).setValue(safeSheetValue(e.parameter.permissions));
   }
   if (e.parameter.password) {
     const salt = generateSalt();
@@ -795,13 +1029,14 @@ function handleLogin(e) {
     permissions: parsePermissions(row[idx.permissions])
   };
 
-  const token = createSession(user);
+  const session = createSession(user);
 
   logActivity(user, "", "Login", "");
 
   return jsonResponse({
     success: true,
-    token: token,
+    token: session.token,
+    csrfToken: session.csrfToken,
     user: user
   });
 }
@@ -809,6 +1044,12 @@ function handleLogin(e) {
 function handleLogout(e) {
   const token = e.parameter.token;
   if (!token) return jsonResponse({ success: true });
+
+  const auth = requireAuth(token);
+  if (!auth.ok) return jsonResponse({ error: auth.error }, 401);
+  if (auth.csrfToken !== String(e.parameter.csrfToken || "")) {
+    return jsonResponse({ error: "Invalid CSRF token" }, 403);
+  }
 
   const sheet = getOrCreateSessionsSheet();
   const data = sheet.getDataRange().getValues();
@@ -849,6 +1090,7 @@ function createSession(user) {
   try {
     const sheet = getOrCreateSessionsSheet();
     const token = Utilities.getUuid();
+    const csrfToken = Utilities.getUuid();
     const now = new Date();
     const expires = new Date(now.getTime() + SESSION_DURATION_MS);
 
@@ -860,12 +1102,13 @@ function createSession(user) {
       user.fullName,
       now,
       expires,
-      (user.permissions || []).join(",")
+      (user.permissions || []).join(","),
+      csrfToken
     ]);
 
     cleanupExpiredSessions(sheet);
 
-    return token;
+    return { token: token, csrfToken: csrfToken };
   } finally {
     lock.releaseLock();
   }
@@ -885,10 +1128,12 @@ function requireAuth(token) {
     office: headers.indexOf("Office"),
     name: headers.indexOf("FullName"),
     expires: headers.indexOf("ExpiresAt"),
-    permissions: headers.indexOf("Permissions")
+    permissions: headers.indexOf("Permissions"),
+    csrfToken: headers.indexOf("CsrfToken")
   };
 
-  const row = data.find(r => r[idx.token] === token);
+  const rowIndex = data.findIndex(r => r[idx.token] === token);
+  const row = data[rowIndex];
 
   if (!row) return { ok: false, error: "Invalid session" };
 
@@ -896,8 +1141,14 @@ function requireAuth(token) {
     return { ok: false, error: "Session expired" };
   }
 
+  const csrfToken = row[idx.csrfToken] || Utilities.getUuid();
+  if (!row[idx.csrfToken]) {
+    sheet.getRange(rowIndex + 2, idx.csrfToken + 1).setValue(csrfToken);
+  }
+
   return {
     ok: true,
+    csrfToken: csrfToken,
     user: {
       email: row[idx.email],
       role: row[idx.role],
@@ -957,14 +1208,26 @@ function generateSalt() {
 =========================================================*/
 
 function createUser_RUN_MANUALLY() {
-  const email = "admin@example.gov.ph";       // change me
-  const password = "TempPassw0rd!";           // change me, share securely, force reset on first login
-  const fullName = "System Administrator";     // change me
+  const properties = PropertiesService.getScriptProperties();
+  const email = String(properties.getProperty("INITIAL_ADMIN_EMAIL") || "").trim().toLowerCase();
+  const password = properties.getProperty("INITIAL_ADMIN_PASSWORD") || "";
+  const fullName = properties.getProperty("INITIAL_ADMIN_NAME") || "System Administrator";
   const role = "SuperAdmin";                   // SuperAdmin | OfficeAdmin | OfficeStaff
   const office = "Office of the Regional Director"; // change me
   const permissions = [];                      // SuperAdmin ignores this; leave empty
 
+  if (!email || !password) {
+    throw new Error("Set INITIAL_ADMIN_EMAIL and INITIAL_ADMIN_PASSWORD in Script Properties before running this function");
+  }
+
+  const validationError = validateUserAccount(fullName, email, role, office, "Active", password, true);
+  if (validationError) throw new Error(validationError);
+
   const sheet = getOrCreateUsersSheet();
+  const data = sheet.getDataRange().getValues();
+  if (data.slice(1).some(row => String(row[0] || "").trim().toLowerCase() === email)) {
+    throw new Error("An account with this email already exists");
+  }
   const salt = generateSalt();
   const hash = hashPassword(password, salt);
 
@@ -972,14 +1235,15 @@ function createUser_RUN_MANUALLY() {
     email.trim().toLowerCase(),
     hash,
     salt,
-    fullName,
+    safeSheetValue(fullName),
     role,
     office,
     "Active",
     new Date(),
-    permissions.join(",")
+    safeSheetValue(permissions.join(","))
   ]);
 
+  properties.deleteProperty("INITIAL_ADMIN_PASSWORD");
   Logger.log("User created: " + email);
 }
 
@@ -1005,11 +1269,11 @@ function getOrCreateSessionsSheet() {
   let sheet = SS.getSheetByName(SESSIONS_SHEET_NAME);
   if (!sheet) {
     sheet = SS.insertSheet(SESSIONS_SHEET_NAME);
-    sheet.appendRow([
-      "Token", "Email", "Role", "Office",
-      "FullName", "CreatedAt", "ExpiresAt", "Permissions"
-    ]);
   }
+  ensureSheetHeaders(sheet, [
+    "Token", "Email", "Role", "Office",
+    "FullName", "CreatedAt", "ExpiresAt", "Permissions", "CsrfToken"
+  ]);
   return sheet;
 }
 
@@ -1027,18 +1291,6 @@ function ensureSheetHeaders(sheet, requiredHeaders) {
     const merged = existing.concat(missing);
     sheet.getRange(1, 1, 1, merged.length).setValues([merged]);
   }
-}
-
-function getOrCreateSessionsSheet() {
-  let sheet = SS.getSheetByName(SESSIONS_SHEET_NAME);
-  if (!sheet) {
-    sheet = SS.insertSheet(SESSIONS_SHEET_NAME);
-    sheet.appendRow([
-      "Token", "Email", "Role", "Office",
-      "FullName", "CreatedAt", "ExpiresAt", "Permissions"
-    ]);
-  }
-  return sheet;
 }
 
 /*=========================================================

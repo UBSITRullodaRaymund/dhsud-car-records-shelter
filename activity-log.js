@@ -59,12 +59,12 @@ function renderTable() {
     filtered.forEach(l => {
         const row = document.createElement("tr");
         row.innerHTML = `
-            <td>${formatTimestamp(l.Timestamp)}</td>
-            <td>${l.FullName || l.Email}<br><small>${l.Email}</small></td>
-            <td>${l.Office || "-"}</td>
-            <td>${l.Module || "-"}</td>
-            <td><span class="status-badge ${String(l.Action).toLowerCase()}">${l.Action}</span></td>
-            <td>${l.RecordId || "-"}</td>
+            <td>${escapeHtml(formatTimestamp(l.Timestamp))}</td>
+            <td>${escapeHtml(l.FullName || l.Email || "-")}<br><small>${escapeHtml(l.Email || "-")}</small></td>
+            <td>${escapeHtml(l.Office || "-")}</td>
+            <td>${escapeHtml(l.Module || "-")}</td>
+            <td><span class="status-badge">${escapeHtml(l.Action || "-")}</span></td>
+            <td>${escapeHtml(l.RecordId || "-")}</td>
         `;
         tbody.appendChild(row);
     });

@@ -97,11 +97,11 @@ function renderTable() {
     users.forEach((u, index) => {
         const row = document.createElement("tr");
         row.innerHTML = `
-            <td>${u.fullName || "-"}</td>
-            <td>${u.email}</td>
-            <td>${u.role}</td>
-            <td>${u.office}</td>
-            <td><span class="status-badge ${String(u.status).toLowerCase()}">${u.status}</span></td>
+            <td>${escapeHtml(u.fullName || "-")}</td>
+            <td>${escapeHtml(u.email || "-")}</td>
+            <td>${escapeHtml(u.role || "-")}</td>
+            <td>${escapeHtml(u.office || "-")}</td>
+            <td><span class="status-badge">${escapeHtml(u.status || "-")}</span></td>
             <td class="action-buttons">
                 <button class="icon-btn edit-btn" onclick="editUser(${index})" title="Edit">
                     <i class="fa-solid fa-pen"></i>
@@ -185,6 +185,7 @@ window.addEventListener("click", e => {
 
 form.addEventListener("submit", async function (e) {
     e.preventDefault();
+    if (!form.reportValidity()) return;
 
     const permissions = getCheckedPermissions().join(",");
 

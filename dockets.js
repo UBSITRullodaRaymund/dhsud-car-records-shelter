@@ -9,17 +9,10 @@
  CONFIGURATION
 =========================================================*/
 
-<<<<<<< HEAD
 const SHEET_NAME = "Dockets Issuances";
 const MODULE_NAME = "dockets";
 
 requireLogin();
-=======
-const API_URL =
-"https://script.google.com/macros/s/AKfycbxQAh3bOHZc-c1gZpOtpSF4SaQSd8XV-g_OWnbM8h628C9uPPEdsVdEtrw0yabpNSn_3Q/exec";
-
-const SHEET_NAME = "Dockets Issuances";
->>>>>>> 8bc4fdc795ce57389f57fd985c7ac49cd63b3fb5
 
 
 /*=========================================================
@@ -129,7 +122,6 @@ function generateTransactionNumber(){
 async function loadDocuments(){
 
     try{
-<<<<<<< HEAD
         const result = await authedGet({
             action: "getDocuments",
             module: MODULE_NAME,
@@ -145,16 +137,6 @@ async function loadDocuments(){
         }
 
         documents = result.map(record => normalizeRecordFields(record, MODULE_NAME));
-=======
-
-        const response = await fetch(
-
-            `${API_URL}?action=getDocuments&sheet=${encodeURIComponent(SHEET_NAME)}`
-
-        );
-
-        documents = await response.json();
->>>>>>> 8bc4fdc795ce57389f57fd985c7ac49cd63b3fb5
 
         renderTable();
 
@@ -202,25 +184,25 @@ function renderTable(data = documents){
 
         row.innerHTML=`
 
-<td>${doc.transactionNo || "-"}</td>
+<td>${escapeHtml(doc.transactionNo || "-")}</td>
 
-<td>${formatDate(doc.dateRequest)}</td>
+<td>${escapeHtml(formatDate(doc.dateRequest))}</td>
 
-<td>${doc.documentName || "-"}</td>
+<td>${escapeHtml(doc.documentName || "-")}</td>
 
-<td>${doc.classification || "-"}</td>
+<td>${escapeHtml(doc.classification || "-")}</td>
 
-<td>${doc.requestedBy || "-"}</td>
+<td>${escapeHtml(doc.requestedBy || "-")}</td>
 
-<td>${doc.releasedBy || "-"}</td>
+<td>${escapeHtml(doc.releasedBy || "-")}</td>
 
-<td>${formatDate(doc.dateReceived)}</td>
+<td>${escapeHtml(formatDate(doc.dateReceived))}</td>
 
 <td>
 
-<span class="status-badge ${String(doc.status).toLowerCase()}">
+<span class="status-badge">
 
-${doc.status}
+${escapeHtml(doc.status || "-")}
 
 </span>
 
@@ -322,6 +304,7 @@ window.addEventListener("click", function(e){
 form.addEventListener("submit", async function(e){
 
     e.preventDefault();
+    if (!form.reportValidity()) return;
 
     const classification =
     document.querySelector('input[name="classification"]:checked');
@@ -368,7 +351,6 @@ form.addEventListener("submit", async function(e){
 
     };
 
-<<<<<<< HEAD
     const result = editingIndex === -1
         ? await saveDocument(doc)
         : await updateDocument(doc);
@@ -376,25 +358,11 @@ form.addEventListener("submit", async function(e){
     if (!result || result.error) {
         alert(result ? result.error : "Save failed");
         return;
-=======
-    if(editingIndex === -1){
-
-        await saveDocument(doc);
-
-    }else{
-
-        await updateDocument(doc);
-
->>>>>>> 8bc4fdc795ce57389f57fd985c7ac49cd63b3fb5
     }
 
     closeModal();
 
-<<<<<<< HEAD
     await loadDocuments();
-=======
-    loadDocuments();
->>>>>>> 8bc4fdc795ce57389f57fd985c7ac49cd63b3fb5
 
 });
 
@@ -407,13 +375,9 @@ async function saveDocument(doc){
     const formData = new FormData();
 
     formData.append("action","save");
-<<<<<<< HEAD
     formData.append("module", MODULE_NAME);
     formData.append("sheet",SHEET_NAME);
     formData.append("office", getRequestOffice());
-=======
-    formData.append("sheet",SHEET_NAME);
->>>>>>> 8bc4fdc795ce57389f57fd985c7ac49cd63b3fb5
 
     formData.append("transactionNo",doc.transactionNo);
     formData.append("dateRequest",doc.dateRequest);
@@ -428,16 +392,7 @@ async function saveDocument(doc){
     formData.append("status",doc.status);
     formData.append("remarks",doc.remarks);
 
-<<<<<<< HEAD
     return await authedPost(formData);
-=======
-    const response = await fetch(API_URL,{
-        method:"POST",
-        body:formData
-    });
-
-    return await response.json();
->>>>>>> 8bc4fdc795ce57389f57fd985c7ac49cd63b3fb5
 
 }
 
@@ -512,15 +467,11 @@ async function updateDocument(doc){
     const formData=new FormData();
 
     formData.append("action","update");
-<<<<<<< HEAD
     formData.append("module", MODULE_NAME);
     formData.append("sheet",SHEET_NAME);
     formData.append("office", getRequestOffice());
     formData.append("idField", "transactionNo");
     formData.append("idValue", doc.transactionNo);
-=======
-    formData.append("sheet",SHEET_NAME);
->>>>>>> 8bc4fdc795ce57389f57fd985c7ac49cd63b3fb5
 
     formData.append("transactionNo",doc.transactionNo);
     formData.append("dateRequest",doc.dateRequest);
@@ -535,7 +486,6 @@ async function updateDocument(doc){
     formData.append("status",doc.status);
     formData.append("remarks",doc.remarks);
 
-<<<<<<< HEAD
     const result = await authedPost(formData);
     if (!result || result.error) {
         alert(result ? result.error : "Update failed");
@@ -545,14 +495,6 @@ async function updateDocument(doc){
     editingIndex = -1;
     await loadDocuments();
     return result;
-=======
-    const response=await fetch(API_URL,{
-        method:"POST",
-        body:formData
-    });
-
-    return await response.json();
->>>>>>> 8bc4fdc795ce57389f57fd985c7ac49cd63b3fb5
 
 }
 
@@ -571,7 +513,6 @@ async function deleteDocument(index){
     const formData = new FormData();
 
     formData.append("action","delete");
-<<<<<<< HEAD
     formData.append("module", MODULE_NAME);
     formData.append("sheet",SHEET_NAME);
     formData.append("office", getRequestOffice());
@@ -583,15 +524,6 @@ async function deleteDocument(index){
         alert(result ? result.error : "Delete failed");
         return;
     }
-=======
-    formData.append("sheet",SHEET_NAME);
-    formData.append("transactionNo",doc.transactionNo);
-
-    await fetch(API_URL,{
-        method:"POST",
-        body:formData
-    });
->>>>>>> 8bc4fdc795ce57389f57fd985c7ac49cd63b3fb5
 
     await loadDocuments();
 

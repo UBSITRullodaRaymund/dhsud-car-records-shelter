@@ -37,7 +37,6 @@ NAVBAR
 }
 
 .navbar .container{
-<<<<<<< HEAD
     display:grid;
     grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
     align-items:center;
@@ -52,11 +51,6 @@ NAVBAR
     grid-column:2;
     justify-content:center;
     white-space:nowrap;
-=======
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
->>>>>>> 8bc4fdc795ce57389f57fd985c7ac49cd63b3fb5
 }
 
 .logo{
@@ -93,7 +87,6 @@ NAVBAR
 
 .nav-links a:hover,
 .nav-links .active{
-<<<<<<< HEAD
     color:#FFC72C;
 }
 
@@ -117,9 +110,6 @@ NAVBAR
         gap:10px 18px;
         white-space:normal;
     }
-=======
-    color:#FFD54F;
->>>>>>> 8bc4fdc795ce57389f57fd985c7ac49cd63b3fb5
 }
 
 /*==========================

@@ -379,6 +379,7 @@ placeholder="Automatically Generated">
 <input
 type="date"
 id="dateRequest"
+max="9999-12-31"
 required>
 
 </div>
@@ -390,6 +391,8 @@ required>
 <input
 type="text"
 id="documentName"
+minlength="2"
+maxlength="250"
 required>
 
 </div>
@@ -400,7 +403,7 @@ required>
 
 <div class="classification-grid">
 
-<label><input type="radio" name="classification" value="Condominium"> Condominium</label>
+<label><input type="radio" name="classification" value="Condominium" required> Condominium</label>
 
 <label><input type="radio" name="classification" value="CLUP"> CLUP</label>
 
@@ -422,7 +425,8 @@ required>
 
 <input
 type="text"
-id="requestedBy">
+id="requestedBy"
+maxlength="100">
 
 </div>
 
@@ -432,7 +436,8 @@ id="requestedBy">
 
 <input
 type="text"
-id="releasedBy">
+id="releasedBy"
+maxlength="100">
 
 </div>
 
@@ -462,7 +467,8 @@ id="dateReturned">
 
 <input
 type="text"
-id="returnedBy">
+id="returnedBy"
+maxlength="100">
 
 </div>
 
@@ -472,7 +478,8 @@ id="returnedBy">
 
 <input
 type="text"
-id="verifiedBy">
+id="verifiedBy"
+maxlength="100">
 
 </div>
 
@@ -498,6 +505,7 @@ id="verifiedBy">
 
 <textarea
 id="remarks"
+maxlength="2000"
 rows="4"></textarea>
 
 </div>
@@ -714,10 +722,7 @@ Department of Human Settlements and Urban Development
 </body>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<<<<<<< HEAD
 <script src="auth.js"></script>
-=======
->>>>>>> 8bc4fdc795ce57389f57fd985c7ac49cd63b3fb5
 <script src="dockets.js"></script>
 
 </html>

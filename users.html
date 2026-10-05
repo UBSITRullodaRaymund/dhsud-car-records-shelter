@@ -101,17 +101,17 @@ ACCOUNT MODAL
 
         <div class="form-group">
             <label>Full Name</label>
-            <input type="text" id="fullName" required>
+            <input type="text" id="fullName" minlength="2" maxlength="100" autocomplete="name" required>
         </div>
 
         <div class="form-group">
             <label>Email</label>
-            <input type="email" id="email" required>
+            <input type="email" id="email" maxlength="254" autocomplete="email" required>
         </div>
 
         <div class="form-group">
             <label>Password</label>
-            <input type="password" id="password" placeholder="Leave blank to keep unchanged">
+            <input type="password" id="password" minlength="8" maxlength="128" pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{8,128}" autocomplete="new-password" title="Use 8-128 characters with at least one uppercase letter, one lowercase letter, and one digit." placeholder="Leave blank to keep unchanged">
         </div>
 
         <div class="form-group">

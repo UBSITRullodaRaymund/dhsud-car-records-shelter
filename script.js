@@ -8,14 +8,6 @@
    CONFIGURATION
 ========================================================== */
 
-<<<<<<< HEAD
-=======
-const API_URL =
-"https://script.google.com/macros/s/AKfycbxQAh3bOHZc-c1gZpOtpSF4SaQSd8XV-g_OWnbM8h628C9uPPEdsVdEtrw0yabpNSn_3Q/exec";
-
-
-
->>>>>>> 8bc4fdc795ce57389f57fd985c7ac49cd63b3fb5
 // ===============================
 // Animated Counter
 // ===============================

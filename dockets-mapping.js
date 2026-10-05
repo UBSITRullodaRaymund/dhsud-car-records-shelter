@@ -4,13 +4,6 @@ DOCKETS MAPPING v2
 ==================================================*/
 
 /*==================================================
-GOOGLE SHEETS CSV
-==================================================*/
-
-const SHEET_URL =
-"https://docs.google.com/spreadsheets/d/e/2PACX-1vT-5o8Ty361qCFIf39AY81T1xp6MJJaw0FgIR4cinMf-4UwvpSIDf_ew9a2U3gHIPL90OxHscOHE883/pub?gid=734751751&single=true&output=csv";
-
-/*==================================================
 DATABASE
 ==================================================*/
 
@@ -28,45 +21,14 @@ LOAD GOOGLE SHEETS
 
 async function loadGoogleSheet(){
 
-    const response = await fetch(SHEET_URL);
-
-    const csv = await response.text();
-
-    const rows = csv.trim().split("\n");
-
-    const headers = rows[0].split(",");
-
-    documents = [];
-
-    for(let i=1;i<rows.length;i++){
-
-        const cols = rows[i].split(",");
-
-        documents.push({
-
-            category: cols[0]?.trim(),
-
-            project: cols[1]?.trim(),
-
-            folder: cols[2]?.trim(),
-
-            filename: cols[3]?.trim(),
-
-            type: cols[4]?.trim(),
-
-            size: cols[5]?.trim(),
-
-            status: cols[6]?.trim(),
-
-            remarks: cols[7]?.trim(),
-
-            url: cols[8]?.trim(),
-
-            uploaded: cols[9]?.trim()
-
-        });
-
+    const result = await authedGet({ action: "getDocketsMapping" });
+    if (!Array.isArray(result)) {
+        documents = [];
+        console.error(result && result.error ? result.error : "Unable to load docket mapping", result);
+        return;
     }
+
+    documents = result;
 
     console.log(documents);
 
@@ -77,6 +39,8 @@ INITIALIZE
 ==================================================*/
 
 document.addEventListener("DOMContentLoaded", async ()=>{
+
+    if (!requireLogin()) return;
 
     await loadGoogleSheet();
 
@@ -113,13 +77,13 @@ function renderCategories(){
         categoryList.innerHTML += `
 
         <div class="category-item"
-            onclick="openCategory('${category}')">
+            onclick="openCategory(${escapeInlineJsString(category)})">
 
             <i class="fa-solid fa-folder-tree"></i>
 
             <div>
 
-                <h4>${category}</h4>
+                <h4>${escapeHtml(category)}</h4>
 
                 <p>${totalProjects} Project${totalProjects!=1?"s":""}</p>
 
@@ -155,7 +119,7 @@ function openCategory(category){
 
     let html = `
         <h2 style="margin-bottom:20px;color:#0B4EA2;">
-            ${category}
+            ${escapeHtml(category)}
         </h2>
 
         <div class="project-grid">
@@ -175,11 +139,11 @@ function openCategory(category){
         html += `
 
         <div class="project-card"
-            onclick="openProject('${project}')">
+            onclick="openProject(${escapeInlineJsString(project)})">
 
             <i class="fa-solid fa-city"></i>
 
-            <h3>${project}</h3>
+            <h3>${escapeHtml(project)}</h3>
 
             <p>${folderCount} Folder${folderCount!=1?"s":""}</p>
 
@@ -236,18 +200,18 @@ function openProject(project){
     let html = `
 
         <button class="primary-btn"
-            onclick="openCategory('${currentCategory}')"
+            onclick="openCategory(${escapeInlineJsString(currentCategory)})"
             style="margin-bottom:20px;">
 
             <i class="fa-solid fa-arrow-left"></i>
 
-            Back to ${currentCategory}
+            Back to ${escapeHtml(currentCategory)}
 
         </button>
 
         <h2 style="margin-bottom:20px;color:#0B4EA2;">
 
-            ${project}
+            ${escapeHtml(project)}
 
         </h2>
 
@@ -267,11 +231,11 @@ function openProject(project){
 
         <div class="project-card folder-card"
 
-            onclick="openFolder('${folder}')">
+            onclick="openFolder(${escapeInlineJsString(folder)})">
 
             <i class="fa-solid fa-folder"></i>
 
-            <h3>${folder}</h3>
+            <h3>${escapeHtml(folder)}</h3>
 
             <p>${fileCount} File${fileCount!=1?"s":""}</p>
 
@@ -327,18 +291,18 @@ function openFolder(folder){
     let html = `
 
         <button class="primary-btn"
-            onclick="openProject('${currentProject}')"
+            onclick="openProject(${escapeInlineJsString(currentProject)})"
             style="margin-bottom:20px;">
 
             <i class="fa-solid fa-arrow-left"></i>
 
-            Back to ${currentProject}
+            Back to ${escapeHtml(currentProject)}
 
         </button>
 
         <h2 style="margin-bottom:20px;color:#0B4EA2;">
 
-            ${folder}
+            ${escapeHtml(folder)}
 
         </h2>
 
@@ -381,13 +345,13 @@ function openFolder(folder){
 
                         <div class="document-name">
 
-                            ${file.filename}
+                            ${escapeHtml(file.filename)}
 
                         </div>
 
                         <div class="document-size">
 
-                            ${file.size}
+                            ${escapeHtml(file.size)}
 
                         </div>
 
@@ -446,7 +410,11 @@ if(selectedCard){
     const file = files[index];
 
     // Convert Google Drive share link to preview link
-    let previewURL = file.url;
+    let previewURL = safeHttpUrl(file.url);
+    if (!previewURL) {
+        alert("This document has an invalid or unsupported link.");
+        return;
+    }
 
     if(previewURL.includes("/view")){
         previewURL = previewURL.replace("/view","/preview");
@@ -460,13 +428,13 @@ if(selectedCard){
 
     <div class="preview-title">
 
-        <i class="${getFileIcon(file.type)}"></i>
+        <i class="${getFileIcon(file.type || "")}"></i>
 
         <div>
 
-            <h2>${file.filename}</h2>
+            <h2>${escapeHtml(file.filename)}</h2>
 
-            <span>${file.type} • ${file.size}</span>
+            <span>${escapeHtml(file.type)} • ${escapeHtml(file.size)}</span>
 
         </div>
 
@@ -477,7 +445,7 @@ if(selectedCard){
 <div class="preview-pdf">
 
     <iframe
-        src="${previewURL}"
+        src="${escapeHtml(previewURL)}"
         width="100%"
         height="650"
         style="border:none;">
@@ -491,7 +459,7 @@ if(selectedCard){
 
         <span>Category</span>
 
-        <strong>${file.category}</strong>
+        <strong>${escapeHtml(file.category)}</strong>
 
     </div>
 
@@ -499,7 +467,7 @@ if(selectedCard){
 
         <span>Project</span>
 
-        <strong>${file.project}</strong>
+        <strong>${escapeHtml(file.project)}</strong>
 
     </div>
 
@@ -507,7 +475,7 @@ if(selectedCard){
 
         <span>Folder</span>
 
-        <strong>${file.folder}</strong>
+        <strong>${escapeHtml(file.folder)}</strong>
 
     </div>
 
@@ -515,7 +483,7 @@ if(selectedCard){
 
         <span>Status</span>
 
-        <strong>${file.status}</strong>
+        <strong>${escapeHtml(file.status)}</strong>
 
     </div>
 
@@ -523,7 +491,7 @@ if(selectedCard){
 
         <span>Date Uploaded</span>
 
-        <strong>${file.uploaded}</strong>
+        <strong>${escapeHtml(file.uploaded)}</strong>
 
     </div>
 
@@ -531,7 +499,7 @@ if(selectedCard){
 
         <span>Remarks</span>
 
-        <strong>${file.remarks}</strong>
+        <strong>${escapeHtml(file.remarks)}</strong>
 
     </div>
 
@@ -539,9 +507,11 @@ if(selectedCard){
 
 <div class="preview-actions">
 
-    <a href="${file.url}"
+     <a href="${escapeHtml(previewURL)}"
 
        target="_blank"
+
+         rel="noopener noreferrer"
 
        class="primary-btn">
 
@@ -551,9 +521,11 @@ if(selectedCard){
 
     </a>
 
-    <a href="${file.url}"
+     <a href="${escapeHtml(previewURL)}"
 
        target="_blank"
+
+         rel="noopener noreferrer"
 
        class="primary-btn">
 
@@ -595,9 +567,9 @@ function updateBreadcrumb(){
 
             <span class="separator">></span>
 
-            <span onclick="openCategory('${currentCategory}')">
+            <span onclick="openCategory(${escapeInlineJsString(currentCategory)})">
 
-                ${currentCategory}
+                ${escapeHtml(currentCategory)}
 
             </span>
 
@@ -611,9 +583,9 @@ function updateBreadcrumb(){
 
             <span class="separator">></span>
 
-            <span onclick="openProject('${currentProject}')">
+            <span onclick="openProject(${escapeInlineJsString(currentProject)})">
 
-                ${currentProject}
+                ${escapeHtml(currentProject)}
 
             </span>
 
@@ -629,7 +601,7 @@ function updateBreadcrumb(){
 
             <span>
 
-                ${currentFolder}
+                ${escapeHtml(currentFolder)}
 
             </span>
 
@@ -693,8 +665,8 @@ function updateBreadcrumb(){
         html += `
             <span class="separator">></span>
 
-            <span onclick="openCategory('${currentCategory}')">
-                ${currentCategory}
+            <span onclick="openCategory(${escapeInlineJsString(currentCategory)})">
+                ${escapeHtml(currentCategory)}
             </span>
         `;
 
@@ -705,8 +677,8 @@ function updateBreadcrumb(){
         html += `
             <span class="separator">></span>
 
-            <span onclick="openProject('${currentProject}')">
-                ${currentProject}
+            <span onclick="openProject(${escapeInlineJsString(currentProject)})">
+                ${escapeHtml(currentProject)}
             </span>
         `;
 
@@ -718,7 +690,7 @@ function updateBreadcrumb(){
             <span class="separator">></span>
 
             <span>
-                ${currentFolder}
+                ${escapeHtml(currentFolder)}
             </span>
         `;
 
@@ -789,25 +761,12 @@ function searchRecords(){
 
         Object.keys(records[category]).forEach(project => {
 
-<<<<<<< HEAD
             if(project.toLowerCase().includes(keyword)){
                 results.push({ type:"Project", category, project });
-=======
-            // Match project name
-            if(project.toLowerCase().includes(keyword)){
-
-                results.push({
-                    type:"Project",
-                    category,
-                    project
-                });
-
->>>>>>> 8bc4fdc795ce57389f57fd985c7ac49cd63b3fb5
             }
 
             Object.keys(records[category][project]).forEach(folder => {
 
-<<<<<<< HEAD
                 if(folder.toLowerCase().includes(keyword)){
                     results.push({ type:"Folder", category, project, folder });
                 }
@@ -819,41 +778,6 @@ function searchRecords(){
                 });
             });
         });
-=======
-                // Match folder name
-                if(folder.toLowerCase().includes(keyword)){
-
-                    results.push({
-                        type:"Folder",
-                        category,
-                        project,
-                        folder
-                    });
-
-                }
-
-                records[category][project][folder].forEach(file => {
-
-                    // Match file name
-                    if(file.name.toLowerCase().includes(keyword)){
-
-                        results.push({
-                            type:"Document",
-                            category,
-                            project,
-                            folder,
-                            file
-                        });
-
-                    }
-
-                });
-
-            });
-
-        });
-
->>>>>>> 8bc4fdc795ce57389f57fd985c7ac49cd63b3fb5
     });
 
     showSearchResults(results);
@@ -916,21 +840,21 @@ function showSearchResults(results){
 
                         ${
                             item.type==="Project"
-                            ? item.project
+                            ? escapeHtml(item.project)
                             : item.type==="Folder"
-                            ? item.folder
-                            : item.file.name
+                            ? escapeHtml(item.folder)
+                            : escapeHtml(item.file.filename || item.file.name)
                         }
 
                     </div>
 
                     <div class="document-size">
 
-                        ${item.category}
+                        ${escapeHtml(item.category)}
 
-                        ${item.project ? " > "+item.project : ""}
+                        ${item.project ? " > "+escapeHtml(item.project) : ""}
 
-                        ${item.folder ? " > "+item.folder : ""}
+                        ${item.folder ? " > "+escapeHtml(item.folder) : ""}
 
                     </div>
 
@@ -1067,9 +991,9 @@ function updateBreadcrumb(){
 
             <span class="separator">></span>
 
-            <span onclick="openCategory('${currentCategory}')">
+            <span onclick="openCategory(${escapeInlineJsString(currentCategory)})">
 
-                ${currentCategory}
+                ${escapeHtml(currentCategory)}
 
             </span>
 
@@ -1083,9 +1007,9 @@ function updateBreadcrumb(){
 
             <span class="separator">></span>
 
-            <span onclick="openProject('${currentProject}')">
+            <span onclick="openProject(${escapeInlineJsString(currentProject)})">
 
-                ${currentProject}
+                ${escapeHtml(currentProject)}
 
             </span>
 
@@ -1101,7 +1025,7 @@ function updateBreadcrumb(){
 
             <span>
 
-                ${currentFolder}
+                ${escapeHtml(currentFolder)}
 
             </span>
 
@@ -1146,15 +1070,15 @@ function populateFilters(){
     const folders = [...new Set(documents.map(d => d.folder))].sort();
 
     categories.forEach(category=>{
-        categoryFilter.innerHTML += `<option value="${category}">${category}</option>`;
+        categoryFilter.innerHTML += `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`;
     });
 
     projects.forEach(project=>{
-        projectFilter.innerHTML += `<option value="${project}">${project}</option>`;
+        projectFilter.innerHTML += `<option value="${escapeHtml(project)}">${escapeHtml(project)}</option>`;
     });
 
     folders.forEach(folder=>{
-        folderFilter.innerHTML += `<option value="${folder}">${folder}</option>`;
+        folderFilter.innerHTML += `<option value="${escapeHtml(folder)}">${escapeHtml(folder)}</option>`;
     });
 
 }
@@ -1281,13 +1205,13 @@ function renderSearchResults(files){
 
                         <div class="document-name">
 
-                            ${file.filename}
+                            ${escapeHtml(file.filename)}
 
                         </div>
 
                         <div class="document-size">
 
-                            ${file.project}
+                            ${escapeHtml(file.project)}
 
                         </div>
 
@@ -1350,7 +1274,7 @@ GET FILE ICON
 
 function getFileIcon(type){
 
-    type = type.toLowerCase();
+    type = String(type || "").toLowerCase();
 
     switch(type){
 

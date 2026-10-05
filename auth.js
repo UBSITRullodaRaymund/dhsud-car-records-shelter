@@ -15,12 +15,43 @@ const API_URL =
 
 const SESSION_KEY = "dhsud_session";
 
+function escapeHtml(value) {
+    return String(value == null ? "" : value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function escapeInlineJsString(value) {
+    return escapeHtml(JSON.stringify(String(value == null ? "" : value)));
+}
+
+function safeHttpUrl(value) {
+    try {
+        const url = new URL(String(value || ""), window.location.href);
+        const allowedHosts = ["drive.google.com", "docs.google.com", "drive.usercontent.google.com"];
+        return url.protocol === "https:" && allowedHosts.includes(url.hostname) ? url.href : "";
+    } catch (error) {
+        return "";
+    }
+}
+
+function sanitizeInputText(value) {
+    return String(value == null ? "" : value)
+        .normalize("NFC")
+        .replace(/\r\n?/g, "\n")
+        .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
+        .trim();
+}
+
 /*=========================================================
  SAVE / READ / CLEAR SESSION
 =========================================================*/
 
-function saveSession(token, user) {
-    localStorage.setItem(SESSION_KEY, JSON.stringify({ token, user }));
+function saveSession(token, user, csrfToken) {
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ token, user, csrfToken }));
 }
 
 function getSession() {
@@ -37,9 +68,19 @@ function getToken() {
     return session ? session.token : null;
 }
 
+function getCsrfToken() {
+    const session = getSession();
+    return session ? session.csrfToken : null;
+}
+
 function getCurrentUser() {
     const session = getSession();
     return session ? session.user : null;
+}
+
+function getRequestOffice() {
+    const user = getCurrentUser();
+    return user && user.office ? user.office : "";
 }
 
 function clearSession() {
@@ -80,14 +121,28 @@ window.addEventListener("storage", function (event) {
  LOGOUT
 =========================================================*/
 
-function logout() {
+async function logout() {
     const token = getToken();
 
     if (token) {
-        const formData = new FormData();
-        formData.append("action", "logout");
-        formData.append("token", token);
-        fetch(API_URL, { method: "POST", body: formData, keepalive: true }).catch(() => {});
+        try {
+            let csrfToken = getCsrfToken();
+            if (!csrfToken) {
+                const response = await fetch(`${API_URL}?action=validateSession&token=${encodeURIComponent(token)}`);
+                const session = await response.json();
+                csrfToken = session.csrfToken;
+            }
+
+            if (csrfToken) {
+                const formData = new FormData();
+                formData.append("action", "logout");
+                formData.append("token", token);
+                formData.append("csrfToken", csrfToken);
+                await fetch(API_URL, { method: "POST", body: formData, keepalive: true });
+            }
+        } catch (error) {
+            console.error("Could not revoke the server session", error);
+        }
     }
 
     clearSession();
@@ -118,7 +173,19 @@ async function authedGet(params) {
 
 async function authedPost(formData) {
     const token = getToken();
+    const csrfToken = getCsrfToken();
+    if (!token || !csrfToken) {
+        clearSession();
+        window.location.replace("login.html");
+        return null;
+    }
+    for (const [key, value] of Array.from(formData.entries())) {
+        if (typeof value === "string" && !["password", "token", "csrfToken"].includes(key)) {
+            formData.set(key, sanitizeInputText(value));
+        }
+    }
     formData.append("token", token);
+    formData.append("csrfToken", csrfToken);
 
     const response = await fetch(API_URL, { method: "POST", body: formData });
     const result = await response.json();
@@ -168,7 +235,7 @@ function renderUserMenu(containerId) {
         <div class="user-menu">
             <span class="user-name">
                 <i class="fa-solid fa-user-circle"></i>
-                ${user.fullName} <small>(${user.role})</small>
+                ${escapeHtml(user.fullName)} <small>(${escapeHtml(user.role)})</small>
             </span>
             <button class="logout-btn" onclick="logout()">
                 <i class="fa-solid fa-right-from-bracket"></i> Logout
@@ -179,23 +246,27 @@ function renderUserMenu(containerId) {
 
 document.addEventListener("DOMContentLoaded", function () {
     const nav = document.querySelector("header nav");
-    if (!nav || !getToken()) return;
+    if (!getToken()) return;
 
-    const loginLink = nav.querySelector('a[href="login.html"]');
-    if (loginLink) {
-        const loginItem = loginLink.closest("li");
-        if (loginItem) loginItem.hidden = true;
-        else loginLink.hidden = true;
+    if (nav) {
+        const loginLink = nav.querySelector('a[href="login.html"]');
+        if (loginLink) {
+            const loginItem = loginLink.closest("li");
+            if (loginItem) loginItem.hidden = true;
+            else loginLink.hidden = true;
+        }
+
+        let container = document.getElementById("userMenu");
+        if (!container) {
+            container = document.createElement("div");
+            container.id = "userMenu";
+            nav.appendChild(container);
+        }
+
+        renderUserMenu("userMenu");
     }
 
-    let container = document.getElementById("userMenu");
-    if (!container) {
-        container = document.createElement("div");
-        container.id = "userMenu";
-        nav.appendChild(container);
-    }
-
-    renderUserMenu("userMenu");
+    renderAdminLinks();
 });
 
 /*=========================================================
@@ -205,16 +276,37 @@ document.addEventListener("DOMContentLoaded", function () {
 =========================================================*/
 
 function renderAdminLinks(containerId) {
-    const container = document.getElementById(containerId);
+    const nav = document.querySelector("header nav, header.navbar .container");
+    const container = containerId
+        ? document.getElementById(containerId)
+        : nav && nav.querySelector("ul");
     if (!container) return;
 
     const user = getCurrentUser();
     if (!user) return;
 
     if (user.role === "SuperAdmin" || user.role === "OfficeAdmin") {
-        container.innerHTML = `
-            <li><a href="users.html">User Accounts</a></li>
-            <li><a href="activity-log.html">Activity Log</a></li>
-        `;
+        const links = [
+            { href: "users.html", label: "User Accounts" },
+            { href: "activity-log.html", label: "Activity Log" }
+        ];
+        const currentPage = window.location.pathname.split("/").pop();
+
+        links.forEach(function (link) {
+            let anchor = container.querySelector(`a[href="${link.href}"]`);
+            if (!anchor) {
+                const item = document.createElement("li");
+                anchor = document.createElement("a");
+                anchor.href = link.href;
+                anchor.textContent = link.label;
+                item.appendChild(anchor);
+                container.appendChild(item);
+            }
+
+            if (currentPage === link.href) {
+                anchor.classList.add("active");
+                anchor.setAttribute("aria-current", "page");
+            }
+        });
     }
 }
