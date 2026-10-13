@@ -3,7 +3,9 @@
  User Accounts (Admin)
 =========================================================*/
 
-requireLogin();
+if (!requireSuperAdmin()) {
+    throw new Error("SuperAdmin access required");
+}
 
 const MODULES = [
     { key: "incoming",           label: "Incoming Documents" },
@@ -86,14 +88,14 @@ async function loadUsers() {
 }
 
 function renderTable() {
-    tbody.innerHTML = "";
-
     if (users.length === 0) {
+        tbody.innerHTML = "";
         document.getElementById("emptyState").style.display = "flex";
         return;
     }
     document.getElementById("emptyState").style.display = "none";
 
+    const fragment = document.createDocumentFragment();
     users.forEach((u, index) => {
         const row = document.createElement("tr");
         row.innerHTML = `
@@ -103,16 +105,15 @@ function renderTable() {
             <td>${escapeHtml(u.office || "-")}</td>
             <td><span class="status-badge">${escapeHtml(u.status || "-")}</span></td>
             <td class="action-buttons">
-                <button class="icon-btn edit-btn" onclick="editUser(${index})" title="Edit">
-                    <i class="fa-solid fa-pen"></i>
-                </button>
-                <button class="icon-btn delete-btn" onclick="deleteUser(${index})" title="Delete">
-                    <i class="fa-solid fa-trash"></i>
-                </button>
+                <button class="icon-btn edit-btn" data-action="edit" data-index="${index}" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                <button class="icon-btn delete-btn" data-action="delete" data-index="${index}" title="Delete"><i class="fa-solid fa-trash"></i></button>
             </td>
         `;
-        tbody.appendChild(row);
+        fragment.appendChild(row);
     });
+
+    tbody.innerHTML = "";
+    tbody.appendChild(fragment);
 }
 
 /*=========================================================
@@ -122,6 +123,17 @@ function renderTable() {
 document.getElementById("openModal").addEventListener("click", () => openModal());
 document.getElementById("closeModal").addEventListener("click", closeModal);
 document.getElementById("cancelModal").addEventListener("click", closeModal);
+tbody.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-action]");
+    if (!button) return;
+
+    const index = Number(button.dataset.index);
+    const action = button.dataset.action;
+    if (Number.isNaN(index)) return;
+
+    if (action === "edit") editUser(index);
+    if (action === "delete") deleteUser(index);
+});
 
 function openModal() {
     editingEmail = null;

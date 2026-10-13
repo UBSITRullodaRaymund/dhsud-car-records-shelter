@@ -20,8 +20,11 @@ requireLogin();
 =========================================================*/
 
 let documents = [];
-
 let editingIndex = -1;
+let searchDebounceTimer = null;
+const PAGE_SIZE = 12;
+const listCache = new Map();
+let pageState = { page: 1, totalPages: 1, total: 0, pageSize: PAGE_SIZE };
 
 
 /*=========================================================
@@ -119,37 +122,109 @@ function generateTransactionNumber(){
  LOAD DOCUMENTS
 =========================================================*/
 
-async function loadDocuments(){
+function buildDashboardCounts(records = []) {
+    return {
+        total: records.length,
+        pending: records.filter(d => normalizeStatusValue(d.status) === "PENDING").length,
+        processing: records.filter(d => normalizeStatusValue(d.status) === "PROCESSING").length,
+        completed: records.filter(d => normalizeStatusValue(d.status) === "COMPLETED").length,
+        released: records.filter(d => normalizeStatusValue(d.status) === "RELEASED").length,
+        returned: records.filter(d => normalizeStatusValue(d.status) === "RETURNED").length
+    };
+}
 
-    try{
+function applyPageResponse(payload) {
+    const pageRecords = Array.isArray(payload && payload.records) ? payload.records : [];
+    documents = pageRecords.map(record => normalizeRecordFields(record, MODULE_NAME));
+    pageState = {
+        page: Number(payload && payload.page) || 1,
+        totalPages: Number(payload && payload.totalPages) || 1,
+        total: Number(payload && payload.total) || documents.length,
+        pageSize: Number(payload && payload.pageSize) || PAGE_SIZE
+    };
+
+    renderTable(documents);
+    updateDashboard(payload && payload.counts ? payload.counts : buildDashboardCounts(documents));
+    updatePagination();
+}
+
+function updatePagination() {
+    const pageButtons = Array.from(document.querySelectorAll(".page-btn"));
+    const prevBtn = pageButtons.find(btn => btn.innerHTML.includes("fa-angle-left"));
+    const currentBtn = pageButtons.find(btn => !btn.innerHTML.includes("fa-angle-left") && !btn.innerHTML.includes("fa-angle-right"));
+    const nextBtn = pageButtons.find(btn => btn.innerHTML.includes("fa-angle-right"));
+    if (!prevBtn || !currentBtn || !nextBtn) return;
+
+    currentBtn.textContent = String(pageState.page);
+    prevBtn.disabled = pageState.page <= 1;
+    nextBtn.disabled = pageState.page >= pageState.totalPages;
+
+    const showingCount = document.getElementById("showingCount");
+    const totalCount = document.getElementById("totalCount");
+    if (showingCount) showingCount.textContent = String(documents.length || 0);
+    if (totalCount) totalCount.textContent = String(pageState.total || 0);
+}
+
+async function loadDocuments(page = 1){
+    const filters = {
+        page,
+        pageSize: PAGE_SIZE,
+        search: searchInput ? searchInput.value.trim() : "",
+        status: "",
+        office: "",
+        year: ""
+    };
+
+    const cacheKey = JSON.stringify({
+        office: getRequestOffice(),
+        module: MODULE_NAME,
+        sheet: SHEET_NAME,
+        ...filters
+    });
+
+    if (listCache.has(cacheKey)) {
+        applyPageResponse(listCache.get(cacheKey));
+        return;
+    }
+
+    try {
         const result = await authedGet({
             action: "getDocuments",
             module: MODULE_NAME,
             sheet: SHEET_NAME,
-            office: getRequestOffice()
+            office: getRequestOffice(),
+            page: filters.page,
+            pageSize: filters.pageSize,
+            search: filters.search,
+            status: filters.status,
+            officeFilter: filters.office,
+            year: filters.year
         });
 
-        if (!Array.isArray(result)) {
+        if (!result || !result.records) {
+            if (Array.isArray(result)) {
+                const legacyRecords = result.map(record => normalizeRecordFields(record, MODULE_NAME));
+                documents = legacyRecords;
+                pageState = { page: 1, totalPages: 1, total: legacyRecords.length, pageSize: PAGE_SIZE };
+                renderTable(documents);
+                updateDashboard(buildDashboardCounts(legacyRecords));
+                updatePagination();
+                return;
+            }
+
             documents = [];
             console.error(result && result.error ? result.error : "Unexpected API response", result);
             renderTable();
+            updateDashboard(buildDashboardCounts([]));
             return;
         }
 
-        documents = result.map(record => normalizeRecordFields(record, MODULE_NAME));
-
-        renderTable();
-
-        updateDashboard();
-
+        listCache.set(cacheKey, result);
+        applyPageResponse(result);
     }
-
     catch(error){
-
         console.error(error);
-
     }
-
 }
 
 /*=========================================================
@@ -157,99 +232,56 @@ async function loadDocuments(){
 =========================================================*/
 
 function renderTable(data = documents){
-
-    tbody.innerHTML = "";
-
     if(data.length === 0){
-
         document.getElementById("emptyState").style.display="flex";
-
         document.getElementById("showingCount").textContent=0;
-
         document.getElementById("totalCount").textContent=0;
-
         return;
-
     }
 
     document.getElementById("emptyState").style.display="none";
-
     document.getElementById("showingCount").textContent=data.length;
-
     document.getElementById("totalCount").textContent=documents.length;
 
+    const fragment = document.createDocumentFragment();
     data.forEach((doc,index)=>{
-
         const row=document.createElement("tr");
-
         row.innerHTML=`
-
-<td>${escapeHtml(doc.transactionNo || "-")}</td>
-
-<td>${escapeHtml(formatDate(doc.dateRequest))}</td>
-
-<td>${escapeHtml(doc.documentName || "-")}</td>
-
-<td>${escapeHtml(doc.classification || "-")}</td>
-
-<td>${escapeHtml(doc.requestedBy || "-")}</td>
-
-<td>${escapeHtml(doc.releasedBy || "-")}</td>
-
-<td>${escapeHtml(formatDate(doc.dateReceived))}</td>
-
-<td>
-
-<span class="status-badge">
-
-${escapeHtml(doc.status || "-")}
-
-</span>
-
-</td>
-
-<td class="action-buttons">
-
-    <button class="icon-btn view-btn" onclick="viewDocument(${index})" title="View">
-        <i class="fa-solid fa-eye"></i>
-    </button>
-
-    <button class="icon-btn edit-btn" onclick="editDocument(${index})" title="Edit">
-        <i class="fa-solid fa-pen"></i>
-    </button>
-
-    <button class="icon-btn delete-btn" onclick="deleteDocument(${index})" title="Delete">
-        <i class="fa-solid fa-trash"></i>
-    </button>
-
-</td>
-
-`;
-
-        tbody.appendChild(row);
-
+            <td>${escapeHtml(doc.transactionNo || "-")}</td>
+            <td>${escapeHtml(formatDate(doc.dateRequest))}</td>
+            <td>${escapeHtml(doc.documentName || "-")}</td>
+            <td>${escapeHtml(doc.classification || "-")}</td>
+            <td>${escapeHtml(doc.requestedBy || "-")}</td>
+            <td>${escapeHtml(doc.releasedBy || "-")}</td>
+            <td>${escapeHtml(formatDate(doc.dateReceived))}</td>
+            <td><span class="status-badge">${escapeHtml(doc.status || "-")}</span></td>
+            <td class="action-buttons">
+                <button class="icon-btn view-btn" data-action="view" data-index="${index}" title="View"><i class="fa-solid fa-eye"></i></button>
+                <button class="icon-btn edit-btn" data-action="edit" data-index="${index}" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                <button class="icon-btn delete-btn" data-action="delete" data-index="${index}" title="Delete"><i class="fa-solid fa-trash"></i></button>
+            </td>
+        `;
+        fragment.appendChild(row);
     });
 
+    tbody.innerHTML = "";
+    tbody.appendChild(fragment);
 }
 
 /*=========================================================
  DASHBOARD
 =========================================================*/
 
-function updateDashboard(){
+function updateDashboard(counts = buildDashboardCounts(documents)){
+    const total = counts.total ?? documents.length;
+    const pending = counts.pending ?? 0;
+    const released = counts.released ?? 0;
+    const returned = counts.returned ?? 0;
 
-    document.getElementById("totalDocuments").textContent =
-    documents.length;
-
-    document.getElementById("pendingDocuments").textContent =
-    documents.filter(d=>d.status==="Pending").length;
-
-    document.getElementById("releasedDocuments").textContent =
-    documents.filter(d=>d.status==="Released").length;
-
-    document.getElementById("returnedDocuments").textContent =
-    documents.filter(d=>d.status==="Returned").length;
-
+    document.getElementById("totalDocuments").textContent = total;
+    document.getElementById("pendingDocuments").textContent = pending;
+    document.getElementById("releasedDocuments").textContent = released;
+    document.getElementById("returnedDocuments").textContent = returned;
 }
 
 /*=========================================================
@@ -262,6 +294,41 @@ closeModalBtn.addEventListener("click", closeModal);
 
 cancelModalBtn.addEventListener("click", closeModal);
 
+tbody.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-action]");
+    if (!button) return;
+
+    const index = Number(button.dataset.index);
+    const action = button.dataset.action;
+    if (Number.isNaN(index)) return;
+
+    if (action === "view") viewDocument(index);
+    if (action === "edit") editDocument(index);
+    if (action === "delete") deleteDocument(index);
+});
+
+if (searchInput) {
+    searchInput.addEventListener("input", () => {
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(() => loadDocuments(1), 150);
+    });
+}
+
+const pageButtons = Array.from(document.querySelectorAll(".page-btn"));
+const prevPageBtn = pageButtons.find(btn => btn.innerHTML.includes("fa-angle-left"));
+const nextPageBtn = pageButtons.find(btn => btn.innerHTML.includes("fa-angle-right"));
+if (prevPageBtn) prevPageBtn.addEventListener("click", () => {
+    if (pageState.page > 1) loadDocuments(pageState.page - 1);
+});
+if (nextPageBtn) nextPageBtn.addEventListener("click", () => {
+    if (pageState.page < pageState.totalPages) loadDocuments(pageState.page + 1);
+});
+
+const clearButton = document.getElementById("clearFilters");
+if (clearButton) clearButton.addEventListener("click", () => {
+    searchInput.value = "";
+    loadDocuments(1);
+});
 
 function openModal(){
 

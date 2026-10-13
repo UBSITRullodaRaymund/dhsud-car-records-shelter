@@ -1,0 +1,11 @@
+{
+  "name": "dhsud-car-records-shelter",
+  "private": true,
+  "scripts": {
+    "start": "node proxy-server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "http-proxy-middleware": "^3.0.0"
+  }
+}

@@ -10,6 +10,12 @@ const FOI_OFFICES = [
 ];
 requireLogin();
 
+const denialReasonOptions = [
+    ["Invalid Request", "Invalid Request"],
+    ["Incomplete", "Incomplete"],
+    ["Data already available online", "Data already available online"]
+];
+
 const fields = [
     ["transactionNo", "TRANSACTION NO", "text", true],
     ["title", "TITLE", "text", true],
@@ -30,11 +36,12 @@ const fields = [
     ["accomplishedAgency", "AGENCY-CONNECTING AGENCY", "text", false],
     ["dateEnteredEfoi", "DATE ENTERED ON E-FOI", "date", false],
     ["proofOfId", "PROOF OF ID PRESENTED", "text", false],
-    ["recommendation", "REQUEST IS RECOMMENDED TO BE", "text", false],
-    ["denialReason", "IF DENIED: REASON FOR DENIAL", "textarea", false],
+    ["recommendation", "REQUEST IS RECOMMENDED TO BE", "select", false],
+    ["denialReason", "IF DENIED: REASON FOR DENIAL", "select", false],
     ["secondOfficer", "SECOND RECEIVING OFFICER ASSIGNED", "text", false],
-    ["decision", "DECISION ON APPLICATION", "text", false],
-    ["decisionDenialReason", "IF DENIED REASON FOR DENIAL", "textarea", false],
+    ["decision", "DECISION ON APPLICATION", "select", false],
+    ["decisionCost", "NUMBER", "number", false],
+    ["decisionDenialReason", "IF DENIED REASON FOR DENIAL", "select", false],
     ["dateFinished", "DATE REQUEST FINISHED", "date", false],
     ["registryAccomplished", "FOI REGISTRY ACCOMPLISHED", "text", false],
     ["dateReceived", "DATE RECEIVED", "date", false]
@@ -42,13 +49,16 @@ const fields = [
 
 let requests = [];
 let editingIndex = -1;
+const PAGE_SIZE = 12;
+const listCache = new Map();
+let pageState = { page: 1, totalPages: 1, total: 0, pageSize: PAGE_SIZE };
 const validationOptions = {
-    communicationMode: ["Mobile", "Email", "Postal"],
-    idType: ["Postal ID", "Driver's License", "Passport", "Other"],
+    communicationMode: ["Mobile", "Email", "Postal", "Landline"],
+    idType: ["Postal ID", "Driver's License", "Passport","Voter's ID","Postal ID", "SSS ID", "School ID", "Company ID", "Others"],
     documentType: ["Letter", "Memorandum", "Report", "Other"],
     proofOfId: ["Presented", "Not Presented", "N/A"],
     recommendation: ["Approved", "Denied", "Partially Successful"],
-    decision: ["Approved", "Denied", "Partially Successful", "Incomplete"],
+    decision: ["Approved", "Denied", "Partially Successful", "Incomplete", "Cost"],
     registryAccomplished: ["Yes", "No"]
 };
 const tbody = document.getElementById("foiBody");
@@ -60,7 +70,9 @@ const previewOpenLink = document.getElementById("foiPreviewOpen");
 const previewDownloadLink = document.getElementById("foiPreviewDownload");
 const fieldsContainer = document.getElementById("foiFields");
 const officeSelect = document.getElementById("officeSelect");
+const searchInput = document.getElementById("searchInput");
 let foiPreviewUrl = null;
+let searchDebounceTimer = null;
 
 function getFoiOffice() {
     const user = getCurrentUser();
@@ -92,59 +104,160 @@ function escapeHtml(value) {
         .replace(/'/g, "&#039;");
 }
 
+function buildSelectField(key, label, required, choices = []) {
+    const optionList = choices.length
+        ? `<option value="">Select an option</option>${choices.map((choice) => {
+            const value = Array.isArray(choice) ? choice[0] : choice;
+            const text = Array.isArray(choice) ? choice[1] : choice;
+            return `<option value="${escapeHtml(value)}">${escapeHtml(text)}</option>`;
+        }).join("")}`
+        : `<option value="">Select an option</option>`;
+    return `<div class="full"><label for="${key}">${label}${required ? " *" : ""}</label><select id="${key}" ${required ? "required" : ""}>${optionList}</select></div>`;
+}
+
 function buildForm(options = {}) {
-    const maxLengths = { transactionNo: 50, title: 50, name: 100, address: 500, contactEmail: 254, communicationMode: 30, idType: 50, agency: 200, documentRequested: 2000, datePeriod: 100, purpose: 2000, documentType: 50, referenceNo: 100, additionalInformation: 2000, accomplishedBy: 100, accomplishedAgency: 150, proofOfId: 30, recommendation: 50, denialReason: 1000, secondOfficer: 100, decision: 50, decisionDenialReason: 1000, registryAccomplished: 10, dateAccomplished: 10, dateEnteredEfoi: 10, dateFinished: 10, dateReceived: 10 };
+    const maxLengths = { transactionNo: 50, title: 50, name: 100, address: 500, contactEmail: 254, communicationMode: 30, idType: 50, agency: 200, documentRequested: 2000, datePeriod: 100, purpose: 2000, documentType: 50, referenceNo: 100, additionalInformation: 2000, accomplishedBy: 100, accomplishedAgency: 150, proofOfId: 30, recommendation: 50, denialReason: 1000, secondOfficer: 100, decision: 50, decisionCost: 20, decisionDenialReason: 1000, registryAccomplished: 10, dateAccomplished: 10, dateEnteredEfoi: 10, dateFinished: 10, dateReceived: 10 };
     fieldsContainer.innerHTML = fields.map(([key, label, type, required]) => {
-        const choices = options[key];
+        const choices = key === "denialReason" || key === "decisionDenialReason" ? denialReasonOptions : options[key];
         const maxLength = maxLengths[key] || 1000;
-        const control = Array.isArray(choices) && choices.length
+        if (key === "decisionCost") {
+            return `<div class="full" data-decision-cost-group style="display:none;"><label for="${key}">${label}${required ? " *" : ""}</label><input id="${key}" type="${type}" min="0" ${type === "number" ? 'step="0.01"' : ""} ${required ? "required" : ""}></div>`;
+        }
+        if (type === "select") {
+            return buildSelectField(key, label, required, choices || []);
+        }
+        const control = Array.isArray(choices) && choices.length && typeof choices[0] !== "string"
+            ? `<select id="${key}" ${required ? "required" : ""}><option value="">Select an option</option>${choices.map(value => `<option value="${escapeHtml(value[0])}">${escapeHtml(value[1])}</option>`).join("")}</select>`
+            : Array.isArray(choices) && choices.length
             ? `<select id="${key}" ${required ? "required" : ""}><option value="">Select an option</option>${choices.map(value => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`).join("")}</select>`
             : type === "textarea"
             ? `<textarea id="${key}" maxlength="${maxLength}" ${required ? "required" : ""}></textarea>`
             : `<input id="${key}" type="${type}" ${type === "date" ? `max="9999-12-31"` : `maxlength="${maxLength}"`} ${required ? "required" : ""}>`;
         return `<div class="${type === "textarea" ? "full" : ""}"><label for="${key}">${label}${required ? " *" : ""}</label>${control}</div>`;
     }).join("");
+    syncDecisionCostFields();
 }
 
-async function loadRequests() {
+function syncDecisionCostFields() {
+    const decisionField = document.getElementById("decision");
+    const costFields = document.querySelectorAll("[data-decision-cost-group]");
+    if (!decisionField) return;
+    const show = decisionField.value === "Cost";
+    costFields.forEach(field => {
+        field.style.display = show ? "block" : "none";
+        const input = field.querySelector("input");
+        if (input) {
+            input.disabled = !show;
+            if (!show) {
+                input.value = "";
+            }
+        }
+    });
+}
+
+function updatePagination() {
+    const prevBtn = document.getElementById("prevPageBtn");
+    const currentBtn = document.getElementById("currentPageBtn");
+    const nextBtn = document.getElementById("nextPageBtn");
+    if (!prevBtn || !currentBtn || !nextBtn) return;
+
+    currentBtn.textContent = String(pageState.page);
+    prevBtn.disabled = pageState.page <= 1;
+    nextBtn.disabled = pageState.page >= pageState.totalPages;
+
+    const showingCount = document.getElementById("showingCount");
+    const totalCount = document.getElementById("totalCount");
+    if (showingCount) showingCount.textContent = String(requests.length || 0);
+    if (totalCount) totalCount.textContent = String(pageState.total || 0);
+}
+
+function applyPageResponse(payload) {
+    const nextRequests = Array.isArray(payload && payload.records) ? payload.records : [];
+    requests = nextRequests
+        .map(record => normalizeRecordFields(record, MODULE_NAME))
+        .filter(request => fields.some(([key]) => String(request[key] || "").trim() !== ""));
+
+    pageState = {
+        page: Number(payload && payload.page) || 1,
+        totalPages: Number(payload && payload.totalPages) || 1,
+        total: Number(payload && payload.total) || requests.length,
+        pageSize: Number(payload && payload.pageSize) || PAGE_SIZE
+    };
+
+    renderTable();
+    populateDecisions();
+    updatePagination();
+}
+
+async function loadRequests(page = 1) {
+    const search = searchInput ? searchInput.value.trim() : "";
+    const cacheKey = JSON.stringify({
+        office: getFoiOffice(),
+        module: MODULE_NAME,
+        sheet: SHEET_NAME,
+        page,
+        pageSize: PAGE_SIZE,
+        search
+    });
+
+    if (listCache.has(cacheKey)) {
+        applyPageResponse(listCache.get(cacheKey));
+        return;
+    }
+
     const result = await authedGet({
         action: "getDocuments",
         module: MODULE_NAME,
         sheet: SHEET_NAME,
-        office: getFoiOffice()
+        office: getFoiOffice(),
+        page,
+        pageSize: PAGE_SIZE,
+        search
     });
 
-    if (!Array.isArray(result)) {
+    if (!result || !result.records) {
+        if (Array.isArray(result)) {
+            requests = result
+                .map(record => normalizeRecordFields(record, MODULE_NAME))
+                .filter(request => fields.some(([key]) => String(request[key] || "").trim() !== ""));
+            pageState = { page: 1, totalPages: 1, total: requests.length, pageSize: PAGE_SIZE };
+            renderTable();
+            populateDecisions();
+            updatePagination();
+            return;
+        }
+
         requests = [];
         console.error(result && result.error ? result.error : "Unable to load FOI requests", result);
         renderTable();
+        updatePagination();
         return;
     }
 
-    requests = result
-        .map(record => normalizeRecordFields(record, MODULE_NAME))
-        .filter(request => fields.some(([key]) => String(request[key] || "").trim() !== ""));
-    renderTable();
-    populateDecisions();
+    listCache.set(cacheKey, result);
+    applyPageResponse(result);
 }
 
 function renderTable() {
-    const search = document.getElementById("searchInput").value.trim().toLowerCase();
+    const search = searchInput.value.trim().toLowerCase();
     const decision = document.getElementById("decisionFilter").value;
-    const filtered = requests.filter(request => {
+    const filtered = requests.filter((request) => {
         const text = [request.transactionNo, request.title, request.name, request.contactEmail, request.documentRequested, request.referenceNo]
             .map(value => String(value || "").toLowerCase()).join(" ");
         return text.includes(search) && (!decision || request.decision === decision);
     });
 
-    tbody.innerHTML = "";
-    document.getElementById("emptyState").style.display = filtered.length ? "none" : "flex";
-    filtered.forEach((request, index) => {
+    const fragment = document.createDocumentFragment();
+    filtered.forEach((request) => {
         const actualIndex = requests.indexOf(request);
         const row = document.createElement("tr");
-        row.innerHTML = `<td>${escapeHtml(request.transactionNo || "-")}</td><td>${escapeHtml(request.title || "-")}</td><td>${escapeHtml(request.name || "-")}</td><td>${escapeHtml(request.contactEmail || "-")}</td><td>${escapeHtml(request.documentRequested || "-")}</td><td>${escapeHtml(request.dateReceived || "-")}</td><td>${escapeHtml(request.decision || "-")}</td><td>${escapeHtml(request.dateFinished || "-")}</td><td class="action-buttons"><button class="icon-btn preview-btn" onclick="previewFoiRequest(${actualIndex})" title="Preview filled FOI PDF" aria-label="Preview filled FOI PDF"><i class="fa-solid fa-eye"></i></button><button class="icon-btn print-btn" onclick="printFoiRequest(${actualIndex})" title="Download filled FOI PDF form" aria-label="Download filled FOI PDF form"><i class="fa-solid fa-print"></i></button><button class="icon-btn edit-btn" onclick="editRequest(${actualIndex})" title="Edit"><i class="fa-solid fa-pen"></i></button><button class="icon-btn delete-btn" onclick="deleteRequest(${actualIndex})" title="Delete"><i class="fa-solid fa-trash"></i></button></td>`;
-        tbody.appendChild(row);
+        row.innerHTML = `<td>${escapeHtml(request.transactionNo || "-")}</td><td>${escapeHtml(request.title || "-")}</td><td>${escapeHtml(request.name || "-")}</td><td>${escapeHtml(request.contactEmail || "-")}</td><td>${escapeHtml(request.documentRequested || "-")}</td><td>${escapeHtml(request.dateReceived || "-")}</td><td>${escapeHtml(request.decision || "-")}</td><td>${escapeHtml(request.dateFinished || "-")}</td><td class="action-buttons"><button class="icon-btn preview-btn" data-action="preview" data-index="${actualIndex}" title="Preview filled FOI PDF" aria-label="Preview filled FOI PDF"><i class="fa-solid fa-eye"></i></button><button class="icon-btn print-btn" data-action="print" data-index="${actualIndex}" title="Download filled FOI PDF form" aria-label="Download filled FOI PDF form"><i class="fa-solid fa-print"></i></button><button class="icon-btn edit-btn" data-action="edit" data-index="${actualIndex}" title="Edit"><i class="fa-solid fa-pen"></i></button><button class="icon-btn delete-btn" data-action="delete" data-index="${actualIndex}" title="Delete"><i class="fa-solid fa-trash"></i></button></td>`;
+        fragment.appendChild(row);
     });
+
+    tbody.innerHTML = "";
+    tbody.appendChild(fragment);
+    document.getElementById("emptyState").style.display = filtered.length ? "none" : "flex";
 }
 
 async function printFoiRequest(index) {
@@ -441,26 +554,26 @@ async function createFilledFoiPdf(request) {
 
     // ---- Recommendation ----
     const rec = safe(request.recommendation).toLowerCase();
+    const denial = safe(request.denialReason).toLowerCase();
     setCheck("recommendation.approved", rec === "approved");
     setCheck("recommendation.denied", rec === "denied");
 
     // ---- Denial reason (recommendation) ----
-    const denial = safe(request.denialReason).toLowerCase();
-    setCheck("denialReason.invalidRequest", denial.includes("invalid"));
-    setCheck("denialReason.incomplete", denial.includes("incomplete"));
-    setCheck("denialReason.online", denial.includes("online"));
+    setCheck("denialReason.invalidRequest", /invalid/.test(denial));
+    setCheck("denialReason.incomplete", /incomplete/.test(denial));
+    setCheck("denialReason.online", /online|available online/.test(denial));
 
     // ---- Decision ----
     const dec = safe(request.decision).toLowerCase().replace(/[^a-z]/g, "");
+    const decDen = safe(request.decisionDenialReason).toLowerCase();
     setCheck("decision.successful", dec === "successful" || dec === "approved");
     setCheck("decision.partiallySuccessful", dec === "partiallysuccessful");
     setCheck("decision.denied", dec === "denied");
 
     // ---- Decision denial reason ----
-    const decDen = safe(request.decisionDenialReason).toLowerCase();
-    setCheck("decisionDenialReason.invalidRequest", decDen.includes("invalid"));
-    setCheck("decisionDenialReason.incomplete", decDen.includes("incomplete") || dec === "incomplete");
-    setCheck("decisionDenialReason.online", decDen.includes("online"));
+    setCheck("decisionDenialReason.invalidRequest", /invalid/.test(decDen));
+    setCheck("decisionDenialReason.incomplete", /incomplete/.test(decDen) || dec === "incomplete");
+    setCheck("decisionDenialReason.online", /online|available online/.test(decDen));
 
     // ---- Registry accomplished ----
     const reg = safe(request.registryAccomplished).toLowerCase();
@@ -586,23 +699,23 @@ async function createStaticFoiPdf(pdf, request) {
     const surname = parts.length ? parts.pop() : "";
     const middle = parts.join(" ");
 
-    textField(request.transactionNo, 326, 812, 170, 12);
-    textField(request.title, 93, 750, 70, 12);
+    textField(request.transactionNo, 445, 817, 170, 12);
+    textField(request.title, 113, 750, 70, 12);
     textField(given, 180, 750, 105, 12);
     textField(middle ? `${middle[0]}.` : "", 300, 750, 38, 12);
     textField(surname, 355, 750, 155, 12);
-    textField(request.address, 110, 724, 415, 13);
+    textField(request.address, 104, 724, 415, 13);
     textField(request.contactEmail, 310, 702, 415, 13);
 
     const communication = normalized(request.communicationMode);
-    [["landline", 99, "landline"], ["mobile", 183, "mobile"], ["email", 265, "email"], ["postal", 350, "postal"]]
-        .forEach(([name, x, match]) => checkbox(`communication.${name}`, x, 678, communication === match));
+    [["landline", 93, "landline"], ["mobile", 178, "mobile"], ["email", 259, "email"], ["postal", 343, "postal"]]
+        .forEach(([name, x, match]) => checkbox(`communication.${name}`, x, 681, communication === match));
 
     const id = normalized(request.idType);
     const idOptions = [
-        ["passport", 99, 638], ["votersId", 185, 638], ["postalId", 266, 638],
-        ["driversLicense", 349, 638], ["sssId", 450, 638], ["schoolId", 99, 628],
-        ["companyId", 185, 628], ["others", 266, 628]
+        ["passport", 93, 640], ["votersId", 179, 640], ["postalId", 260, 640],
+        ["driversLicense", 343, 640], ["sssId", 443, 640], ["schoolId", 93, 631],
+        ["companyId", 179, 631], ["others", 260, 631]
     ];
     const idAliases = { votersId: "votersid", postalId: "postalid", driversLicense: "driverslicense", sssId: "sssid", schoolId: "schoolid", companyId: "companyid" };
     idOptions.forEach(([name, x, y]) => checkbox(
@@ -612,42 +725,42 @@ async function createStaticFoiPdf(pdf, request) {
         name === "others" ? id === "other" || id === "others" : id === (idAliases[name] || name.toLowerCase())
     ));
 
-    textField(request.agency, 95, 586, 415, 11);
-    textField(request.documentRequested, 158, 566, 415, 28, { multiline: true });
-    textField(formatPrintPeriod(request.datePeriod), 246, 550, 250, 12);
-    textField(request.purpose, 100, 514, 415, 29, { multiline: true });
-    textField(request.documentType, 95, 494, 165, 11);
+    textField(request.agency, 303, 610, 415, 11);
+    textField(request.documentRequested, 101, 571, 415, 28, { multiline: true });
+    textField(formatPrintPeriod(request.datePeriod), 220, 550, 250, 12);
+    textField(request.purpose, 101, 514, 415, 29, { multiline: true });
+    textField(request.documentType, 100, 498, 165, 11);
     textField(request.referenceNo, 222, 485, 225, 10);
     textField(request.additionalInformation, 262, 474, 235, 10);
     textField(formatPrintDate(request.dateAccomplished), 442, 381, 145, 10);
-    textField(request.accomplishedBy, 189, 355, 190, 10);
-    textField(request.accomplishedAgency, 444, 355, 205, 10);
-    textField(formatPrintDate(request.dateEnteredEfoi), 185, 335, 190, 10);
+    textField(request.accomplishedBy, 189, 354 , 190, 10);
+    textField(request.accomplishedAgency, 444, 354, 205, 10);
+    textField(formatPrintDate(request.dateEnteredEfoi), 185, 336, 190, 10);
     textField(request.proofOfId, 300, 328, 205, 10);
 
     const recommendation = normalized(request.recommendation);
-    checkbox("recommendation.approved", 273, 321, recommendation === "approved");
-    checkbox("recommendation.denied", 355, 321, recommendation === "denied");
+    checkbox("recommendation.approved", 268, 324, recommendation === "approved");
+    checkbox("recommendation.denied", 351, 324, recommendation === "denied");
     const denial = normalized(request.denialReason);
-    checkbox("denialReason.invalidRequest", 273, 311, denial.includes("invalid"));
-    checkbox("denialReason.incomplete", 355, 311, denial.includes("incomplete"));
-    checkbox("denialReason.online", 426, 311, denial.includes("online"));
-    textField(request.secondOfficer, 265, 293, 225, 11);
+    checkbox("denialReason.invalidRequest", 269, 312, denial.includes("invalid"));
+    checkbox("denialReason.incomplete", 350, 312, denial.includes("incomplete"));
+    checkbox("denialReason.online", 423, 312, denial.includes("online"));
+    textField(request.secondOfficer, 307, 303, 225, 11);
 
     const decision = normalized(request.decision);
-    checkbox("decision.successful", 211, 240, decision === "successful" || decision === "approved");
-    checkbox("decision.partiallySuccessful", 273, 240, decision === "partiallysuccessful");
-    checkbox("decision.denied", 356, 240, decision === "denied");
+    checkbox("decision.successful", 208, 242, decision === "successful" || decision === "approved");
+    checkbox("decision.partiallySuccessful", 269, 242, decision === "partiallysuccessful");
+    checkbox("decision.denied", 351, 242, decision === "denied");
     const decisionDenial = normalized(request.decisionDenialReason);
-    checkbox("decisionDenialReason.invalidRequest", 273, 231, decisionDenial.includes("invalid"));
-    checkbox("decisionDenialReason.incomplete", 355, 231, decision === "incomplete" || decisionDenial.includes("incomplete"));
-    checkbox("decisionDenialReason.online", 426, 231, decisionDenial.includes("online"));
-    textField(formatPrintDate(request.dateFinished), 205, 201, 95, 12);
+    checkbox("decisionDenialReason.invalidRequest", 268 , 232, decisionDenial.includes("invalid"));
+    checkbox("decisionDenialReason.incomplete", 350, 232, decision === "incomplete" || decisionDenial.includes("incomplete"));
+    checkbox("decisionDenialReason.online", 420, 232, decisionDenial.includes("online"));
+    textField(formatPrintDate(request.dateFinished), 225, 206, 95, 12);
     const registry = normalized(request.registryAccomplished);
-    checkbox("registryAccomplished.yes", 438, 205, registry === "yes");
-    checkbox("registryAccomplished.no", 488, 205, registry === "no");
-    textField(request.documentRequested, 88, 74, 420, 16, { multiline: true });
-    textField(formatPrintDate(request.dateReceived), 205, 48, 115, 12);
+    checkbox("registryAccomplished.yes", 433, 208, registry === "yes");
+    checkbox("registryAccomplished.no", 484, 208, registry === "no");
+    textField(request.documentRequested, 177, 90, 420, 16, { multiline: true });
+    textField(formatPrintDate(request.dateReceived), 189, 53, 115, 12);
 
     return new Blob([await pdf.save()], { type: "application/pdf" });
 }
@@ -681,9 +794,20 @@ function openForm(request = null) {
     fields.forEach(([key, , type]) => {
         const input = document.getElementById(key);
         const value = request ? request[key] || "" : "";
-        input.value = type === "date" ? toDateInputValue(value) : value;
-        input.disabled = key === "transactionNo" && Boolean(request);
+        if (type === "select") {
+            if (input) {
+                input.value = value;
+            }
+            return;
+        }
+        if (input) {
+            input.value = type === "date" ? toDateInputValue(value) : value;
+        }
+        if (input) {
+            input.disabled = key === "transactionNo" && Boolean(request);
+        }
     });
+    syncDecisionCostFields();
     modal.style.display = "flex";
 }
 
@@ -717,7 +841,10 @@ form.addEventListener("submit", async event => {
     if (!form.reportValidity()) return;
     try {
         const values = {};
-        fields.forEach(([key]) => { values[key] = document.getElementById(key).value; });
+        fields.forEach(([key, , type]) => {
+            const input = document.getElementById(key);
+            values[key] = input ? input.value : "";
+        });
         const payload = editingIndex === -1
             ? { action: "save", module: MODULE_NAME, sheet: SHEET_NAME, office: getFoiOffice(), ...values }
             : { action: "update", module: MODULE_NAME, sheet: SHEET_NAME, office: getFoiOffice(), idField: "transactionNo", idValue: requests[editingIndex].transactionNo, ...values };
@@ -752,9 +879,36 @@ document.getElementById("foiPreviewPrint").addEventListener("click", () => {
     const printWindow = window.open(foiPreviewUrl, "_blank", "noopener");
     if (!printWindow) alert("Allow pop-ups to open the PDF print viewer.");
 });
-document.getElementById("searchInput").addEventListener("input", renderTable);
-document.getElementById("searchInput").addEventListener("search", renderTable);
-document.getElementById("decisionFilter").addEventListener("change", renderTable);
+searchInput.addEventListener("input", () => {
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => loadRequests(1), 150);
+});
+searchInput.addEventListener("search", () => loadRequests(1));
+document.getElementById("decisionFilter").addEventListener("change", () => renderTable());
+document.getElementById("prevPageBtn").addEventListener("click", () => {
+    if (pageState.page > 1) loadRequests(pageState.page - 1);
+});
+document.getElementById("nextPageBtn").addEventListener("click", () => {
+    if (pageState.page < pageState.totalPages) loadRequests(pageState.page + 1);
+});
+tbody.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-action]");
+    if (!button) return;
+
+    const index = Number(button.dataset.index);
+    const action = button.dataset.action;
+    if (Number.isNaN(index)) return;
+
+    if (action === "preview") previewFoiRequest(index);
+    if (action === "print") printFoiRequest(index);
+    if (action === "edit") editRequest(index);
+    if (action === "delete") deleteRequest(index);
+});
+document.addEventListener("change", event => {
+    if (event.target && event.target.id === "decision") {
+        syncDecisionCostFields();
+    }
+});
 window.addEventListener("click", event => {
     if (event.target === modal) closeForm();
     if (event.target === previewModal) closeFoiPreview();

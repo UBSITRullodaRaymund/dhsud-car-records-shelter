@@ -11,7 +11,7 @@
 =========================================================*/
 
 const API_URL =
-"https://script.google.com/macros/s/AKfycbz-QHC1nioYNOrFQw7h2q6M44Barh7rwYjDzFZ1I1PdU6f24tkncUjJEWTvqS1WtTfr/exec";
+"https://script.google.com/macros/s/AKfycbzB000NSx4wtVSrn-_tEJZ6AiIRLGQlTZrDvZNbULkSaf7LJDLM33nz7dXjsoDuXXGY/exec";
 
 const SESSION_KEY = "dhsud_session";
 
@@ -44,6 +44,10 @@ function sanitizeInputText(value) {
         .replace(/\r\n?/g, "\n")
         .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
         .trim();
+}
+
+function normalizeStatusValue(value) {
+    return String(value == null ? "" : value).trim().toUpperCase();
 }
 
 /*=========================================================
@@ -102,6 +106,18 @@ function requireLogin() {
         window.location.replace("login.html");
     }
     return session;
+}
+
+function requireSuperAdmin() {
+    const session = requireLogin();
+    if (!session || !session.token) return false;
+
+    if (!session.user || session.user.role !== "SuperAdmin") {
+        window.location.replace("index.html");
+        return false;
+    }
+
+    return true;
 }
 
 window.addEventListener("pageshow", function () {
@@ -221,7 +237,11 @@ function isSessionError(response, result) {
 =========================================================*/
 
 function normalizeRecordFields(record, module) {
-    return record || {};
+    if (!record || typeof record !== "object") return record || {};
+    if (typeof record.status === "string") {
+        record.status = normalizeStatusValue(record.status);
+    }
+    return record;
 }
 
 function renderUserMenu(containerId) {
@@ -270,9 +290,7 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 /*=========================================================
- ADMIN NAV LINKS — only SuperAdmin / OfficeAdmin see the
- User Accounts and Activity Log links. Call on any page
- that has an element with this ID inside its <ul> nav.
+ ADMIN NAV LINKS — only SuperAdmin sees these links.
 =========================================================*/
 
 function renderAdminLinks(containerId) {
@@ -285,7 +303,7 @@ function renderAdminLinks(containerId) {
     const user = getCurrentUser();
     if (!user) return;
 
-    if (user.role === "SuperAdmin" || user.role === "OfficeAdmin") {
+    if (user.role === "SuperAdmin") {
         const links = [
             { href: "users.html", label: "User Accounts" },
             { href: "activity-log.html", label: "Activity Log" }

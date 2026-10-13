@@ -257,13 +257,85 @@ function doGet(e) {
         return record;
       });
 
-      return jsonResponse(records);
+      const hasPagingFilters = ["page", "pageSize", "search", "status", "officeFilter", "year"].some(key => e.parameter[key] !== undefined);
+      if (!hasPagingFilters) {
+        return jsonResponse(records);
+      }
+
+      const pageResponse = buildDocumentPageResponse(records, {
+        page: e.parameter.page,
+        pageSize: e.parameter.pageSize || e.parameter.limit || 12,
+        search: e.parameter.search || "",
+        status: e.parameter.status || "",
+        office: e.parameter.officeFilter || "",
+        year: e.parameter.year || ""
+      });
+
+      return jsonResponse(pageResponse);
     } catch (err) {
       return jsonResponse({ error: err.message }, 400);
     }
   }
 
   return jsonResponse({ error: "Unknown action" }, 400);
+}
+
+function getDocumentSearchText(record) {
+  const values = Object.keys(record || {}).map(key => String(record[key] ?? ""));
+  return values.join(" ").toLowerCase();
+}
+
+function buildDocumentPageResponse(records, filters) {
+  let filtered = Array.isArray(records) ? records.slice() : [];
+  const search = String(filters.search || "").trim().toLowerCase();
+  const statusFilter = String(filters.status || "").trim();
+  const officeFilter = String(filters.office || "").trim();
+  const yearFilter = String(filters.year || "").trim();
+  const pageSize = Math.max(1, Number(filters.pageSize) || 12);
+  let page = Math.max(1, Number(filters.page) || 1);
+
+  if (search) {
+    filtered = filtered.filter(record => getDocumentSearchText(record).includes(search));
+  }
+
+  if (statusFilter && statusFilter !== "All Status") {
+    filtered = filtered.filter(record => normalizeStatusValue(record.status) === normalizeStatusValue(statusFilter));
+  }
+
+  if (officeFilter && officeFilter !== "All Offices") {
+    filtered = filtered.filter(record => String(record.office || "").trim() === officeFilter);
+  }
+
+  if (yearFilter && yearFilter !== "All Years") {
+    const targetYear = String(yearFilter).slice(0, 4);
+    filtered = filtered.filter(record => {
+      const value = String(record.dateReceived || record.dateRequest || "").slice(0, 4);
+      return value === targetYear;
+    });
+  }
+
+  const counts = {
+    total: filtered.length,
+    pending: filtered.filter(record => normalizeStatusValue(record.status) === "PENDING").length,
+    processing: filtered.filter(record => normalizeStatusValue(record.status) === "PROCESSING").length,
+    completed: filtered.filter(record => normalizeStatusValue(record.status) === "COMPLETED").length,
+    released: filtered.filter(record => normalizeStatusValue(record.status) === "RELEASED").length,
+    returned: filtered.filter(record => normalizeStatusValue(record.status) === "RETURNED").length
+  };
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  page = Math.min(page, totalPages);
+  const start = (page - 1) * pageSize;
+  const pageRecords = filtered.slice(start, start + pageSize);
+
+  return {
+    records: pageRecords,
+    counts: counts,
+    total: filtered.length,
+    totalPages: totalPages,
+    page: page,
+    pageSize: pageSize
+  };
 }
 
 function getFoiValidationOptions(sheet) {
@@ -413,6 +485,9 @@ function doPost(e) {
 
   if (action === "save") {
     const module = e.parameter.module;
+    if (e.parameter && e.parameter.status !== undefined) {
+      e.parameter.status = normalizeStatusValue(e.parameter.status);
+    }
     const sheetError = validateModuleSheet(module, e.parameter.sheet);
     if (sheetError) return jsonResponse({ error: sheetError }, 400);
     const validationError = validateDocumentFields(module, e.parameter);
@@ -437,7 +512,8 @@ function doPost(e) {
         const occurrence = saveOccurrences[baseKey] || 0;
         saveOccurrences[baseKey] = occurrence + 1;
         const field = normalizeDocumentHeader(h, e.parameter.sheet, occurrence);
-        return e.parameter[field] !== undefined ? safeSheetValue(e.parameter[field]) : "";
+        const value = getParamValue(e.parameter, field, field === "office" ? ["originatingOffice"] : field === "fileName" ? ["documentFile", "attachmentName"] : []);
+        return value !== undefined ? safeSheetValue(value) : "";
       });
 
       const insertRow = e.parameter.sheet === "FOI"
@@ -463,6 +539,9 @@ function doPost(e) {
 
   if (action === "update") {
     const module = e.parameter.module;
+    if (e.parameter && e.parameter.status !== undefined) {
+      e.parameter.status = normalizeStatusValue(e.parameter.status);
+    }
     const sheetError = validateModuleSheet(module, e.parameter.sheet);
     if (sheetError) return jsonResponse({ error: sheetError }, 400);
     const validationError = validateDocumentFields(module, e.parameter);
@@ -503,8 +582,9 @@ function doPost(e) {
         const protectedField = ["createdby", "createdat", "recordoffice"].indexOf(
           String(h || "").trim().toLowerCase().replace(/[^a-z0-9]/g, "")
         ) !== -1;
-        if (colIndex !== officeColumn && !protectedField && e.parameter[field] !== undefined) {
-          sheet.getRange(rowIndex + 1, colIndex + 1).setValue(safeSheetValue(e.parameter[field]));
+        const value = getParamValue(e.parameter, field, field === "office" ? ["originatingOffice"] : field === "fileName" ? ["documentFile", "attachmentName"] : []);
+        if (colIndex !== officeColumn && !protectedField && value !== undefined) {
+          sheet.getRange(rowIndex + 1, colIndex + 1).setValue(safeSheetValue(value));
         }
       });
 
@@ -556,35 +636,35 @@ function doPost(e) {
   }
 
   if (action === "listUsers") {
-    if (!requireRole(auth.user, ["SuperAdmin", "OfficeAdmin"])) {
+    if (!requireRole(auth.user, ["SuperAdmin"])) {
       return jsonResponse({ error: "Forbidden" }, 403);
     }
     return listUsers(auth.user);
   }
 
   if (action === "createUserAccount") {
-    if (!requireRole(auth.user, ["SuperAdmin", "OfficeAdmin"])) {
+    if (!requireRole(auth.user, ["SuperAdmin"])) {
       return jsonResponse({ error: "Forbidden" }, 403);
     }
     return createUserAccount(e, auth.user);
   }
 
   if (action === "updateUserAccount") {
-    if (!requireRole(auth.user, ["SuperAdmin", "OfficeAdmin"])) {
+    if (!requireRole(auth.user, ["SuperAdmin"])) {
       return jsonResponse({ error: "Forbidden" }, 403);
     }
     return updateUserAccount(e, auth.user);
   }
 
   if (action === "deleteUserAccount") {
-    if (!requireRole(auth.user, ["SuperAdmin", "OfficeAdmin"])) {
+    if (!requireRole(auth.user, ["SuperAdmin"])) {
       return jsonResponse({ error: "Forbidden" }, 403);
     }
     return deleteUserAccount(e, auth.user);
   }
 
   if (action === "listActivity") {
-    if (!requireRole(auth.user, ["SuperAdmin", "OfficeAdmin"])) {
+    if (!requireRole(auth.user, ["SuperAdmin"])) {
       return jsonResponse({ error: "Forbidden" }, 403);
     }
     return listActivity(auth.user);
@@ -605,6 +685,20 @@ function sanitizeInputText(value) {
     .replace(/\r\n?/g, "\n")
     .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
     .trim();
+}
+
+function normalizeStatusValue(value) {
+  return String(value == null ? "" : value).trim().toUpperCase();
+}
+
+function getParamValue(params, primaryKey, fallbackKeys) {
+  const names = [primaryKey].concat(fallbackKeys || []).filter(Boolean);
+  for (const name of names) {
+    if (params && params[name] !== undefined) {
+      return params[name];
+    }
+  }
+  return undefined;
 }
 
 function isValidIsoDate(value) {
@@ -640,15 +734,17 @@ function validateDocumentFields(module, params) {
   };
   const allowedValues = {
     incoming: {
+      office: ["Administrative Division", "Finance Division", "Planning Division", "Housing Division", "Regional Office", "LGU", "Private Individual"],
       originatingOffice: ["Administrative Division", "Finance Division", "Planning Division", "Housing Division", "Regional Office", "LGU", "Private Individual"],
       category: ["Request", "Memorandum", "Letter", "Billing", "Complaint", "FOI"],
-      status: ["Pending", "Processing", "Completed", "Released"],
+      status: ["PENDING", "PROCESSING", "COMPLETED", "RELEASED", "Pending", "Processing", "Completed", "Released"],
       division: ["Administrative and Finance Division", "Housing Real Estate Development Regulation Division", "Homeowners Association and Community Development Division", "Environmental, Land Use and Urban Planning Division", "Office of the Regional Director"]
     },
     outgoing: {
+      office: ["Administrative Division", "Finance Division", "Planning Division", "Housing Division", "Regional Office", "LGU", "Private Individual"],
       originatingOffice: ["Administrative Division", "Finance Division", "Planning Division", "Housing Division", "Regional Office", "LGU", "Private Individual"],
       category: ["Request", "Memorandum", "Letter", "Billing", "Complaint", "FOI"],
-      status: ["Pending", "Processing", "Completed", "Released"],
+      status: ["PENDING", "PROCESSING", "COMPLETED", "RELEASED", "Pending", "Processing", "Completed", "Released"],
       division: ["Administrative and Finance Division", "Housing Real Estate Development Regulation Division", "Homeowners Association and Community Development Division", "Environmental, Land Use and Urban Planning Division", "Office of the Regional Director"]
     },
     dockets: {
@@ -661,10 +757,14 @@ function validateDocumentFields(module, params) {
       documentType: ["Letter", "Memorandum", "Report", "Other"],
       proofOfId: ["Presented", "Not Presented", "N/A"],
       recommendation: ["Approved", "Denied", "Partially Successful"],
-      decision: ["Approved", "Denied", "Partially Successful", "Incomplete"],
+      decision: ["Approved", "Denied", "Partially Successful", "Incomplete", "Cost"],
       registryAccomplished: ["Yes", "No"]
     }
   };
+  if (params && params.status !== undefined) {
+    params.status = normalizeStatusValue(params.status);
+  }
+
   const requiredFields = requiredByModule[module] || [];
   const minimumLengths = { sender: 2, subject: 2, documentName: 2, title: 2, name: 2, documentRequested: 2 };
   if (!requiredByModule[module]) return "Invalid module";

@@ -3,9 +3,12 @@
  Activity Log
 =========================================================*/
 
-requireLogin();
+if (!requireSuperAdmin()) {
+    throw new Error("SuperAdmin access required");
+}
 
 let logs = [];
+let searchDebounceTimer = null;
 
 const tbody = document.getElementById("logBody");
 const searchInput = document.getElementById("searchInput");
@@ -48,14 +51,7 @@ function renderTable() {
         return matchesSearch && matchesAction;
     });
 
-    tbody.innerHTML = "";
-
-    if (filtered.length === 0) {
-        document.getElementById("emptyState").style.display = "flex";
-        return;
-    }
-    document.getElementById("emptyState").style.display = "none";
-
+    const fragment = document.createDocumentFragment();
     filtered.forEach(l => {
         const row = document.createElement("tr");
         row.innerHTML = `
@@ -66,8 +62,17 @@ function renderTable() {
             <td><span class="status-badge">${escapeHtml(l.Action || "-")}</span></td>
             <td>${escapeHtml(l.RecordId || "-")}</td>
         `;
-        tbody.appendChild(row);
+        fragment.appendChild(row);
     });
+
+    tbody.innerHTML = "";
+    tbody.appendChild(fragment);
+
+    if (filtered.length === 0) {
+        document.getElementById("emptyState").style.display = "flex";
+        return;
+    }
+    document.getElementById("emptyState").style.display = "none";
 }
 
 function formatTimestamp(value) {
@@ -76,7 +81,10 @@ function formatTimestamp(value) {
     return d.toLocaleString();
 }
 
-searchInput.addEventListener("keyup", renderTable);
+searchInput.addEventListener("input", () => {
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(renderTable, 120);
+});
 actionFilter.addEventListener("change", renderTable);
 
 document.getElementById("clearFilters").addEventListener("click", () => {

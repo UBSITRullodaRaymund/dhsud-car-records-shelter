@@ -34,7 +34,7 @@ header{
 
 nav{
     display:grid;
-    grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
+    grid-template-columns:minmax(0,1fr) minmax(0,2fr) minmax(0,1fr);
     align-items:center;
     gap:20px;
     padding:18px 70px;
@@ -65,24 +65,29 @@ nav{
 
 nav ul{
     display:flex;
+    min-width:0;
     list-style:none;
-    gap:35px;
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:10px 20px;
 }
 
 nav > .logo{
     grid-column:1;
+    min-width:0;
 }
 
 nav > ul{
     grid-column:2;
     justify-content:center;
-    white-space:nowrap;
+    align-content:center;
 }
 
 nav > #userMenu{
     grid-column:3;
     justify-self:end;
     margin-left:0;
+    max-width:100%;
 }
 
 nav a{
@@ -112,6 +117,7 @@ nav a:hover{
     padding:8px 14px;
     color:#fff;
     backdrop-filter:blur(8px);
+    max-width:100%;
 }
 
 .user-name{
@@ -161,11 +167,42 @@ nav a:hover{
     }
 
     nav > ul{
-        gap:16px;
+        gap:8px 14px;
     }
 
     nav .user-name{
         display:none;
+    }
+}
+
+@media(max-width:640px){
+    nav{
+        grid-template-columns:minmax(0,1fr);
+        grid-template-rows:auto auto auto;
+        padding:12px 16px;
+        gap:10px;
+    }
+
+    nav > .logo{
+        grid-column:1;
+        grid-row:1;
+        justify-self:center;
+    }
+
+    nav > ul{
+        grid-column:1;
+        grid-row:2;
+        justify-self:center;
+    }
+
+    nav > #userMenu{
+        grid-column:1;
+        grid-row:3;
+        justify-self:center;
+    }
+
+    .page-banner{
+        margin-top:190px;
     }
 }
 

@@ -19,6 +19,10 @@ requireLogin();
 
 let documents = [];
 let editingIndex = -1;
+let searchDebounceTimer = null;
+const PAGE_SIZE = 12;
+const listCache = new Map();
+let pageState = { page: 1, totalPages: 1, total: 0, pageSize: PAGE_SIZE };
 
 /* ==========================================================
    DOM ELEMENTS
@@ -73,32 +77,109 @@ function generateTrackingNumber(){
    LOAD DOCUMENTS
 ========================================================== */
 
-async function loadDocuments(){
+function buildDashboardCounts(records = []) {
+    return {
+        total: records.length,
+        pending: records.filter(d => normalizeStatusValue(d.status) === "PENDING").length,
+        processing: records.filter(d => normalizeStatusValue(d.status) === "PROCESSING").length,
+        completed: records.filter(d => normalizeStatusValue(d.status) === "COMPLETED").length,
+        released: records.filter(d => normalizeStatusValue(d.status) === "RELEASED").length,
+        returned: records.filter(d => normalizeStatusValue(d.status) === "RETURNED").length
+    };
+}
 
-    const result = await authedGet({
-        action: "getDocuments",
+function applyPageResponse(payload) {
+    const pageRecords = Array.isArray(payload && payload.records) ? payload.records : [];
+    documents = pageRecords.map(record => normalizeRecordFields(record, MODULE_NAME));
+    pageState = {
+        page: Number(payload && payload.page) || 1,
+        totalPages: Number(payload && payload.totalPages) || 1,
+        total: Number(payload && payload.total) || documents.length,
+        pageSize: Number(payload && payload.pageSize) || PAGE_SIZE
+    };
+
+    renderTable(documents);
+    updateDashboard(payload && payload.counts ? payload.counts : buildDashboardCounts(documents));
+    updatePagination();
+}
+
+function updatePagination() {
+    const pageButtons = Array.from(document.querySelectorAll(".page-btn"));
+    const prevBtn = pageButtons.find(btn => btn.innerHTML.includes("fa-angle-left"));
+    const currentBtn = pageButtons.find(btn => !btn.innerHTML.includes("fa-angle-left") && !btn.innerHTML.includes("fa-angle-right"));
+    const nextBtn = pageButtons.find(btn => btn.innerHTML.includes("fa-angle-right"));
+    if (!prevBtn || !currentBtn || !nextBtn) return;
+
+    currentBtn.textContent = String(pageState.page);
+    prevBtn.disabled = pageState.page <= 1;
+    nextBtn.disabled = pageState.page >= pageState.totalPages;
+
+    const showingCount = document.getElementById("showingCount");
+    const totalCount = document.getElementById("totalCount");
+    if (showingCount) showingCount.textContent = String(documents.length || 0);
+    if (totalCount) totalCount.textContent = String(pageState.total || 0);
+}
+
+async function loadDocuments(page = 1){
+    const filters = {
+        page,
+        pageSize: PAGE_SIZE,
+        search: searchInput ? searchInput.value.trim() : "",
+        status: statusFilter ? statusFilter.value : "",
+        office: officeFilter ? officeFilter.value : "",
+        year: yearFilter ? yearFilter.value : ""
+    };
+
+    const cacheKey = JSON.stringify({
+        office: getRequestOffice(),
         module: MODULE_NAME,
         sheet: SHEET_NAME,
-        office: getRequestOffice()
+        ...filters
     });
 
-    if (!Array.isArray(result)) {
-        documents = [];
-        console.error(result && result.error ? result.error : "Unexpected API response", result);
-        renderTable();
+    if (listCache.has(cacheKey)) {
+        applyPageResponse(listCache.get(cacheKey));
         return;
     }
 
-    documents = result.map(record => normalizeRecordFields(record, MODULE_NAME));
+    try {
+        const result = await authedGet({
+            action: "getDocuments",
+            module: MODULE_NAME,
+            sheet: SHEET_NAME,
+            office: getRequestOffice(),
+            page: filters.page,
+            pageSize: filters.pageSize,
+            search: filters.search,
+            status: filters.status,
+            officeFilter: filters.office,
+            year: filters.year
+        });
 
-    console.log(documents);
+        if (!result || !result.records) {
+            if (Array.isArray(result)) {
+                const legacyRecords = result.map(record => normalizeRecordFields(record, MODULE_NAME));
+                documents = legacyRecords;
+                pageState = { page: 1, totalPages: 1, total: legacyRecords.length, pageSize: PAGE_SIZE };
+                renderTable(documents);
+                updateDashboard(buildDashboardCounts(legacyRecords));
+                updatePagination();
+                return;
+            }
 
-    renderTable();
+            documents = [];
+            console.error(result && result.error ? result.error : "Unexpected API response", result);
+            renderTable();
+            updateDashboard(buildDashboardCounts([]));
+            return;
+        }
 
-    populateFilters();
-
-    updateDashboard();
-
+        listCache.set(cacheKey, result);
+        applyPageResponse(result);
+    }
+    catch(error){
+        console.error(error);
+    }
 }
 
 
@@ -108,11 +189,7 @@ async function loadDocuments(){
 ========================================================== */
 
 function renderTable(data = documents) {
-
-    tbody.innerHTML = "";
-
     if (!data || data.length === 0) {
-
         tbody.innerHTML = `
             <tr>
                 <td colspan="10" style="text-align:center;padding:30px;">
@@ -120,86 +197,57 @@ function renderTable(data = documents) {
                 </td>
             </tr>
         `;
-
         return;
     }
 
+    const fragment = document.createDocumentFragment();
     data.forEach((doc, index) => {
-
         const row = document.createElement("tr");
-
         row.innerHTML = `
-
             <td>${escapeHtml(doc.tracking || "-")}</td>
-
             <td>${escapeHtml(formatDate(doc.dateReceived))}</td>
-
             <td>${escapeHtml(doc.sender || "-")}</td>
-
             <td>${escapeHtml(doc.office || "-")}</td>
-
             <td>${escapeHtml(doc.category || "-")}</td>
-
             <td>${escapeHtml(doc.subject || "-")}</td>
-
             <td>${escapeHtml(doc.division || "-")}</td>
-
             <td>${escapeHtml(doc.ageing || "-")}</td>
-
-            <td>
-                <span class="status-badge">
-                    ${escapeHtml(doc.status || "-")}
-                </span>
-            </td>
-
+            <td><span class="status-badge">${escapeHtml(doc.status || "-")}</span></td>
             <td class="action-buttons">
-
-    <button class="icon-btn view-btn" onclick="viewDocument(${index})" title="View">
-        <i class="fa-solid fa-eye"></i>
-    </button>
-
-    <button class="icon-btn edit-btn" onclick="editDocument(${index})" title="Edit">
-        <i class="fa-solid fa-pen"></i>
-    </button>
-
-    <button class="icon-btn delete-btn" onclick="deleteDocument(${index})" title="Delete">
-        <i class="fa-solid fa-trash"></i>
-    </button>
-
-</td>
-
+                <button class="icon-btn view-btn" data-action="view" data-index="${index}" title="View"><i class="fa-solid fa-eye"></i></button>
+                <button class="icon-btn edit-btn" data-action="edit" data-index="${index}" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                <button class="icon-btn delete-btn" data-action="delete" data-index="${index}" title="Delete"><i class="fa-solid fa-trash"></i></button>
+            </td>
         `;
-
-        tbody.appendChild(row);
-
+        fragment.appendChild(row);
     });
 
+    tbody.innerHTML = "";
+    tbody.appendChild(fragment);
 }
 
 /* ==========================================================
    DASHBOARD
 ========================================================== */
 
-function updateDashboard() {
-
-    const total = documents.length;
-
-    const processing = documents.filter(d => d.status === "Processing").length;
-
-    const completed = documents.filter(d => d.status === "Completed").length;
-
-    const pending = documents.filter(d => d.status === "Pending").length;
+function updateDashboard(counts = buildDashboardCounts(documents)) {
+    const total = counts.total ?? documents.length;
+    const processing = counts.processing ?? 0;
+    const completed = counts.completed ?? 0;
+    const pending = counts.pending ?? 0;
+    const released = counts.released ?? 0;
 
     const totalEl = document.getElementById("totalDocuments");
     const processingEl = document.getElementById("processingDocuments");
     const completedEl = document.getElementById("completedDocuments");
     const pendingEl = document.getElementById("pendingDocuments");
+    const releasedEl = document.getElementById("releasedDocuments");
 
     if (totalEl) totalEl.textContent = total;
     if (processingEl) processingEl.textContent = processing;
     if (completedEl) completedEl.textContent = completed;
     if (pendingEl) pendingEl.textContent = pending;
-
+    if (releasedEl) releasedEl.textContent = released;
 }
 
 /* ==========================================================
@@ -246,7 +294,7 @@ function filterDocuments() {
 
             status === "All Status" ||
 
-            doc.status === status;
+            normalizeStatusValue(doc.status) === normalizeStatusValue(status);
 
         return searchMatch &&
                officeMatch &&
@@ -304,13 +352,22 @@ if(cancelModalBtn){
 }
 
 window.addEventListener("click",function(e){
-
     if(e.target===modal){
-
         closeModal();
-
     }
+});
 
+tbody.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-action]");
+    if (!button) return;
+
+    const index = Number(button.dataset.index);
+    const action = button.dataset.action;
+    if (Number.isNaN(index)) return;
+
+    if (action === "view") viewDocument(index);
+    if (action === "edit") editDocument(index);
+    if (action === "delete") deleteDocument(index);
 });
 
 /* ==========================================================
@@ -329,11 +386,11 @@ async function saveDocument(doc){
     formData.append("tracking",doc.tracking);
     formData.append("dateReceived",doc.dateReceived);
     formData.append("sender",doc.sender);
-    formData.append("originatingOffice",doc.office);
+    formData.append("office",doc.office);
     formData.append("category",doc.category);
     formData.append("subject",doc.subject);
     formData.append("division",doc.division);
-    formData.append("status",doc.status);
+    formData.append("status", normalizeStatusValue(doc.status));
     formData.append("remarks",doc.remarks);
     formData.append("fileName",doc.attachmentName || "");
     formData.append("driveUrl","");
@@ -366,11 +423,11 @@ async function updateDocument(doc){
     formData.append("tracking",doc.tracking);
     formData.append("dateReceived",doc.dateReceived);
     formData.append("sender",doc.sender);
-    formData.append("originatingOffice",doc.office);
+    formData.append("office",doc.office);
     formData.append("category",doc.category);
     formData.append("subject",doc.subject);
     formData.append("division",doc.division);
-    formData.append("status",doc.status);
+    formData.append("status", normalizeStatusValue(doc.status));
     formData.append("remarks",doc.remarks);
     formData.append("fileName",doc.attachmentName || "");
     formData.append("driveUrl","");
@@ -422,9 +479,7 @@ async function deleteDocument(index){
 ========================================================== */
 
 function filterDocuments() {
-
     const search = searchInput.value.toLowerCase().trim();
-
     const office = officeFilter.value;
     const year = yearFilter.value;
     const status = statusFilter.value;
@@ -548,7 +603,7 @@ form.addEventListener("submit", async function(e){
 
         division: document.getElementById("division").value,
 
-        status: document.getElementById("status").value,
+        status: normalizeStatusValue(document.getElementById("status").value),
 
         remarks: document.getElementById("remarks").value,
 
@@ -640,7 +695,7 @@ function editDocument(index){
 
     document.getElementById("division").value = doc.division || "";
 
-    document.getElementById("status").value = doc.status || "";
+    document.getElementById("status").value = normalizeStatusValue(doc.status) || "";
 
     document.getElementById("remarks").value = doc.remarks || "";
 
@@ -703,29 +758,35 @@ if(exportBtn){
    FILTER EVENTS
 ========================================================== */
 
-if(searchInput){
-
-    searchInput.addEventListener("keyup",filterDocuments);
-
+if (searchInput) {
+    searchInput.addEventListener("input", () => {
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(() => loadDocuments(1), 150);
+    });
 }
 
-if(officeFilter){
+if (officeFilter) officeFilter.addEventListener("change", () => loadDocuments(1));
+if (yearFilter) yearFilter.addEventListener("change", () => loadDocuments(1));
+if (statusFilter) statusFilter.addEventListener("change", () => loadDocuments(1));
 
-    officeFilter.addEventListener("change",filterDocuments);
+const pageButtons = Array.from(document.querySelectorAll(".page-btn"));
+const prevPageBtn = pageButtons.find(btn => btn.innerHTML.includes("fa-angle-left"));
+const nextPageBtn = pageButtons.find(btn => btn.innerHTML.includes("fa-angle-right"));
+if (prevPageBtn) prevPageBtn.addEventListener("click", () => {
+    if (pageState.page > 1) loadDocuments(pageState.page - 1);
+});
+if (nextPageBtn) nextPageBtn.addEventListener("click", () => {
+    if (pageState.page < pageState.totalPages) loadDocuments(pageState.page + 1);
+});
 
-}
-
-if(yearFilter){
-
-    yearFilter.addEventListener("change",filterDocuments);
-
-}
-
-if(statusFilter){
-
-    statusFilter.addEventListener("change",filterDocuments);
-
-}
+const clearButton = document.querySelector(".clear-btn");
+if (clearButton) clearButton.addEventListener("click", () => {
+    if (searchInput) searchInput.value = "";
+    if (officeFilter) officeFilter.value = "All Offices";
+    if (yearFilter) yearFilter.value = "All Years";
+    if (statusFilter) statusFilter.value = "All Status";
+    loadDocuments(1);
+});
 
 /* ==========================================================
    VIEW MODAL
@@ -758,15 +819,5 @@ window.addEventListener("click",function(e){
 ========================================================== */
 
 window.addEventListener("DOMContentLoaded", () => {
-
     loadDocuments();
-
-    searchInput.addEventListener("input", filterDocuments);
-
-    officeFilter.addEventListener("change", filterDocuments);
-
-    yearFilter.addEventListener("change", filterDocuments);
-
-    statusFilter.addEventListener("change", filterDocuments);
-
 });

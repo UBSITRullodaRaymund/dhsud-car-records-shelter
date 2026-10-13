@@ -38,7 +38,7 @@ NAVBAR
 
 .navbar .container{
     display:grid;
-    grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
+    grid-template-columns:minmax(0,1fr) minmax(0,2fr) minmax(0,1fr);
     align-items:center;
     gap:20px;
 }
@@ -50,7 +50,10 @@ NAVBAR
 .navbar .container > .nav-links{
     grid-column:2;
     justify-content:center;
-    white-space:nowrap;
+    min-width:0;
+    max-width:100%;
+    flex-wrap:wrap;
+    align-content:center;
 }
 
 .logo{
@@ -75,7 +78,7 @@ NAVBAR
 .nav-links{
     display:flex;
     list-style:none;
-    gap:35px;
+    gap:10px 20px;
 }
 
 .nav-links a{
