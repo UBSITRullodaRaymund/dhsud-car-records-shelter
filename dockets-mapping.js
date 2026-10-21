@@ -789,52 +789,23 @@ function searchRecords(){
 
         Object.keys(records[category]).forEach(project => {
 
-            // Match project name
             if(project.toLowerCase().includes(keyword)){
-
-                results.push({
-                    type:"Project",
-                    category,
-                    project
-                });
-
+                results.push({ type:"Project", category, project });
             }
 
             Object.keys(records[category][project]).forEach(folder => {
 
-                // Match folder name
                 if(folder.toLowerCase().includes(keyword)){
-
-                    results.push({
-                        type:"Folder",
-                        category,
-                        project,
-                        folder
-                    });
-
+                    results.push({ type:"Folder", category, project, folder });
                 }
 
                 records[category][project][folder].forEach(file => {
-
-                    // Match file name
                     if(file.name.toLowerCase().includes(keyword)){
-
-                        results.push({
-                            type:"Document",
-                            category,
-                            project,
-                            folder,
-                            file
-                        });
-
+                        results.push({ type:"Document", category, project, folder, file });
                     }
-
                 });
-
             });
-
         });
-
     });
 
     showSearchResults(results);
