@@ -2039,3 +2039,552 @@ RECORDS TRANSACTION FORM (RTF VIEW)
     background:#fafafa;
 
 }
+
+/* ==================================================
+   DEPARTMENT DASHBOARD
+================================================== */
+
+.department-grid {
+    width: 100%;
+    max-width: 1250px;
+
+    margin: 40px auto 80px;
+
+    padding: 0 30px;
+
+    display: grid;
+
+    grid-template-columns: repeat(3, 1fr);
+
+    gap: 24px;
+}
+
+
+/* ==================================================
+   DEPARTMENT CARD
+================================================== */
+
+.department-card {
+
+    background: white;
+
+    border-radius: 15px;
+
+    padding: 25px;
+
+    min-height: 260px;
+
+    border-top: 5px solid #0863b5;
+
+    box-shadow:
+        0 10px 25px rgba(22,55,90,.08);
+
+    display: flex;
+
+    flex-direction: column;
+
+    transition: .25s ease;
+}
+
+
+.department-card:hover {
+
+    transform: translateY(-5px);
+
+    box-shadow:
+        0 15px 32px rgba(22,55,90,.13);
+}
+
+
+/* ICON */
+
+.department-icon {
+
+    width: 62px;
+    height: 62px;
+
+    border-radius: 13px;
+
+    background: #eaf3ff;
+
+    color: #0863b5;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    font-size: 28px;
+
+    margin-bottom: 18px;
+}
+
+
+/* CONTENT */
+
+.department-content {
+
+    flex: 1;
+}
+
+
+.department-content h3 {
+
+    margin: 0 0 8px;
+
+    color: #064b91;
+
+    font-size: 19px;
+
+    font-weight: 800;
+}
+
+
+.department-content p {
+
+    margin: 0;
+
+    color: #64748b;
+
+    font-size: 11px;
+
+    line-height: 1.7;
+}
+
+
+/* BUTTON */
+
+.department-card button {
+
+    width: 100%;
+
+    border: none;
+
+    background: #0863b5;
+
+    color: white;
+
+    padding: 12px 15px;
+
+    border-radius: 8px;
+
+    font-family: inherit;
+
+    font-size: 11px;
+
+    font-weight: 700;
+
+    cursor: pointer;
+
+    margin-top: 20px;
+
+    transition: .2s;
+}
+
+
+.department-card button:hover {
+
+    background: #064d91;
+}
+
+
+.department-card button i {
+
+    margin-left: 7px;
+}
+
+
+/* RECORDS CARD */
+
+.records-card {
+
+    border-top-color: #0b4ea2;
+
+    background:
+        linear-gradient(
+            145deg,
+            #ffffff,
+            #f7fbff
+        );
+}
+
+
+/* ==================================================
+   RECORDS PAGE HERO
+================================================== */
+
+.module-hero {
+
+    width: 100%;
+
+    min-height: 205px;
+
+    background:
+        linear-gradient(
+            110deg,
+            #1255a8,
+            #2875d1
+        );
+
+    color: white;
+
+    display: flex;
+
+    align-items: center;
+}
+
+
+.module-hero-content {
+
+    width: 100%;
+
+    max-width: 1000px;
+
+    margin: auto;
+
+    padding: 35px 30px;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 25px;
+}
+
+
+.module-hero-icon {
+
+    width: 70px;
+    height: 70px;
+
+    border-radius: 14px;
+
+    background: rgba(255,255,255,.15);
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    font-size: 32px;
+}
+
+
+.module-hero h1 {
+
+    margin: 0;
+
+    font-size: 38px;
+
+    font-weight: 800;
+}
+
+
+.module-hero p {
+
+    margin: 7px 0 0;
+
+    font-size: 13px;
+
+    opacity: .95;
+}
+
+
+/* ==================================================
+   RECORDS PAGE
+================================================== */
+
+.records-container {
+
+    width: calc(100% - 40px);
+
+    max-width: 1000px;
+
+    margin: auto;
+
+    padding: 45px 0 70px;
+}
+
+
+.records-title {
+
+    text-align: center;
+
+    margin-bottom: 35px;
+}
+
+
+.records-title h2 {
+
+    margin: 0;
+
+    color: #064b91;
+
+    font-size: 28px;
+
+    font-weight: 800;
+}
+
+
+.records-title p {
+
+    margin-top: 7px;
+
+    color: #64748b;
+
+    font-size: 12px;
+}
+
+
+/* ==================================================
+   RECORDS MODULE LIST
+================================================== */
+
+.records-list {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 24px;
+}
+
+
+.records-module-card {
+
+    min-height: 125px;
+
+    background: white;
+
+    border-radius: 15px;
+
+    border-left: 6px solid #0863b5;
+
+    padding: 22px 25px;
+
+    box-shadow:
+        0 10px 28px rgba(22,55,90,.09);
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 22px;
+
+    transition: .25s ease;
+}
+
+
+.records-module-card:hover {
+
+    transform: translateY(-3px);
+
+    box-shadow:
+        0 15px 35px rgba(22,55,90,.13);
+}
+
+
+/* MODULE ICON */
+
+.records-module-icon {
+
+    flex-shrink: 0;
+
+    width: 72px;
+    height: 72px;
+
+    border-radius: 50%;
+
+    background: #eaf3ff;
+
+    color: #0863b5;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    font-size: 29px;
+}
+
+
+/* MODULE CONTENT */
+
+.records-module-content {
+
+    flex: 1;
+}
+
+
+.records-module-content h3 {
+
+    margin: 0 0 7px;
+
+    color: #064b91;
+
+    font-size: 21px;
+
+    font-weight: 800;
+}
+
+
+.records-module-content p {
+
+    margin: 0;
+
+    color: #64748b;
+
+    font-size: 12px;
+
+    line-height: 1.6;
+
+    max-width: 650px;
+}
+
+
+/* MODULE BUTTON */
+
+.records-module-card button {
+
+    flex-shrink: 0;
+
+    min-width: 105px;
+
+    border: none;
+
+    background: #0863b5;
+
+    color: white;
+
+    padding: 13px 20px;
+
+    border-radius: 8px;
+
+    font-family: inherit;
+
+    font-size: 11px;
+
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition: .2s;
+}
+
+
+.records-module-card button:hover {
+
+    background: #064d91;
+}
+
+
+.records-module-card button i {
+
+    margin-left: 6px;
+}
+
+
+/* ==================================================
+   BACK HOME
+================================================== */
+
+.back-home {
+
+    text-align: center;
+
+    margin-top: 40px;
+}
+
+
+.back-home button {
+
+    border: none;
+
+    background: #064b91;
+
+    color: white;
+
+    padding: 12px 25px;
+
+    border-radius: 8px;
+
+    font-family: inherit;
+
+    font-size: 11px;
+
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+
+.back-home button:hover {
+
+    background: #043b73;
+}
+
+
+.back-home i {
+
+    margin-right: 6px;
+}
+
+
+/* ==================================================
+   RESPONSIVE
+================================================== */
+
+@media (max-width: 1000px) {
+
+    .department-grid {
+
+        grid-template-columns: repeat(2, 1fr);
+
+    }
+
+}
+
+
+@media (max-width: 700px) {
+
+    .department-grid {
+
+        grid-template-columns: 1fr;
+
+        padding: 0 20px;
+
+    }
+
+
+    .records-module-card {
+
+        flex-direction: column;
+
+        align-items: flex-start;
+
+    }
+
+
+    .records-module-card button {
+
+        width: 100%;
+
+    }
+
+
+    .module-hero-content {
+
+        flex-direction: column;
+
+        text-align: center;
+
+    }
+
+
+    .module-hero h1 {
+
+        font-size: 30px;
+
+    }
+
+}
