@@ -41,6 +41,10 @@
 .foi-form-grid .full{grid-column:1/-1}
 .foi-form-grid textarea{min-height:88px;resize:vertical}
 .foi-form-grid input,.foi-form-grid select,.foi-form-grid textarea{width:100%;padding:11px 12px;border:1px solid #d8e1ec;border-radius:8px;font:inherit;color:#26384d;background:#fff}
+.foi-form-grid .transaction-digits{display:flex;gap:10px}
+.foi-form-grid .transaction-digit{width:48px;height:52px;padding:0;text-align:center;font-size:20px;font-weight:700}
+.foi-form-grid .transaction-digit:focus{outline:2px solid #0b69b7;outline-offset:2px;border-color:#0b69b7}
+.foi-form-grid .transaction-digit:disabled{background:#f1f5f9;color:#334e68;opacity:1}
 .foi-form-grid label{display:block;margin-bottom:6px;color:#334e68;font-size:13px;font-weight:600}
 .foi-modal{max-width:980px}
 .foi-help{color:#64748b;font-size:13px;margin:0 0 18px}

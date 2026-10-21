@@ -33,9 +33,9 @@ const OFFICE_SHEETS = {
 };
 const FOI_SPREADSHEET_ID = "1V6LdSOpvElmKKsceyh8XR2h_VW0fKNh47jLj0xSu1Tw";
 const FOI_HEADERS = [
-  "TRANSACTION NO", "TITLE", "NAME", "ADDRESS", "CONTACT NO / EMAIL",
+  "TRANSACTION NO", "TITLE", "NAME", "GIVEN NAME", "SURNAME", "ADDRESS", "CONTACT NO / EMAIL",
   "MODE OF COMMUNICATION", "TYPE OF ID", "AGENCY / CONNECTING AGENCY",
-  "TITLE OF DOCUMENT / RECORD REQUESTED", "DATE / PERIOD", "PURPOSE",
+  "TITLE OF DOCUMENT / RECORD REQUESTED", "RECEIVED DOCUMENT TITLE", "DATE / PERIOD", "PURPOSE",
   "DOCUMENT TYPE", "REFERENCE NO", "ADDITIONAL INFORMATION",
   "DATE ACCOMPLISHED", "NAME", "AGENCY-CONNECTING AGENCY",
   "DATE ENTERED ON E-FOI", "PROOF OF ID PRESENTED",
@@ -107,6 +107,43 @@ function ensureFoiOfficeColumn(sheet) {
   }
 
   return officeColumn;
+}
+
+function ensureFoiReceivedDocumentTitleColumn(sheet) {
+  const lastColumn = sheet.getLastColumn();
+  if (!lastColumn) throw new Error("The FOI sheet needs a header row before records can be saved");
+
+  const headers = sheet.getRange(1, 1, 1, lastColumn).getValues()[0];
+  let column = headers.findIndex(header =>
+    ["receiveddocumenttitle", "receiveddocuments"].includes(
+      String(header || "").trim().toLowerCase().replace(/[^a-z0-9]/g, "")
+    )
+  );
+
+  if (column === -1) {
+    column = lastColumn;
+    sheet.getRange(1, column + 1).setValue("RECEIVED DOCUMENT TITLE");
+  }
+
+  return column;
+}
+
+function ensureFoiApplicantNameColumns(sheet) {
+  let lastColumn = sheet.getLastColumn();
+  if (!lastColumn) throw new Error("The FOI sheet needs a header row before records can be saved");
+
+  let headers = sheet.getRange(1, 1, 1, lastColumn).getValues()[0];
+  ["GIVEN NAME", "SURNAME"].forEach(requiredHeader => {
+    const key = requiredHeader.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const exists = headers.some(header =>
+      String(header || "").trim().toLowerCase().replace(/[^a-z0-9]/g, "") === key
+    );
+    if (!exists) {
+      sheet.getRange(1, lastColumn + 1).setValue(requiredHeader);
+      lastColumn++;
+      headers.push(requiredHeader);
+    }
+  });
 }
 
 // Decides which office's data a request is allowed to touch.
@@ -443,6 +480,8 @@ function normalizeDocumentHeader(header, sheetName, occurrence = 0) {
     transactionno: "transactionNo",
     transanctionno: "transactionNo",
     title: "title",
+    givenname: "givenName",
+    surname: "surname",
     name: occurrence > 0 ? "accomplishedBy" : "name",
     address: "address",
     contactnoemail: "contactEmail",
@@ -450,6 +489,8 @@ function normalizeDocumentHeader(header, sheetName, occurrence = 0) {
     typeofid: "idType",
     agencyconnectingagency: occurrence > 0 ? "accomplishedAgency" : "agency",
     titleofdocumentrecordrequested: "documentRequested",
+    receiveddocumenttitle: "receivedDocumentTitle",
+    receiveddocuments: "receivedDocumentTitle",
     dateperiod: "datePeriod",
     purposeofrequest: "purpose",
     documenttype: "documentType",
@@ -499,6 +540,8 @@ function doPost(e) {
       const office = resolveOffice(auth, e.parameter.office);
       const sheet = getOfficeSheet(office, e.parameter.sheet);
       const officeColumn = e.parameter.sheet === "FOI" ? ensureFoiOfficeColumn(sheet) : -1;
+      if (e.parameter.sheet === "FOI") ensureFoiApplicantNameColumns(sheet);
+      if (e.parameter.sheet === "FOI") ensureFoiReceivedDocumentTitleColumn(sheet);
       const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
 
       // Build the row in header order from whatever fields the
@@ -553,6 +596,8 @@ function doPost(e) {
       const office = resolveOffice(auth, e.parameter.office);
       const sheet = getOfficeSheet(office, e.parameter.sheet);
       const officeColumn = e.parameter.sheet === "FOI" ? ensureFoiOfficeColumn(sheet) : -1;
+      if (e.parameter.sheet === "FOI") ensureFoiApplicantNameColumns(sheet);
+      if (e.parameter.sheet === "FOI") ensureFoiReceivedDocumentTitleColumn(sheet);
       const idField = e.parameter.idField;   // e.g. "transactionNo"
       const idValue = e.parameter.idValue;
 
@@ -715,7 +760,7 @@ function validateDocumentFields(module, params) {
     incoming: ["tracking", "dateReceived", "sender", "subject"],
     outgoing: ["tracking", "dateReceived", "sender", "subject"],
     dockets: ["transactionNo", "dateRequest", "documentName", "classification"],
-    foi: ["transactionNo", "title", "name", "contactEmail", "documentRequested"]
+    foi: ["transactionNo", "title", "givenName", "surname", "name", "contactEmail", "documentRequested"]
   };
   const maxLengths = {
     tracking: 50, transactionNo: 50, dateReceived: 10, dateReturned: 10,
@@ -724,9 +769,9 @@ function validateDocumentFields(module, params) {
     classification: 40, requestedBy: 100, releasedBy: 100, returnedBy: 100,
     verifiedBy: 100, originatingOffice: 150, category: 50, division: 150,
     status: 30, remarks: 2000, fileName: 255, driveUrl: 1000,
-    title: 50, name: 100, address: 500, contactEmail: 254,
+    title: 50, name: 201, givenName: 100, surname: 100, address: 500, contactEmail: 254,
     communicationMode: 30, idType: 50, agency: 200,
-    documentRequested: 2000, datePeriod: 100, purpose: 2000,
+    documentRequested: 2000, receivedDocumentTitle: 2000, datePeriod: 100, purpose: 2000,
     documentType: 50, referenceNo: 100, additionalInformation: 2000,
     accomplishedBy: 100, accomplishedAgency: 150, proofOfId: 30,
     recommendation: 50, denialReason: 1000, secondOfficer: 100,
@@ -752,6 +797,7 @@ function validateDocumentFields(module, params) {
       status: ["Pending", "Released", "Returned"]
     },
     foi: {
+      title: ["Mr", "Ms", "Mrs", "Miss"],
       communicationMode: ["Mobile", "Email", "Postal"],
       idType: ["Postal ID", "Driver's License", "Passport", "Other"],
       documentType: ["Letter", "Memorandum", "Report", "Other"],

@@ -18,14 +18,16 @@ const denialReasonOptions = [
 
 const fields = [
     ["transactionNo", "TRANSACTION NO", "text", true],
-    ["title", "TITLE", "text", true],
-    ["name", "NAME", "text", true],
+    ["title", "TITLE", "select", true],
+    ["givenName", "GIVEN NAME", "text", true],
+    ["surname", "SURNAME", "text", true],
     ["address", "ADDRESS", "textarea", false],
     ["contactEmail", "CONTACT NO / EMAIL", "text", true],
     ["communicationMode", "MODE OF COMMUNICATION", "text", false],
     ["idType", "TYPE OF ID", "text", false],
     ["agency", "AGENCY / CONNECTING AGENCY", "text", false],
     ["documentRequested", "TITLE OF DOCUMENT / RECORD REQUESTED", "textarea", true],
+    ["receivedDocumentTitle", "RECEIVED DOCUMENT TITLE", "textarea", false],
     ["datePeriod", "DATE / PERIOD", "text", false],
     ["purpose", "PURPOSE OF REQUEST", "textarea", false],
     ["documentType", "DOCUMENT TYPE", "text", false],
@@ -53,6 +55,7 @@ const PAGE_SIZE = 12;
 const listCache = new Map();
 let pageState = { page: 1, totalPages: 1, total: 0, pageSize: PAGE_SIZE };
 const validationOptions = {
+    title: ["Mr", "Ms", "Mrs", "Miss"],
     communicationMode: ["Mobile", "Email", "Postal", "Landline"],
     idType: ["Postal ID", "Driver's License", "Passport","Voter's ID","Postal ID", "SSS ID", "School ID", "Company ID", "Others"],
     documentType: ["Letter", "Memorandum", "Report", "Other"],
@@ -116,7 +119,7 @@ function buildSelectField(key, label, required, choices = []) {
 }
 
 function buildForm(options = {}) {
-    const maxLengths = { transactionNo: 50, title: 50, name: 100, address: 500, contactEmail: 254, communicationMode: 30, idType: 50, agency: 200, documentRequested: 2000, datePeriod: 100, purpose: 2000, documentType: 50, referenceNo: 100, additionalInformation: 2000, accomplishedBy: 100, accomplishedAgency: 150, proofOfId: 30, recommendation: 50, denialReason: 1000, secondOfficer: 100, decision: 50, decisionCost: 20, decisionDenialReason: 1000, registryAccomplished: 10, dateAccomplished: 10, dateEnteredEfoi: 10, dateFinished: 10, dateReceived: 10 };
+    const maxLengths = { transactionNo: 5, title: 50, givenName: 100, surname: 100, address: 500, contactEmail: 254, communicationMode: 30, idType: 50, agency: 200, documentRequested: 2000, receivedDocumentTitle: 2000, datePeriod: 100, purpose: 2000, documentType: 50, referenceNo: 100, additionalInformation: 2000, accomplishedBy: 100, accomplishedAgency: 150, proofOfId: 30, recommendation: 50, denialReason: 1000, secondOfficer: 100, decision: 50, decisionCost: 20, decisionDenialReason: 1000, registryAccomplished: 10, dateAccomplished: 10, dateEnteredEfoi: 10, dateFinished: 10, dateReceived: 10 };
     fieldsContainer.innerHTML = fields.map(([key, label, type, required]) => {
         const choices = key === "denialReason" || key === "decisionDenialReason" ? denialReasonOptions : options[key];
         const maxLength = maxLengths[key] || 1000;
@@ -132,6 +135,8 @@ function buildForm(options = {}) {
             ? `<select id="${key}" ${required ? "required" : ""}><option value="">Select an option</option>${choices.map(value => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`).join("")}</select>`
             : type === "textarea"
             ? `<textarea id="${key}" maxlength="${maxLength}" ${required ? "required" : ""}></textarea>`
+            : key === "transactionNo"
+            ? `<input id="${key}" type="hidden"><div class="transaction-digits" role="group" aria-label="Transaction number, five digits">${Array.from({ length: 5 }, (_, index) => `<input class="transaction-digit" type="text" inputmode="numeric" pattern="[0-9]" maxlength="1" aria-label="Transaction number digit ${index + 1}"${required ? " required" : ""}>`).join("")}</div>`
             : `<input id="${key}" type="${type}" ${type === "date" ? `max="9999-12-31"` : `maxlength="${maxLength}"`} ${required ? "required" : ""}>`;
         return `<div class="${type === "textarea" ? "full" : ""}"><label for="${key}">${label}${required ? " *" : ""}</label>${control}</div>`;
     }).join("");
@@ -503,13 +508,12 @@ async function createFilledFoiPdf(request) {
 
     // ---- Name splitting ----
     const parts = safe(request.name).trim().split(/\s+/).filter(Boolean);
-    const given = parts.shift() || "";
-    const surname = parts.length ? parts.pop() : "";
-    const middle = parts.join(" ");
+    const given = safe(request.givenName).trim() || parts.shift() || "";
+    const surname = safe(request.surname).trim() || (parts.length ? parts.pop() : "");
+    const middle = request.givenName || request.surname ? "" : parts.join(" ");
     const middleInitial = middle ? `${middle[0]}.` : "";
 
     // ---- Text fields ----
-    setText("transactionNo", request.transactionNo);
     setText("requestingParty.title", request.title);
     setText("requestingParty.givenName", given);
     setText("requestingParty.middleInitial", middleInitial);
@@ -531,8 +535,8 @@ async function createFilledFoiPdf(request) {
     setText("receivingOfficer.secondOfficer", request.secondOfficer);
     setText("receivingOfficer.decisionMaker", "");
     setText("receivingOfficer.dateFinished", formatPrintDate(request.dateFinished));
-    setText("acknowledgement.receivedDocuments", request.documentRequested);
-    setText("acknowledgement.dateReceived", formatPrintDate(request.dateReceived));
+    setText("acknowledgement.receivedDocuments", request.receivedDocumentTitle);
+    setText("acknowledgement.dateReceived", formatPrintDateSeparated(request.dateReceived));
 
     // ---- Communication mode ----
     const comm = safe(request.communicationMode).toLowerCase();
@@ -580,10 +584,39 @@ async function createFilledFoiPdf(request) {
     setCheck("registryAccomplished.yes", reg === "yes");
     setCheck("registryAccomplished.no", reg === "no");
 
+    form.removeField(form.getTextField("transactionNo"));
+    const page = pdf.getPages()[0];
+    const { width, height } = page.getSize();
+    const font = await pdf.embedFont(PDFLib.StandardFonts.Helvetica);
+    drawTransactionDigits(page, font, request.transactionNo, width / 612, height / 936);
+
     // ---- Flatten so the fields become permanent ----
     form.flatten();
 
     return new Blob([await pdf.save()], { type: "application/pdf" });
+}
+
+function drawTransactionDigits(page, font, value, scaleX, scaleY) {
+    const digits = String(value || "").replace(/\D/g, "").slice(0, 5);
+    const startX = 445;
+    const startY = 817;
+    const cellWidth = 16;
+    const digitOffsets = [0, 16, 40, 52, 64];
+    const cellHeight = 12;
+    const fontSize = 8 * Math.min(scaleX, scaleY);
+    const scaledCellWidth = cellWidth * scaleX;
+    const scaledCellHeight = cellHeight * scaleY;
+
+    digits.split("").forEach((digit, index) => {
+        const digitWidth = font.widthOfTextAtSize(digit, fontSize);
+        page.drawText(digit, {
+            x: (startX + digitOffsets[index]) * scaleX + (scaledCellWidth - digitWidth) / 2,
+            y: startY * scaleY + (scaledCellHeight - fontSize) / 2,
+            size: fontSize,
+            font,
+            color: PDFLib.rgb(0.08, 0.1, 0.12)
+        });
+    });
 }
 
 async function createStaticFoiPdf(pdf, request) {
@@ -604,6 +637,7 @@ async function createStaticFoiPdf(pdf, request) {
     }
 
     const font = await pdf.embedFont(StandardFonts.Helvetica);
+    drawTransactionDigits(page, font, request.transactionNo, scaleX, scaleY);
     const textField = (value, x, y, fieldWidth, fieldHeight, options = {}) => {
         const text = String(value == null ? "" : value).replace(/[\r\n]+/g, " ").trim();
         if (!text) return;
@@ -695,11 +729,10 @@ async function createStaticFoiPdf(pdf, request) {
     };
     const normalized = value => String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
     const parts = String(request.name || "").trim().split(/\s+/).filter(Boolean);
-    const given = parts.shift() || "";
-    const surname = parts.length ? parts.pop() : "";
-    const middle = parts.join(" ");
+    const given = String(request.givenName || "").trim() || parts.shift() || "";
+    const surname = String(request.surname || "").trim() || (parts.length ? parts.pop() : "");
+    const middle = request.givenName || request.surname ? "" : parts.join(" ");
 
-    textField(request.transactionNo, 445, 817, 170, 12);
     textField(request.title, 113, 750, 70, 12);
     textField(given, 180, 750, 105, 12);
     textField(middle ? `${middle[0]}.` : "", 300, 750, 38, 12);
@@ -759,8 +792,8 @@ async function createStaticFoiPdf(pdf, request) {
     const registry = normalized(request.registryAccomplished);
     checkbox("registryAccomplished.yes", 433, 208, registry === "yes");
     checkbox("registryAccomplished.no", 484, 208, registry === "no");
-    textField(request.documentRequested, 177, 90, 420, 16, { multiline: true });
-    textField(formatPrintDate(request.dateReceived), 189, 53, 115, 12);
+    textField(request.receivedDocumentTitle, 177, 90, 420, 16, { multiline: true });
+    textField(formatPrintDateSeparated(request.dateReceived), 189, 53, 115, 12);
 
     return new Blob([await pdf.save()], { type: "application/pdf" });
 }
@@ -772,6 +805,11 @@ function formatPrintDate(value) {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return String(value);
     return [String(date.getDate()).padStart(2, "0"), String(date.getMonth() + 1).padStart(2, "0"), date.getFullYear()].join("/");
+}
+
+function formatPrintDateSeparated(value) {
+    const parts = formatPrintDate(value).split("/");
+    return parts.length === 3 ? parts.join(" / ") : parts[0];
 }
 
 function formatPrintPeriod(value) {
@@ -791,12 +829,13 @@ function populateDecisions() {
 function openForm(request = null) {
     editingIndex = request ? requests.indexOf(request) : -1;
     document.getElementById("modalTitle").textContent = request ? "Edit FOI Request" : "New FOI Request";
+    const applicantName = request ? splitApplicantName(request) : {};
     fields.forEach(([key, , type]) => {
         const input = document.getElementById(key);
-        const value = request ? request[key] || "" : "";
+        const value = request ? request[key] || applicantName[key] || "" : "";
         if (type === "select") {
             if (input) {
-                input.value = value;
+                input.value = key === "title" ? normalizeApplicantTitle(value) : value;
             }
             return;
         }
@@ -807,8 +846,33 @@ function openForm(request = null) {
             input.disabled = key === "transactionNo" && Boolean(request);
         }
     });
+    syncTransactionNumberBoxes(request ? request.transactionNo : "");
     syncDecisionCostFields();
     modal.style.display = "flex";
+}
+
+function splitApplicantName(request) {
+    const givenName = String(request.givenName || "").trim();
+    const surname = String(request.surname || "").trim();
+    if (givenName || surname) return { givenName, surname };
+
+    const parts = String(request.name || "").trim().split(/\s+/).filter(Boolean);
+    return { givenName: parts.shift() || "", surname: parts.join(" ") };
+}
+
+function normalizeApplicantTitle(value) {
+    const normalized = String(value || "").trim().replace(/\./g, "").toLowerCase();
+    return (validationOptions.title || []).find(option => option.toLowerCase() === normalized) || "";
+}
+
+function syncTransactionNumberBoxes(value) {
+    const digits = String(value || "").replace(/\D/g, "").slice(0, 5);
+    const hiddenInput = document.getElementById("transactionNo");
+    if (hiddenInput) hiddenInput.value = digits;
+    document.querySelectorAll(".transaction-digit").forEach((input, index) => {
+        input.value = digits[index] || "";
+        input.disabled = editingIndex !== -1;
+    });
 }
 
 function toDateInputValue(value) {
@@ -845,6 +909,7 @@ form.addEventListener("submit", async event => {
             const input = document.getElementById(key);
             values[key] = input ? input.value : "";
         });
+        values.name = [values.givenName, values.surname].filter(Boolean).join(" ");
         const payload = editingIndex === -1
             ? { action: "save", module: MODULE_NAME, sheet: SHEET_NAME, office: getFoiOffice(), ...values }
             : { action: "update", module: MODULE_NAME, sheet: SHEET_NAME, office: getFoiOffice(), idField: "transactionNo", idValue: requests[editingIndex].transactionNo, ...values };
@@ -862,6 +927,32 @@ form.addEventListener("submit", async event => {
         console.error("FOI save failed", error);
         alert(`FOI save failed: ${error.message}`);
     }
+});
+
+document.addEventListener("input", event => {
+    if (event.target && event.target.classList.contains("transaction-digit")) {
+        event.target.value = event.target.value.replace(/\D/g, "").slice(0, 1);
+        const digitInputs = [...document.querySelectorAll(".transaction-digit")];
+        const value = digitInputs.map(input => input.value).join("");
+        document.getElementById("transactionNo").value = value;
+        if (event.target.value) {
+            const nextInput = digitInputs[digitInputs.indexOf(event.target) + 1];
+            if (nextInput) nextInput.focus();
+        }
+    }
+});
+
+document.addEventListener("paste", event => {
+    if (!event.target || !event.target.classList.contains("transaction-digit")) return;
+    event.preventDefault();
+    const digits = event.clipboardData.getData("text").replace(/\D/g, "").slice(0, 5);
+    const digitInputs = [...document.querySelectorAll(".transaction-digit")];
+    digitInputs.forEach((input, index) => {
+        input.value = digits[index] || "";
+    });
+    document.getElementById("transactionNo").value = digits;
+    const nextEmpty = digitInputs.find(input => !input.value);
+    (nextEmpty || digitInputs[digitInputs.length - 1]).focus();
 });
 
 function buildFormData(values) {

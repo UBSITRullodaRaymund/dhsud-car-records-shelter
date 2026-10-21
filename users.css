@@ -12,12 +12,8 @@ DHSUD-CAR RECORDS SHELTER — USER ACCOUNTS
     display:flex;
     align-items:center;
     gap:12px;
-    background:rgba(255,255,255,.08);
-    border:1px solid rgba(255,255,255,.18);
-    border-radius:999px;
-    padding:8px 14px;
     color:#fff;
-    backdrop-filter:blur(8px);
+    max-width:100%;
 }
 
 .user-name{
@@ -40,18 +36,25 @@ DHSUD-CAR RECORDS SHELTER — USER ACCOUNTS
     background:#FFC72C;
     color:#003C88;
     border-radius:999px;
-    padding:8px 14px;
+    padding:10px 16px;
     font-weight:700;
     cursor:pointer;
     display:inline-flex;
     align-items:center;
     gap:8px;
+    white-space:nowrap;
+    box-shadow:0 2px 8px rgba(0,0,0,.16);
     transition:.2s ease;
 }
 
 .logout-btn:hover{
     background:#fff;
     transform:translateY(-1px);
+}
+
+.logout-btn:focus-visible{
+    outline:3px solid #fff;
+    outline-offset:3px;
 }
 
 .user-modal{
