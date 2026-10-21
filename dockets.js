@@ -9,10 +9,10 @@
  CONFIGURATION
 =========================================================*/
 
-const API_URL =
-"https://script.google.com/macros/s/AKfycbxQAh3bOHZc-c1gZpOtpSF4SaQSd8XV-g_OWnbM8h628C9uPPEdsVdEtrw0yabpNSn_3Q/exec";
-
 const SHEET_NAME = "Dockets Issuances";
+const MODULE_NAME = "dockets";
+
+requireLogin();
 
 
 /*=========================================================
@@ -122,14 +122,21 @@ function generateTransactionNumber(){
 async function loadDocuments(){
 
     try{
+        const result = await authedGet({
+            action: "getDocuments",
+            module: MODULE_NAME,
+            sheet: SHEET_NAME,
+            office: getRequestOffice()
+        });
 
-        const response = await fetch(
+        if (!Array.isArray(result)) {
+            documents = [];
+            console.error(result && result.error ? result.error : "Unexpected API response", result);
+            renderTable();
+            return;
+        }
 
-            `${API_URL}?action=getDocuments&sheet=${encodeURIComponent(SHEET_NAME)}`
-
-        );
-
-        documents = await response.json();
+        documents = result.map(record => normalizeRecordFields(record, MODULE_NAME));
 
         renderTable();
 
@@ -343,19 +350,18 @@ form.addEventListener("submit", async function(e){
 
     };
 
-    if(editingIndex === -1){
+    const result = editingIndex === -1
+        ? await saveDocument(doc)
+        : await updateDocument(doc);
 
-        await saveDocument(doc);
-
-    }else{
-
-        await updateDocument(doc);
-
+    if (!result || result.error) {
+        alert(result ? result.error : "Save failed");
+        return;
     }
 
     closeModal();
 
-    loadDocuments();
+    await loadDocuments();
 
 });
 
@@ -368,7 +374,9 @@ async function saveDocument(doc){
     const formData = new FormData();
 
     formData.append("action","save");
+    formData.append("module", MODULE_NAME);
     formData.append("sheet",SHEET_NAME);
+    formData.append("office", getRequestOffice());
 
     formData.append("transactionNo",doc.transactionNo);
     formData.append("dateRequest",doc.dateRequest);
@@ -383,12 +391,7 @@ async function saveDocument(doc){
     formData.append("status",doc.status);
     formData.append("remarks",doc.remarks);
 
-    const response = await fetch(API_URL,{
-        method:"POST",
-        body:formData
-    });
-
-    return await response.json();
+    return await authedPost(formData);
 
 }
 
@@ -463,7 +466,11 @@ async function updateDocument(doc){
     const formData=new FormData();
 
     formData.append("action","update");
+    formData.append("module", MODULE_NAME);
     formData.append("sheet",SHEET_NAME);
+    formData.append("office", getRequestOffice());
+    formData.append("idField", "transactionNo");
+    formData.append("idValue", doc.transactionNo);
 
     formData.append("transactionNo",doc.transactionNo);
     formData.append("dateRequest",doc.dateRequest);
@@ -478,12 +485,15 @@ async function updateDocument(doc){
     formData.append("status",doc.status);
     formData.append("remarks",doc.remarks);
 
-    const response=await fetch(API_URL,{
-        method:"POST",
-        body:formData
-    });
+    const result = await authedPost(formData);
+    if (!result || result.error) {
+        alert(result ? result.error : "Update failed");
+        return null;
+    }
 
-    return await response.json();
+    editingIndex = -1;
+    await loadDocuments();
+    return result;
 
 }
 
@@ -502,13 +512,17 @@ async function deleteDocument(index){
     const formData = new FormData();
 
     formData.append("action","delete");
+    formData.append("module", MODULE_NAME);
     formData.append("sheet",SHEET_NAME);
-    formData.append("transactionNo",doc.transactionNo);
+    formData.append("office", getRequestOffice());
+    formData.append("idField", "transactionNo");
+    formData.append("idValue", doc.transactionNo);
 
-    await fetch(API_URL,{
-        method:"POST",
-        body:formData
-    });
+    const result = await authedPost(formData);
+    if (!result || result.error) {
+        alert(result ? result.error : "Delete failed");
+        return;
+    }
 
     await loadDocuments();
 
