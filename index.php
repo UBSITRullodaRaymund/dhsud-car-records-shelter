@@ -16,4 +16,13 @@ session_set_cookie_params([
 ]);
 session_start();
 
-(new App\Controllers\PageController(App\Core\Database::connection()))->render((string) ($_GET['page'] ?? 'index'));
+$route = (string) ($_GET['route'] ?? $_GET['page'] ?? 'index');
+if (isset($_GET['legacy']) && preg_match('/^[a-z0-9-]+$/iD', $route)) {
+    $scriptDirectory = str_replace('\\', '/', dirname((string) ($_SERVER['SCRIPT_NAME'] ?? '/index.php')));
+    $basePath = rtrim($scriptDirectory, '/');
+    $canonicalPath = $route === 'index' ? $basePath . '/' : $basePath . '/' . $route;
+    header('Location: ' . $canonicalPath, true, 301);
+    exit;
+}
+
+(new App\Controllers\PageController(App\Core\Database::connection()))->render($route);

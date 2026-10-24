@@ -29,7 +29,7 @@
 
     <div class="nav-container">
 
-        <a href="documents.html" class="brand">
+        <a href="documents" class="brand">
 
             <img src="logo.png" alt="DHSUD Logo">
 
@@ -45,17 +45,17 @@
 
         <nav class="navigation">
 
-            <a href="documents.html">
+            <a href="documents">
                 <i class="fa-solid fa-house"></i>
                 Documents Monitoring
             </a>
 
-            <a href="incoming.html" class="active-page">
+            <a href="incoming" class="active-page">
                 <i class="fa-solid fa-inbox"></i>
                 Incoming
             </a>
 
-            <a href="outgoing.html">
+            <a href="outgoing">
                 <i class="fa-solid fa-paper-plane"></i>
                 Outgoing
             </a>
@@ -107,7 +107,7 @@
     <div class="back-section">
 
         <button class="back-btn"
-                onclick="window.location.href='documents.html'">
+                onclick="window.location.href='documents'">
 
             <i class="fa-solid fa-arrow-left"></i>
 

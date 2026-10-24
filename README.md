@@ -2,7 +2,7 @@
 
 The Shelter is being migrated to PHP MVC with **MySQL as the authoritative database**. PHP handles authentication, sessions, permissions, record and account CRUD, dashboard statistics, and activity history. Google Sheets is an optional one-way mirror: a successful MySQL write is committed first, then its latest snapshot is queued for Apps Script. Editing a spreadsheet does not update MySQL.
 
-The PHP front controller keeps the existing `.html` URLs working while rendering the PHP templates in `views/pages/`. The shared Vue 3 navigation and Tailwind CSS design system are compiled locally; the application does not need a frontend CDN or development server at runtime.
+The application uses a PHP MVC structure: `index.php` routes requests through the page controller, controllers and models handle application logic and MySQL access, and PHP templates in `views/pages/` render each page. Routes are extensionless (for example, `/foi`); previous `.html` links redirect to their PHP route for bookmark compatibility. Browser-side JavaScript remains for interactive tables and forms, while PHP owns routing, sessions, authorization, database access, and HTML rendering. The shared Vue 3 navigation and Tailwind CSS design system are compiled locally; the application does not need a frontend CDN or development server at runtime.
 
 ## Frontend build
 
@@ -70,7 +70,7 @@ The seed command queues snapshots for all record modules, users, and activity. S
 
 ## API and application
 
-The API entry point is `api/index.php`; the page front controller is `index.php`; PHP templates live in `views/pages/`.
+The API entry point is `api/index.php`; the page front controller is `index.php`; PHP templates live in `views/pages/`. Clean page routes are handled by Apache rewrite rules and rendered through `app/Controllers/PageController.php`.
 
 | Method | Action | Purpose |
 | --- | --- | --- |

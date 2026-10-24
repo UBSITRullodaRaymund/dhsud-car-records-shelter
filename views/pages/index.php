@@ -65,21 +65,21 @@
             </li>
 
             <li>
-                <a href="login.html" title="Login">
+                <a href="login" title="Login">
                     <i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i>
                     <span>Login</span>
                 </a>
             </li>
 
             <li>
-                <a href="users.html" title="User management">
+                <a href="users" title="User management">
                     <i class="fa-solid fa-users" aria-hidden="true"></i>
                     <span>User Management</span>
                 </a>
             </li>
 
             <li>
-                <a href="activity-log.html" title="Activity log">
+                <a href="activity-log" title="Activity log">
                     <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
                     <span>Activity Log</span>
                 </a>
@@ -93,28 +93,28 @@
             </li>
 
             <li>
-                <a href="documents.html" title="Documents monitoring">
+                <a href="documents" title="Documents monitoring">
                     <i class="fa-solid fa-file-lines" aria-hidden="true"></i>
                     <span>Documents</span>
                 </a>
             </li>
 
             <li>
-                <a href="dockets.html" title="Dockets issuances">
+                <a href="dockets" title="Dockets issuances">
                     <i class="fa-solid fa-folder-open" aria-hidden="true"></i>
                     <span>Dockets</span>
                 </a>
             </li>
 
             <li>
-                <a href="dockets-mapping.html" title="Dockets mapping">
+                <a href="dockets-mapping" title="Dockets mapping">
                     <i class="fa-solid fa-map" aria-hidden="true"></i>
                     <span>Dockets Mapping</span>
                 </a>
             </li>
 
             <li>
-                <a href="foi.html" title="Freedom of information">
+                <a href="foi" title="Freedom of information">
                     <i class="fa-solid fa-envelope-open-text" aria-hidden="true"></i>
                     <span>FOI</span>
                 </a>
@@ -349,7 +349,7 @@
 
             </div>
 
-            <button onclick="window.location.href='records.html'">
+            <button onclick="window.location.href='records'">
                 Open Records
                 <i class="fa-solid fa-arrow-right"></i>
             </button>

@@ -41,17 +41,17 @@
 
     <nav class="navigation">
 
-      <a href="index.html">
+      <a href="./">
         <i class="fa-solid fa-house"></i>
         Home
       </a>
 
-      <a href="documents.html" class="active">
+      <a href="documents" class="active">
         <i class="fa-solid fa-file-lines"></i>
         Documents Monitoring
       </a>
 
-      <a href="dockets.html">
+      <a href="dockets">
         <i class="fa-solid fa-folder-open"></i>
         Dockets Issuances
       </a>

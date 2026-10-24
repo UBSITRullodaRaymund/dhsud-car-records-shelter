@@ -12,7 +12,7 @@ if (profileUser) {
     document.getElementById("profileRole").textContent = profileUser.role || "—";
     document.getElementById("profileOffice").textContent = profileUser.office || "—";
 } else {
-    window.location.href = "login.html";
+    window.location.href = "login";
 }
 
 function showProfileMessage(message, type = "success") {

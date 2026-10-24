@@ -58,7 +58,7 @@
     document.addEventListener("DOMContentLoaded", function () {
         if (typeof getCurrentUser !== "function" || !getCurrentUser() || !logout) return;
 
-        const loginLink = document.querySelector('.app-navigation-links a[href="login.html"]');
+        const loginLink = document.querySelector('.app-navigation-links a[href="login"]');
         if (loginLink) loginLink.hidden = true;
         logout.hidden = false;
         logout.addEventListener("click", function () {

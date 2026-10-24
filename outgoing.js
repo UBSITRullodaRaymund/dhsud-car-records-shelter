@@ -1956,6 +1956,6 @@ function showLoading(
 function goToDocumentsMonitoring() {
 
   window.location.href =
-    "documents.html";
+    "documents";
 
 }

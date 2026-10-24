@@ -40,9 +40,9 @@
 
 <ul>
 
-<li><a href="index.html">Home</a></li>
+<li><a href="./">Home</a></li>
 
-<li><a href="documents.html" class="active">Documents Monitoring</a></li>
+<li><a href="documents" class="active">Documents Monitoring</a></li>
 
 </ul>
 
@@ -95,7 +95,7 @@ Manage and monitor all received documents.
 
 <div class="doc-button">
 
-<a href="incoming.html">
+<a href="incoming">
 
 Open
 
@@ -129,7 +129,7 @@ Track all outgoing communications and releases.
 
 <div class="doc-button">
 
-<a href="outgoing.html">
+<a href="outgoing">
 
 Open
 
@@ -163,7 +163,7 @@ View and organize all official dockets.
 
 <div class="doc-button">
 
-<a href="dockets.html">
+<a href="dockets">
 
 Open
 
@@ -181,7 +181,7 @@ Open
 
 <div class="back-home">
 
-<a href="index.html">
+<a href="./">
 
 <i class="fa-solid fa-house"></i>
 

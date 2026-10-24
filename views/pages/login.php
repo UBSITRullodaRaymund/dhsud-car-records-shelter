@@ -81,7 +81,7 @@ if (currentSession && currentSession.token) {
         .then(result => {
             if (result && result.user) {
                 saveSession(result.token, result.user, result.csrfToken);
-                window.location.href = "index.html";
+                window.location.href = "./";
             } else {
                 clearSession();
             }
@@ -131,7 +131,7 @@ loginForm.addEventListener("submit", async function (e) {
         }
 
         saveSession(result.token, result.user, result.csrfToken);
-        window.location.href = "index.html";
+        window.location.href = "./";
 
     } catch (err) {
         console.error(err);

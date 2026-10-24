@@ -109,7 +109,7 @@
                     <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
                     Save changes
                 </button>
-                <a href="index.html" class="profile-back-link">Back to Home</a>
+                <a href="./" class="profile-back-link">Back to Home</a>
             </div>
         </form>
     </section>

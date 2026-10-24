@@ -47,11 +47,11 @@ HEADER
 
 <ul class="nav-links">
 
-<li><a href="index.html">Home</a></li>
+<li><a href="./">Home</a></li>
 
-<li><a href="documents.html">Documents Monitoring</a></li>
+<li><a href="documents">Documents Monitoring</a></li>
 
-<li><a href="dockets-mapping.html" class="active">Dockets Mapping</a></li>
+<li><a href="dockets-mapping" class="active">Dockets Mapping</a></li>
 
 </ul>
 

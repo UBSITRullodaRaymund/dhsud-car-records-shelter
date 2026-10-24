@@ -58,7 +58,7 @@ final class PageController
             );
             $statement->execute(['session_hash' => $sessionHash]);
             if ($sessionHash === '' || !$statement->fetchColumn()) {
-                header('Location: login.html', true, 302);
+                header('Location: login', true, 302);
                 exit;
             }
         }

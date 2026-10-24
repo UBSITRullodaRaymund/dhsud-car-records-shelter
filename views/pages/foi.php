@@ -17,7 +17,7 @@
 <?php require __DIR__ . '/../partials/navigation.php'; ?>
 <header><nav>
     <div class="logo"><img src="logo.png" alt="DHSUD-CAR Logo"><div><h2>DHSUD-CAR</h2><span>Records Shelter</span></div></div>
-    <ul><li><a href="index.html">Home</a></li><li><a href="requests.html">Requests</a></li><li><a href="foi.html" class="active">FOI</a></li></ul>
+    <ul><li><a href="./">Home</a></li><li><a href="requests">Requests</a></li><li><a href="foi" class="active">FOI</a></li></ul>
 </nav></header>
 <section class="page-banner"><div class="page-banner-content"><h1>FOI Requests</h1><p>Manage Freedom of Information applications and outcomes.</p></div></section>
 <section class="records-page foi-page">

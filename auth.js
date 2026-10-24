@@ -1,7 +1,7 @@
 /*=========================================================
   DHSUD-CAR RECORDS SHELTER
   Shared Auth Helper
-  Include this on EVERY page (login.html and all protected
+  Include this on EVERY page (login and all protected
   pages), before any page-specific script tag.
 
   IMPORTANT: this file now owns API_URL. Remove the
@@ -64,7 +64,7 @@ function clearSession() {
 
 /*=========================================================
  GUARD — call at the top of every protected page.
- Redirects to login.html if there is no local session.
+ Redirects to the PHP login route if there is no local session.
  (This only checks that a token EXISTS client-side — the
  backend still independently validates it on every request,
  which is the check that actually matters for security.)
@@ -74,7 +74,7 @@ function requireLogin() {
     const session = getSession();
     if (!session || !session.token) {
         clearSession();
-        window.location.href = "login.html";
+        window.location.href = "login";
         return null;
     }
     return session;
@@ -105,7 +105,7 @@ async function logout() {
     }
 
     clearSession();
-    window.location.href = "login.html";
+    window.location.href = "login";
 }
 
 /*=========================================================
@@ -123,7 +123,7 @@ async function authedGet(params) {
 
     if (response.status === 401) {
         clearSession();
-        window.location.href = "login.html";
+        window.location.href = "login";
         return null;
     }
 
@@ -145,7 +145,7 @@ async function authedPost(formData) {
 
     if (response.status === 401) {
         clearSession();
-        window.location.href = "login.html";
+        window.location.href = "login";
         return null;
     }
 

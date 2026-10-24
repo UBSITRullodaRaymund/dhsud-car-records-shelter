@@ -45,11 +45,11 @@ HEADER
 
 <ul>
 
-<li><a href="index.html">Home</a></li>
+<li><a href="./">Home</a></li>
 
-<li><a href="documents.html">Documents Monitoring</a></li>
+<li><a href="documents">Documents Monitoring</a></li>
 
-<li><a href="dockets.html" class="active">Dockets Issuances</a></li>
+<li><a href="dockets" class="active">Dockets Issuances</a></li>
 
 </ul>
 

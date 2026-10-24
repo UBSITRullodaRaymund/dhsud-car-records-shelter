@@ -51,13 +51,13 @@
         <ul>
 
             <li>
-                <a href="index.html">
+                <a href="./">
                     Home
                 </a>
             </li>
 
             <li>
-                <a href="records.html" class="active">
+                <a href="records" class="active">
                     Records
                 </a>
             </li>
@@ -146,7 +146,7 @@
 
             </div>
 
-            <button onclick="window.location.href='documents.html'">
+            <button onclick="window.location.href='documents'">
 
                 Open
 
@@ -180,7 +180,7 @@
 
             </div>
 
-            <button onclick="window.location.href='requests.html'">
+            <button onclick="window.location.href='requests'">
 
                 Open
 
@@ -214,7 +214,7 @@
 
             </div>
 
-            <button onclick="window.location.href='dockets-mapping.html'">
+            <button onclick="window.location.href='dockets-mapping'">
 
                 Open
 
@@ -248,7 +248,7 @@
 
             </div>
 
-            <button onclick="window.location.href='records-masterlist.html'">
+            <button onclick="window.location.href='records-masterlist'">
 
                 Open
 
@@ -282,7 +282,7 @@
 
             </div>
 
-            <button onclick="window.location.href='records-transfer.html'">
+            <button onclick="window.location.href='records-transfer'">
 
                 Open
 
@@ -300,7 +300,7 @@
 
     <div class="back-home">
 
-        <button onclick="window.location.href='index.html'">
+        <button onclick="window.location.href='./'">
 
             <i class="fa-solid fa-house"></i>
 

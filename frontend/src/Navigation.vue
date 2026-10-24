@@ -9,17 +9,17 @@ defineProps({
 });
 
 const links = [
-    { page: "index", href: "index.html", label: "Home", icon: "fa-house" },
-    { page: "documents", href: "documents.html", label: "Documents", icon: "fa-file-lines" },
-    { page: "incoming", href: "incoming.html", label: "Incoming", icon: "fa-inbox" },
-    { page: "outgoing", href: "outgoing.html", label: "Outgoing", icon: "fa-paper-plane" },
-    { page: "dockets", href: "dockets.html", label: "Dockets", icon: "fa-folder-open" },
-    { page: "dockets-mapping", href: "dockets-mapping.html", label: "Dockets Mapping", icon: "fa-map" },
-    { page: "records", href: "records.html", label: "Records", icon: "fa-box-archive" },
-    { page: "requests", href: "requests.html", label: "Requests", icon: "fa-file-circle-question" },
-    { page: "foi", href: "foi.html", label: "FOI", icon: "fa-envelope-open-text" },
-    { page: "users", href: "users.html", label: "User Management", icon: "fa-users" },
-    { page: "activity-log", href: "activity-log.html", label: "Activity Log", icon: "fa-clock-rotate-left" },
+    { page: "index", href: "./", label: "Home", icon: "fa-house" },
+    { page: "documents", href: "documents", label: "Documents", icon: "fa-file-lines" },
+    { page: "incoming", href: "incoming", label: "Incoming", icon: "fa-inbox" },
+    { page: "outgoing", href: "outgoing", label: "Outgoing", icon: "fa-paper-plane" },
+    { page: "dockets", href: "dockets", label: "Dockets", icon: "fa-folder-open" },
+    { page: "dockets-mapping", href: "dockets-mapping", label: "Dockets Mapping", icon: "fa-map" },
+    { page: "records", href: "records", label: "Records", icon: "fa-box-archive" },
+    { page: "requests", href: "requests", label: "Requests", icon: "fa-file-circle-question" },
+    { page: "foi", href: "foi", label: "FOI", icon: "fa-envelope-open-text" },
+    { page: "users", href: "users", label: "User Management", icon: "fa-users" },
+    { page: "activity-log", href: "activity-log", label: "Activity Log", icon: "fa-clock-rotate-left" },
 ];
 
 const mobileOpen = ref(false);
@@ -115,7 +115,7 @@ async function logOut() {
     } finally {
         localStorage.removeItem("dhsud_session");
         sessionStorage.removeItem("dhsud_session");
-        window.location.href = "login.html";
+        window.location.href = "login";
     }
 }
 
@@ -157,7 +157,7 @@ onBeforeUnmount(() => {
             ]"
         >
             <a
-                href="profile.html"
+                href="profile"
                 class="nav-account flex min-h-[5.75rem] items-center gap-3 border-b border-white/10 px-3 no-underline transition-colors hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-sky-300"
                 :class="collapsed && !isMobile ? 'justify-center' : ''"
                 :title="collapsed && !isMobile ? [userDetails?.fullName, userDetails?.role, userDetails?.office].filter(Boolean).join(' · ') || 'Guest' : undefined"
@@ -206,7 +206,7 @@ onBeforeUnmount(() => {
                 </button>
                 <a
                     v-else
-                    href="login.html"
+                    href="login"
                     class="flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium text-slate-300 no-underline transition-colors hover:bg-white/7 hover:text-white"
                     :title="collapsed && !isMobile ? 'Login' : undefined"
                 >

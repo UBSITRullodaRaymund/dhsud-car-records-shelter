@@ -32,8 +32,8 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
         </div>
     </div>
     <ul>
-        <li><a href="index.html">Home</a></li>
-        <li><a href="users.html" class="active">User Accounts</a></li>
+        <li><a href="./">Home</a></li>
+        <li><a href="users" class="active">User Accounts</a></li>
     </ul>
     <div id="userMenu"></div>
 </nav>

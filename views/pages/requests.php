@@ -15,16 +15,16 @@
 <?php require __DIR__ . '/../partials/navigation.php'; ?>
 <header><nav>
     <div class="logo"><img src="logo.png" alt="DHSUD-CAR Logo"><div><h2>DHSUD-CAR</h2><span>Records Shelter</span></div></div>
-    <ul><li><a href="index.html">Home</a></li><li><a href="documents.html">Documents Monitoring</a></li><li><a href="requests.html" class="active">Requests</a></li></ul>
+    <ul><li><a href="./">Home</a></li><li><a href="documents">Documents Monitoring</a></li><li><a href="requests" class="active">Requests</a></li></ul>
 </nav></header>
 <section class="page-banner"><div class="page-banner-content"><h1>Requests</h1><p>Select a request registry to continue.</p></div></section>
 <section class="request-grid">
-    <a class="request-card" href="foi.html"><i class="fa-solid fa-file-circle-question"></i><div><h2>FOI</h2><p>Freedom of Information request registry.</p></div><i class="fa-solid fa-arrow-right"></i></a>
+    <a class="request-card" href="foi"><i class="fa-solid fa-file-circle-question"></i><div><h2>FOI</h2><p>Freedom of Information request registry.</p></div><i class="fa-solid fa-arrow-right"></i></a>
     <a class="request-card" href="#" aria-disabled="true"><i class="fa-solid fa-file-invoice-dollar"></i><div><h2>Billing</h2><p>Billing request registry.</p></div><span class="coming-soon">Coming soon</span></a>
     <a class="request-card" href="#" aria-disabled="true"><i class="fa-solid fa-certificate"></i><div><h2>Certified True Copy</h2><p>Certified true copy request registry.</p></div><span class="coming-soon">Coming soon</span></a>
     <a class="request-card" href="#" aria-disabled="true"><i class="fa-solid fa-inbox"></i><div><h2>Receiving</h2><p>Receiving request registry.</p></div><span class="coming-soon">Coming soon</span></a>
 </section>
-<div class="back-home"><a href="index.html"><i class="fa-solid fa-house"></i> Back to Home</a></div>
+<div class="back-home"><a href="./"><i class="fa-solid fa-house"></i> Back to Home</a></div>
 <script src="script.js"></script>
 </body>
 </html>
