@@ -86,15 +86,14 @@ async function loadUsers() {
 }
 
 function renderTable() {
-    tbody.innerHTML = "";
-
     if (users.length === 0) {
+        TablePagination.render(tbody, [], () => document.createElement("tr"));
         document.getElementById("emptyState").style.display = "flex";
         return;
     }
     document.getElementById("emptyState").style.display = "none";
 
-    users.forEach((u, index) => {
+    TablePagination.render(tbody, users, (u, index) => {
         const row = document.createElement("tr");
         row.innerHTML = `
             <td>${u.fullName || "-"}</td>
@@ -111,7 +110,7 @@ function renderTable() {
                 </button>
             </td>
         `;
-        tbody.appendChild(row);
+        return row;
     });
 }
 

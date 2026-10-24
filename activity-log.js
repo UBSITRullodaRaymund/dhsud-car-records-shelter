@@ -48,15 +48,14 @@ function renderTable() {
         return matchesSearch && matchesAction;
     });
 
-    tbody.innerHTML = "";
-
     if (filtered.length === 0) {
+        TablePagination.render(tbody, [], () => document.createElement("tr"));
         document.getElementById("emptyState").style.display = "flex";
         return;
     }
     document.getElementById("emptyState").style.display = "none";
 
-    filtered.forEach(l => {
+    TablePagination.render(tbody, filtered, l => {
         const row = document.createElement("tr");
         row.innerHTML = `
             <td>${formatTimestamp(l.Timestamp)}</td>
@@ -66,7 +65,7 @@ function renderTable() {
             <td><span class="status-badge ${String(l.Action).toLowerCase()}">${l.Action}</span></td>
             <td>${l.RecordId || "-"}</td>
         `;
-        tbody.appendChild(row);
+        return row;
     });
 }
 
@@ -76,11 +75,18 @@ function formatTimestamp(value) {
     return d.toLocaleString();
 }
 
-searchInput.addEventListener("keyup", renderTable);
-actionFilter.addEventListener("change", renderTable);
+searchInput.addEventListener("input", () => {
+    TablePagination.reset(tbody);
+    renderTable();
+});
+actionFilter.addEventListener("change", () => {
+    TablePagination.reset(tbody);
+    renderTable();
+});
 
 document.getElementById("clearFilters").addEventListener("click", () => {
     searchInput.value = "";
     actionFilter.value = "";
+    TablePagination.reset(tbody);
     renderTable();
 });

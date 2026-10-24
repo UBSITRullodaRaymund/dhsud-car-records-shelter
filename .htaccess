@@ -1,0 +1,10 @@
+DirectoryIndex index.php index.html
+Options -Indexes
+
+RewriteEngine On
+RewriteRule ^(app|views|database)(/|$) - [F,L]
+RewriteRule ^(.+)\.html$ index.php?page=$1 [QSA,L]
+
+<FilesMatch "^(Code\.gs|.*\.sql|.*\.xlsx)$">
+    Require all denied
+</FilesMatch>

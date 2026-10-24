@@ -2,31 +2,45 @@
    DHSUD-CAR INCOMING DOCUMENTS
 ================================================== */
 
-const STORAGE_KEY = "dhsudCARIncomingDocuments";
-
 let incomingDocuments = [];
 
 let editingDocumentId = null;
 
+const INCOMING_SPREADSHEET_COLUMNS = [
+    ["", "routingSlip"],
+    ["DATE OF DOCUMENT", "dateDocument"],
+    ["DATE RECEIVED", "dateReceived"],
+    ["SENDER", "sender"],
+    ["SIGNATORY", "signatory"],
+    ["MODE OF COMMUNICATION", "mode"],
+    ["SUBJECT", "subject"],
+    ["DATE RELEASED", "dateReleased"],
+    ["FROM", "from"],
+    ["TO", "to"],
+    ["ACTION NO.", "actionNo"],
+    ["COMMENTS/ REMARKS", "comments"],
+    ["RECEIVED BY", "receivedBy"],
+    ["E-MAIL ADD", "email"],
+    ["DEADLINE", "deadline"],
+    ["STATUS", "status"],
+    ["REMINDER SENT", "reminderSent"],
+    ["Date Completed", "dateCompleted"]
+];
 
 /* ==================================================
    LOAD DATA
 ================================================== */
 
-document.addEventListener("DOMContentLoaded", function () {
-
-    loadIncomingDocuments();
-
-    renderMasterlist();
+document.addEventListener("DOMContentLoaded", async function () {
+    await loadIncomingDocuments();
 
     const search = document.getElementById("masterlistSearch");
 
     if (search) {
 
         search.addEventListener("input", function () {
-
+            TablePagination.reset(document.getElementById("masterlistBody"));
             renderMasterlist(this.value);
-
         });
 
     }
@@ -46,43 +60,34 @@ document.addEventListener("DOMContentLoaded", function () {
    LOAD FROM LOCAL STORAGE
 ================================================== */
 
-function loadIncomingDocuments() {
-
-    const saved =
-        localStorage.getItem(STORAGE_KEY);
-
-    if (saved) {
-
-        try {
-
-            incomingDocuments = JSON.parse(saved);
-
-        } catch (error) {
-
-            incomingDocuments = [];
-
-        }
-
-    } else {
-
+async function loadIncomingDocuments() {
+    const result = await authedGet({
+        action: "getDocuments",
+        module: "incoming",
+        sheet: "Incoming Documents",
+        office: getRequestOffice()
+    });
+    if (!Array.isArray(result)) {
         incomingDocuments = [];
-
+        renderMasterlist();
+        const message = result && result.error ? result.error : "Unable to load incoming documents.";
+        console.error(message);
+        alert("Incoming documents could not be loaded from Google Sheets. Please try again. " + message);
+        return;
     }
 
-}
-
-
-/* ==================================================
-   SAVE TO LOCAL STORAGE
-================================================== */
-
-function saveIncomingDocuments() {
-
-    localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(incomingDocuments)
-    );
-
+    incomingDocuments = result.map(function (record, index) {
+        const normalized = normalizeRecordFields(record, "incoming");
+        const routingSlip = normalized.routingSlip || normalized.tracking || "";
+        return {
+            ...normalized,
+            id: routingSlip || String(index),
+            routingSlip,
+            mode: normalized.mode || normalized.communicationMode || "",
+            routeTo: normalized.to || normalized.routeTo || ""
+        };
+    });
+    renderMasterlist(document.getElementById("masterlistSearch")?.value || "");
 }
 
 
@@ -90,7 +95,7 @@ function saveIncomingDocuments() {
    ADD / EDIT DOCUMENT
 ================================================== */
 
-function saveDocument(event) {
+async function saveDocument(event) {
 
     event.preventDefault();
 
@@ -150,93 +155,33 @@ function saveDocument(event) {
        EDIT EXISTING DOCUMENT
     ================================================== */
 
+    const isEditing = Boolean(editingDocumentId);
+    const formData = new FormData();
+    formData.append("action", isEditing ? "update" : "save");
+    formData.append("module", "incoming");
+    formData.append("sheet", "Incoming Documents");
+    formData.append("office", getRequestOffice());
+    Object.entries(documentData).forEach(([key, value]) => formData.append(key, value));
+
     if (editingDocumentId) {
-
-        const documentIndex =
-            incomingDocuments.findIndex(
-                function (doc) {
-
-                    return doc.id === editingDocumentId;
-
-                }
-            );
-
-
-        if (documentIndex === -1) {
-
-            alert("Document could not be found.");
-
-            return;
-
-        }
-
-
-        /*
-         * Keep the existing ID and routing information.
-         */
-
-        incomingDocuments[documentIndex] = {
-
-            ...incomingDocuments[documentIndex],
-
-            ...documentData
-
-        };
-
-
-        saveIncomingDocuments();
-
-        renderMasterlist(
-            document.getElementById("masterlistSearch").value
-        );
-
-
-        closeIncomingModal();
-
-
-        alert(
-            "Incoming document updated successfully."
-        );
-
-
-        return;
-
+        formData.append("idField", "routingSlip");
+        formData.append("idValue", editingDocumentId);
+        const editedRecord = incomingDocuments.find(record => record.id === editingDocumentId);
+        formData.append("_syncVersion", editedRecord ? editedRecord._syncVersion || "" : "");
+    } else {
+        formData.append("to", "");
     }
 
+    const result = await authedPost(formData);
+    if (!result || result.error) {
+        alert(result && result.error ? result.error : "Could not save the incoming document.");
+        return;
+    }
 
-    /* ==================================================
-       ADD NEW DOCUMENT
-    ================================================== */
-
-    const newDocument = {
-
-        id:
-            Date.now().toString(),
-
-        ...documentData,
-
-        routeTo: "",
-
-        dateAdded:
-            new Date().toISOString()
-
-    };
-
-
-    incomingDocuments.unshift(newDocument);
-
-    saveIncomingDocuments();
-
-    renderMasterlist();
-
+    await loadIncomingDocuments();
     event.target.reset();
-
     closeIncomingModal();
-
-
-    alert(
-        "Incoming document added successfully."
-    );
+    alert(isEditing ? "Incoming document updated successfully." : "Incoming document added successfully.");
 
 }
 
@@ -308,153 +253,54 @@ function renderMasterlist(searchTerm = "") {
         );
 
 
+    TablePagination.render(body, filtered, function (doc) {
+        const row = document.createElement("tr");
+        INCOMING_SPREADSHEET_COLUMNS.forEach(([label, key]) => {
+            const cell = document.createElement("td");
+            cell.dataset.label = label;
+            if (key === "to") {
+                const select = document.createElement("select");
+                select.className = "route-select";
+                select.setAttribute("aria-label", "Route To");
+                select.innerHTML = `
+                    <option value="">Select Department</option>
+                    <option value="HREDRD">HREDRD</option>
+                    <option value="HOACDD">HOACDD</option>
+                    <option value="ELUPDD">ELUPDD</option>
+                    <option value="PHSD">PHSD</option>
+                    <option value="AFD">AFD</option>
+                    <option value="ORD">ORD</option>
+                `;
+                select.value = doc.routeTo || doc.to || "";
+                select.addEventListener("change", () => routeDocument(doc.id, select.value));
+                cell.appendChild(select);
+            } else {
+                cell.textContent = doc[key] == null ? "" : String(doc[key]);
+            }
+            row.appendChild(cell);
+        });
+
+        const actionCell = document.createElement("td");
+        actionCell.dataset.label = "Action";
+        actionCell.className = "action-buttons";
+        const editButton = document.createElement("button");
+        editButton.type = "button";
+        editButton.className = "edit-btn";
+        editButton.innerHTML = '<i class="fa-solid fa-pen" aria-hidden="true"></i> Edit';
+        editButton.addEventListener("click", () => editIncomingDocument(doc.id));
+        actionCell.appendChild(editButton);
+        row.appendChild(actionCell);
+        return row;
+    });
     if (filtered.length === 0) {
-
-        body.innerHTML = `
-
-            <tr>
-
-                <td colspan="8"
-                    class="empty-masterlist">
-
-                    <i class="fa-solid fa-inbox"></i>
-
-                    <strong>
-                        No incoming documents found
-                    </strong>
-
-                    <span>
-                        Click "Add Incoming Document"
-                        to add a new document.
-                    </span>
-
-                </td>
-
-            </tr>
-
-        `;
-
-        return;
-
+        const emptyRow = document.createElement("tr");
+        const emptyCell = document.createElement("td");
+        emptyCell.colSpan = INCOMING_SPREADSHEET_COLUMNS.length + 1;
+        emptyCell.className = "empty-masterlist";
+        emptyCell.textContent = "No incoming documents found.";
+        emptyRow.appendChild(emptyCell);
+        body.appendChild(emptyRow);
     }
-
-
-    body.innerHTML =
-        filtered.map(function (doc) {
-
-            return `
-
-                <tr>
-
-                    <td>
-
-                        <strong>
-                            ${escapeHTML(doc.routingSlip)}
-                        </strong>
-
-                    </td>
-
-
-                    <td>
-                        ${formatDate(doc.dateReceived)}
-                    </td>
-
-
-                    <td>
-                        ${escapeHTML(doc.sender)}
-                    </td>
-
-
-                    <td>
-                        ${escapeHTML(doc.subject)}
-                    </td>
-
-
-                    <td>
-                        ${escapeHTML(doc.mode)}
-                    </td>
-
-
-                    <td>
-                        ${escapeHTML(doc.status)}
-                    </td>
-
-
-                    <!-- ROUTE TO -->
-
-                    <td>
-
-                        <select
-                            class="route-select"
-                            onchange="routeDocument('${doc.id}', this.value)"
-                        >
-
-                            <option value="">
-                                Select Department
-                            </option>
-
-                            <option value="HREDRD"
-                                ${doc.routeTo === "HREDRD" ? "selected" : ""}>
-                                HREDRD
-                            </option>
-
-                            <option value="HOACDD"
-                                ${doc.routeTo === "HOACDD" ? "selected" : ""}>
-                                HOACDD
-                            </option>
-
-                            <option value="ELUPDD"
-                                ${doc.routeTo === "ELUPDD" ? "selected" : ""}>
-                                ELUPDD
-                            </option>
-
-                            <option value="PHSD"
-                                ${doc.routeTo === "PHSD" ? "selected" : ""}>
-                                PHSD
-                            </option>
-
-                            <option value="AFD"
-                                ${doc.routeTo === "AFD" ? "selected" : ""}>
-                                AFD
-                            </option>
-
-                            <option value="ORD"
-                                ${doc.routeTo === "ORD" ? "selected" : ""}>
-                                ORD
-                            </option>
-
-                        </select>
-
-                    </td>
-
-
-                    <!-- EDIT -->
-
-                    <td>
-
-                        <div class="action-buttons">
-
-                            <button
-                                type="button"
-                                class="edit-btn"
-                                onclick="editIncomingDocument('${doc.id}')"
-                            >
-
-                                <i class="fa-solid fa-pen"></i>
-
-                                Edit
-
-                            </button>
-
-                        </div>
-
-                    </td>
-
-                </tr>
-
-            `;
-
-        }).join("");
 
 }
 
@@ -582,47 +428,33 @@ function editIncomingDocument(documentId) {
    ROUTE DOCUMENT
 ================================================== */
 
-function routeDocument(documentId, department) {
-
-    const documentIndex =
-        incomingDocuments.findIndex(
-            function (doc) {
-
-                return doc.id === documentId;
-
-            }
-        );
-
-
-    if (documentIndex === -1) return;
-
-
-    incomingDocuments[documentIndex].routeTo =
-        department;
-
-
-    saveIncomingDocuments();
-
-
-    const search =
-        document.getElementById("masterlistSearch");
-
-
-    renderMasterlist(
-        search ? search.value : ""
-    );
-
-
-    if (department) {
-
-        alert(
-            "Document routed to " +
-            getDepartmentName(department) +
-            "."
-        );
-
+async function routeDocument(documentId, department) {
+    const record = incomingDocuments.find(item => item.id === documentId);
+    if (!record || !record.routingSlip) {
+        alert("This document does not have a routing slip number and cannot be updated.");
+        return;
     }
 
+    const formData = new FormData();
+    formData.append("action", "update");
+    formData.append("module", "incoming");
+    formData.append("sheet", "Incoming Documents");
+    formData.append("office", getRequestOffice());
+    formData.append("idField", "routingSlip");
+    formData.append("idValue", record.routingSlip);
+    formData.append("_syncVersion", record._syncVersion || "");
+    formData.append("to", department);
+    const result = await authedPost(formData);
+    if (!result || result.error) {
+        alert(result && result.error ? result.error : "Could not route the document.");
+        await loadIncomingDocuments();
+        return;
+    }
+
+    await loadIncomingDocuments();
+    if (department) {
+        alert("Document routed to " + getDepartmentName(department) + ".");
+    }
 }
 
 

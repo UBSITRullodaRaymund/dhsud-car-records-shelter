@@ -4,15 +4,10 @@ DOCKETS MAPPING v2
 ==================================================*/
 
 /*==================================================
-GOOGLE SHEETS CSV
-==================================================*/
-
-const SHEET_URL =
-"https://docs.google.com/spreadsheets/d/e/2PACX-1vT-5o8Ty361qCFIf39AY81T1xp6MJJaw0FgIR4cinMf-4UwvpSIDf_ew9a2U3gHIPL90OxHscOHE883/pub?gid=734751751&single=true&output=csv";
-
-/*==================================================
 DATABASE
 ==================================================*/
+
+requireLogin();
 
 let documents = [];
 
@@ -22,53 +17,96 @@ let currentFolder = null;
 let currentFile = null;
 let selectedFile = null;
 
+const MAPPING_SPREADSHEET_COLUMNS = [
+    ["Category", "category"],
+    ["Project", "project"],
+    ["Folder", "folder"],
+    ["File Name", "filename"],
+    ["File Type", "type"],
+    ["File Size", "size"],
+    ["Status", "status"],
+    ["Remarks", "remarks"],
+    ["Google Drive Link", "url"],
+    ["Date Uploaded", "uploaded"]
+];
+
+function renderMappingTable(container, files, onPreview) {
+    const wrapper = document.createElement("div");
+    wrapper.className = "spreadsheet-table-wrap";
+    const table = document.createElement("table");
+    table.className = "records-table modern-table spreadsheet-table";
+    const head = document.createElement("thead");
+    const headerRow = document.createElement("tr");
+    MAPPING_SPREADSHEET_COLUMNS.forEach(([label]) => {
+        const th = document.createElement("th");
+        th.textContent = label;
+        headerRow.appendChild(th);
+    });
+    const actionHeader = document.createElement("th");
+    actionHeader.textContent = "Action";
+    headerRow.appendChild(actionHeader);
+    head.appendChild(headerRow);
+    const body = document.createElement("tbody");
+    table.append(head, body);
+    wrapper.appendChild(table);
+    container.appendChild(wrapper);
+
+    TablePagination.render(body, files, file => {
+        const row = document.createElement("tr");
+        MAPPING_SPREADSHEET_COLUMNS.forEach(([label, key]) => {
+            const cell = document.createElement("td");
+            cell.dataset.label = label;
+            cell.textContent = file[key] == null ? "" : String(file[key]);
+            row.appendChild(cell);
+        });
+        const actions = document.createElement("td");
+        actions.dataset.label = "Action";
+        const previewButton = document.createElement("button");
+        previewButton.type = "button";
+        previewButton.className = "primary-btn";
+        previewButton.innerHTML = '<i class="fa-solid fa-eye" aria-hidden="true"></i> Preview';
+        previewButton.addEventListener("click", () => onPreview(file));
+        actions.appendChild(previewButton);
+        row.appendChild(actions);
+        return row;
+    });
+}
+
 /*==================================================
 LOAD GOOGLE SHEETS
 ==================================================*/
 
 async function loadGoogleSheet(){
 
-    const response = await fetch(SHEET_URL);
-
-    const csv = await response.text();
-
-    const rows = csv.trim().split("\n");
-
-    const headers = rows[0].split(",");
-
-    documents = [];
-
-    for(let i=1;i<rows.length;i++){
-
-        const cols = rows[i].split(",");
-
-        documents.push({
-
-            category: cols[0]?.trim(),
-
-            project: cols[1]?.trim(),
-
-            folder: cols[2]?.trim(),
-
-            filename: cols[3]?.trim(),
-
-            type: cols[4]?.trim(),
-
-            size: cols[5]?.trim(),
-
-            status: cols[6]?.trim(),
-
-            remarks: cols[7]?.trim(),
-
-            url: cols[8]?.trim(),
-
-            uploaded: cols[9]?.trim()
-
-        });
-
+    const result = await authedGet({
+        action: "getDocuments",
+        module: "docketsMapping",
+        sheet: "Dockets Mapping",
+        office: getRequestOffice()
+    });
+    if (!Array.isArray(result)) {
+        const message = result && result.error ? result.error : "Could not load Dockets Mapping from Google Sheets.";
+        console.error(message, result);
+        documents = [];
+        alert("Dockets Mapping could not be loaded from Google Sheets. Please try again. " + message);
+        return;
     }
 
-    console.log(documents);
+    documents = result.map(record => {
+        const normalized = normalizeRecordFields(record, "docketsMapping");
+        return {
+            category: normalized.category || "",
+            project: normalized.project || "",
+            folder: normalized.folder || "",
+            filename: normalized.fileName || normalized.filename || "",
+            type: normalized.fileType || normalized.type || "",
+            size: normalized.fileSize || normalized.size || "",
+            status: normalized.status || "",
+            remarks: normalized.remarks || "",
+            url: normalized.driveUrl || normalized.url || "",
+            uploaded: normalized.dateUploaded || normalized.uploaded || ""
+        };
+    });
 
 }
 
@@ -324,7 +362,7 @@ function openFolder(folder){
 
     );
 
-    let html = `
+    const html = `
 
         <button class="primary-btn"
             onclick="openProject('${currentProject}')"
@@ -342,76 +380,24 @@ function openFolder(folder){
 
         </h2>
 
+        <div id="mappingFolderTable"></div>
     `;
 
-    if(files.length===0){
-
-        html += `
-
-        <div class="empty-state">
-
-            <i class="fa-solid fa-file-circle-xmark"></i>
-
-            <h2>No Documents</h2>
-
-            <p>This folder is empty.</p>
-
-        </div>
-
-        `;
-
-    }else{
-
-        files
-             .sort((a,b)=>
-              a.filename.localeCompare(b.filename)
-             )
-             .forEach((file,index)=>{
-                const active = selectedFile === index ? "active-document" : "";
-
-            html += `   
-
-            <div class="document-card ${active}" id="doc-${index}">
-
-                <div class="document-left">
-
-                    <i class="${getFileIcon(file.type)}"></i>
-
-                    <div>
-
-                        <div class="document-name">
-
-                            ${file.filename}
-
-                        </div>
-
-                        <div class="document-size">
-
-                            ${file.size}
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-               <button
-                    class="primary-btn"
-                    onclick="previewFile(${index})">
-
-                    <i class="fa-solid fa-eye"></i> View
-
-                </button>
-
-            </div>
-
-            `;
-
-        });
-
-    }
-
     explorer.innerHTML = html;
+    const sortedFiles = files.sort((a, b) => a.filename.localeCompare(b.filename));
+    const tableContainer = document.getElementById("mappingFolderTable");
+    if (sortedFiles.length) {
+        renderMappingTable(tableContainer, sortedFiles, file => {
+            const folderFiles = documents.filter(doc =>
+                doc.category === currentCategory &&
+                doc.project === currentProject &&
+                doc.folder === currentFolder
+            );
+            previewFile(folderFiles.indexOf(file));
+        });
+    } else {
+        tableContainer.innerHTML = '<div class="empty-state"><i class="fa-solid fa-file-circle-xmark"></i><h2>No Documents</h2><p>This folder is empty.</p></div>';
+    }
 
 }
 
@@ -1183,7 +1169,7 @@ function renderSearchResults(files){
 
     const explorer = document.getElementById("explorerContent");
 
-    let html = `
+    const html = `
 
     <h2 style="margin-bottom:20px;color:#0B4EA2;">
 
@@ -1197,75 +1183,19 @@ function renderSearchResults(files){
 
     </p>
 
+        <div id="mappingSearchTable"></div>
     `;
 
-    if(files.length===0){
-
-        html += `
-
-        <div class="empty-state">
-
-            <i class="fa-solid fa-magnifying-glass"></i>
-
-            <h2>No Results Found</h2>
-
-            <p>Try a different keyword or filter.</p>
-
-        </div>
-
-        `;
-
-    }else{
-
-        files
-        .sort((a,b)=>a.filename.localeCompare(b.filename))
-        .forEach((file,index)=>{
-
-            html += `
-
-            <div class="document-card">
-
-                <div class="document-left">
-
-                    <i class="fa-solid fa-file-pdf"></i>
-
-                    <div>
-
-                        <div class="document-name">
-
-                            ${file.filename}
-
-                        </div>
-
-                        <div class="document-size">
-
-                            ${file.project}
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-                <button
-                    class="primary-btn"
-                    onclick="previewSearchFile(${documents.indexOf(file)})">
-
-                    <i class="fa-solid fa-eye"></i>
-
-                    Preview
-
-                </button>
-
-            </div>
-
-            `;
-
-        });
-
-    }
-
     explorer.innerHTML = html;
+    const sortedFiles = files.sort((a, b) => a.filename.localeCompare(b.filename));
+    const tableContainer = document.getElementById("mappingSearchTable");
+    if (sortedFiles.length) {
+        renderMappingTable(tableContainer, sortedFiles, file => {
+            previewSearchFile(documents.indexOf(file));
+        });
+    } else {
+        tableContainer.innerHTML = '<div class="empty-state"><i class="fa-solid fa-magnifying-glass"></i><h2>No Results Found</h2><p>Try a different keyword or filter.</p></div>';
+    }
 
 }
 
@@ -1336,4 +1266,3 @@ function getFileIcon(type){
     }
 
 }
-

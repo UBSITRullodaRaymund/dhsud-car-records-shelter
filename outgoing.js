@@ -11,14 +11,6 @@ const STORAGE_KEY = "dhsudCarDocuments";
 
 
 /* =========================================================
-   GOOGLE SHEETS CSV
-   ========================================================= */
-
-const GOOGLE_SHEET_CSV =
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vT-5o8Ty361qCFIf39AY81T1xp6MJJaw0FgIR4cinMf-4UwvpSIDf_ew9a2U3gHIPL90OxHscOHE883/pub?gid=0&single=true&output=csv";
-
-
-/* =========================================================
    DEPARTMENTS
    ========================================================= */
 
@@ -81,6 +73,27 @@ let departmentSearchTerm = "";
 
 let googleSheetDocuments = [];
 
+const OUTGOING_SPREADSHEET_COLUMNS = [
+  ["ROUTING SLIP NO", "routingSlipNo"],
+  ["DATE OF DOCUMENT", "dateOfDocument"],
+  ["DATE RECEIVED", "dateReceived"],
+  ["SENDER", "sender"],
+  ["SIGNATORY", "signatory"],
+  ["MODE OF COMMUNICATION", "modeOfCommunication"],
+  ["SUBJECT", "subject"],
+  ["DATE RELEASED", "dateReleased"],
+  ["FROM", "from"],
+  ["TO", "to"],
+  ["ACTION NO.", "actionNo"],
+  ["COMMENTS/ REMARKS", "comments"],
+  ["RECEIVED BY", "receivedBy"],
+  ["E-MAIL ADD", "email"],
+  ["DEADLINE", "deadline"],
+  ["STATUS", "status"],
+  ["REMINDER SENT", "reminderSent"],
+  ["Date Completed", "dateCompleted"]
+];
+
 
 /* =========================================================
    INITIALIZATION
@@ -109,11 +122,13 @@ document.addEventListener("DOMContentLoaded", function () {
         error
       );
 
-      loadAllDocuments();
+      googleSheetDocuments = [];
+      allDocuments = [];
 
       renderStatistics();
 
       renderDepartments();
+      alert("Outgoing documents could not be loaded from Google Sheets. Local cached records are not being shown. Please try again.");
 
     })
     .finally(function () {
@@ -166,6 +181,7 @@ function setupEvents() {
             .trim()
             .toLowerCase();
 
+        TablePagination.reset(document.getElementById("departmentDocumentsBody"));
 
         if (selectedDepartment) {
 
@@ -346,286 +362,43 @@ function loadAllDocuments() {
 async function loadGoogleSheetDocuments() {
 
   try {
-
-    const response =
-      await fetch(
-        GOOGLE_SHEET_CSV,
-        {
-          cache: "no-store"
-        }
-      );
-
-
-    if (!response.ok) {
-
-      throw new Error(
-        "Google Sheet could not be loaded. HTTP " +
-        response.status
-      );
-
+    const records = await authedGet({
+      action: "getDocuments",
+      module: "outgoing",
+      sheet: "Outgoing Documents",
+      office: getRequestOffice()
+    });
+    if (!Array.isArray(records)) {
+      throw new Error(records && records.error ? records.error : "Google Sheets returned an invalid outgoing-record list.");
     }
 
-
-    const csvText =
-      await response.text();
-
-
-    if (!csvText.trim()) {
-
-      googleSheetDocuments = [];
-
-      return;
-
-    }
-
-
-    const rows =
-      parseCSV(csvText);
-
-
-    if (
-      !rows ||
-      rows.length < 2
-    ) {
-
-      googleSheetDocuments = [];
-
-      return;
-
-    }
-
-
-    const headers =
-      rows[0].map(
-        function (header) {
-
-          return normalizeHeader(
-            header
-          );
-
-        }
-      );
-
-
-    console.log(
-      "Google Sheet headers:",
-      headers
-    );
-
-
-    googleSheetDocuments =
-      rows
-        .slice(1)
-        .filter(
-          function (row) {
-
-            return row.some(
-              function (cell) {
-
-                return String(
-                  cell || ""
-                ).trim() !== "";
-
-              }
-            );
-
-          }
-        )
-        .map(
-          function (row, index) {
-
-            const data = {};
-
-
-            headers.forEach(
-              function (header, i) {
-
-                data[header] =
-                  row[i] !== undefined
-                    ? row[i]
-                    : "";
-
-              }
-            );
-
-
-            const destination =
-              getValue(
-                data,
-                [
-                  "to",
-                  "department",
-                  "destination department"
-                ]
-              );
-
-
-            return {
-
-              id:
-                "SHEET-" +
-                (index + 1),
-
-              source:
-                "google-sheet",
-
-              routingSlipNo:
-                getValue(
-                  data,
-                  [
-                    "routing slip no",
-                    "routing slip number",
-                    "routing slip"
-                  ]
-                ),
-
-              dateOfDocument:
-                getValue(
-                  data,
-                  [
-                    "date of document"
-                  ]
-                ),
-
-              dateReceived:
-                getValue(
-                  data,
-                  [
-                    "date received"
-                  ]
-                ),
-
-              sender:
-                getValue(
-                  data,
-                  [
-                    "sender"
-                  ]
-                ),
-
-              signatory:
-                getValue(
-                  data,
-                  [
-                    "signatory"
-                  ]
-                ),
-
-              modeOfCommunication:
-                getValue(
-                  data,
-                  [
-                    "mode of communication"
-                  ]
-                ),
-
-              subject:
-                getValue(
-                  data,
-                  [
-                    "subject"
-                  ]
-                ),
-
-              dateReleased:
-                getValue(
-                  data,
-                  [
-                    "date released"
-                  ]
-                ),
-
-              from:
-                getValue(
-                  data,
-                  [
-                    "from"
-                  ]
-                ),
-
-              to:
-                destination,
-
-              actionNo:
-                getValue(
-                  data,
-                  [
-                    "action no.",
-                    "action no",
-                    "action number"
-                  ]
-                ),
-
-              comments:
-                getValue(
-                  data,
-                  [
-                    "comments/remarks",
-                    "comments / remarks",
-                    "comments remarks"
-                  ]
-                ),
-
-              receivedBy:
-                getValue(
-                  data,
-                  [
-                    "received by"
-                  ]
-                ),
-
-              email:
-                getValue(
-                  data,
-                  [
-                    "e-mail add",
-                    "email add",
-                    "e-mail address",
-                    "email address"
-                  ]
-                ),
-
-              deadline:
-                getValue(
-                  data,
-                  [
-                    "deadline"
-                  ]
-                ),
-
-              status:
-                getValue(
-                  data,
-                  [
-                    "status"
-                  ]
-                ),
-
-              reminderSent:
-                getValue(
-                  data,
-                  [
-                    "reminder sent"
-                  ]
-                ),
-
-              dateCompleted:
-                getValue(
-                  data,
-                  [
-                    "date completed"
-                  ]
-                ),
-
-              department:
-                normalizeDepartment(
-                  destination
-                )
-
-            };
-
-          }
-        );
+    googleSheetDocuments = records.map(function (record, index) {
+      const normalized = normalizeRecordFields(record, "outgoing");
+      const destination = normalized.to || normalized.office || "";
+      return {
+        id: normalized.tracking || `SHEET-${index + 1}`,
+        source: "google-sheet",
+        routingSlipNo: normalized.tracking || "",
+        dateOfDocument: normalized.dateDocument || "",
+        dateReceived: normalized.dateReceived || "",
+        sender: normalized.sender || "",
+        signatory: normalized.signatory || "",
+        modeOfCommunication: normalized.communicationMode || "",
+        subject: normalized.subject || "",
+        dateReleased: normalized.dateReleased || "",
+        from: normalized.from || "",
+        to: destination,
+        actionNo: normalized.actionNo || "",
+        comments: normalized.comments || "",
+        receivedBy: normalized.receivedBy || "",
+        email: normalized.email || "",
+        deadline: normalized.deadline || "",
+        status: normalized.status || "",
+        reminderSent: normalized.reminderSent || "",
+        dateCompleted: normalized.dateCompleted || "",
+        department: normalizeDepartment(destination)
+      };
+    });
 
 
     console.log(
@@ -659,8 +432,7 @@ async function loadGoogleSheetDocuments() {
       error
     );
 
-
-    googleSheetDocuments = [];
+    throw error;
 
   }
 
@@ -1991,159 +1763,16 @@ function renderDepartmentDocuments(
   );
 
 
-  body.innerHTML = "";
-
-
-  if (!departmentDocumentList.length) {
-
-    body.innerHTML = `
-
-      <tr>
-
-        <td
-          colspan="12"
-          class="empty-cell"
-        >
-
-          No documents found for this department.
-
-        </td>
-
-      </tr>
-
-    `;
-
-    return;
-
-  }
-
-
-  departmentDocumentList.forEach(
-    function (doc) {
-
-      /*
-       * IMPORTANT:
-       *
-       * "document" must refer to the browser DOM.
-       * "doc" refers to the individual record.
-       */
-
-      const row =
-        document.createElement(
-          "tr"
-        );
-
-
-      row.innerHTML = `
-
-        <td>
-          ${escapeHtml(
-            doc.routingSlipNo ||
-            "—"
-          )}
-        </td>
-
-
-        <td>
-          ${escapeHtml(
-            formatDate(
-              doc.dateOfDocument
-            )
-          )}
-        </td>
-
-
-        <td>
-          ${escapeHtml(
-            formatDate(
-              doc.dateReceived
-            )
-          )}
-        </td>
-
-
-        <td>
-          ${escapeHtml(
-            doc.sender ||
-            "—"
-          )}
-        </td>
-
-
-        <td>
-          ${escapeHtml(
-            doc.signatory ||
-            "—"
-          )}
-        </td>
-
-
-        <td>
-          ${escapeHtml(
-            doc.subject ||
-            "—"
-          )}
-        </td>
-
-
-        <td>
-          ${escapeHtml(
-            doc.from ||
-            "—"
-          )}
-        </td>
-
-
-        <td>
-          ${escapeHtml(
-            doc.actionNo ||
-            "—"
-          )}
-        </td>
-
-
-        <td>
-          ${escapeHtml(
-            normalizeStatus(
-              doc.status
-            )
-          )}
-        </td>
-
-
-        <td>
-          ${escapeHtml(
-            formatDate(
-              doc.deadline
-            )
-          )}
-        </td>
-
-
-        <td>
-          ${escapeHtml(
-            doc.comments ||
-            "—"
-          )}
-        </td>
-
-
-        <td>
-          ${escapeHtml(
-            doc.receivedBy ||
-            "—"
-          )}
-        </td>
-
-      `;
-
-
-      body.appendChild(
-        row
-      );
-
-    }
-  );
+  TablePagination.render(body, departmentDocumentList, function (doc) {
+    const row = document.createElement("tr");
+    OUTGOING_SPREADSHEET_COLUMNS.forEach(([label, key]) => {
+      const cell = document.createElement("td");
+      cell.dataset.label = label;
+      cell.textContent = doc[key] == null ? "" : String(doc[key]);
+      row.appendChild(cell);
+    });
+    return row;
+  });
 
 }
 

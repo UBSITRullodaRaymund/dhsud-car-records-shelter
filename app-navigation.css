@@ -1,0 +1,267 @@
+:root {
+    --app-navigation-width: 260px;
+    --app-navigation-collapsed-width: 78px;
+    --app-navigation-background: #073f80;
+}
+
+body.has-app-navigation {
+    padding-left: var(--app-navigation-width);
+    transition: padding-left .2s ease;
+}
+
+body.has-app-navigation.dashboard-page {
+    padding-right: 0;
+}
+
+body.has-app-navigation.nav-collapsed {
+    padding-left: var(--app-navigation-collapsed-width);
+}
+
+body.has-app-navigation > header:not(.app-navigation) {
+    display: none !important;
+}
+
+.app-navigation {
+    position: fixed;
+    z-index: 1200;
+    inset: 0 auto 0 0;
+    width: var(--app-navigation-width);
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 18px 14px;
+    background: var(--app-navigation-background);
+    box-shadow: 6px 0 24px rgba(8, 33, 67, .16);
+    transition: width .2s ease, transform .2s ease;
+}
+
+.app-navigation-brand {
+    min-height: 62px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 9px 16px;
+    border-bottom: 1px solid rgba(255,255,255,.2);
+    color: #fff;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.app-navigation-brand img {
+    width: 46px;
+    height: 46px;
+    flex: 0 0 46px;
+    object-fit: contain;
+}
+
+.app-navigation-brand-text {
+    display: grid;
+    gap: 3px;
+    overflow: hidden;
+}
+
+.app-navigation-brand-text strong {
+    font-size: 15px;
+    letter-spacing: .2px;
+}
+
+.app-navigation-brand-text small {
+    color: #d3e4fa;
+    font-size: 11px;
+}
+
+.app-navigation-links {
+    width: 100%;
+    min-width: 0;
+    display: grid;
+    gap: 5px;
+    padding-top: 18px;
+    padding-right: 0;
+    padding-bottom: 0;
+    padding-left: 0;
+    justify-content: stretch;
+    align-items: stretch;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+}
+
+.app-navigation-links a,
+.app-navigation-logout {
+    min-height: 44px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    padding: 10px 12px;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: #e8f1ff;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.3;
+    text-align: left;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.app-navigation-links a[hidden],
+.app-navigation-logout[hidden] {
+    display: none !important;
+}
+
+.app-navigation-links a:hover,
+.app-navigation-links a.active,
+.app-navigation-logout:hover {
+    background: rgba(255,255,255,.14);
+    color: #fff;
+}
+
+.app-navigation-links i,
+.app-navigation-logout i {
+    width: 20px;
+    flex: 0 0 20px;
+    color: #a9ccff;
+    font-size: 16px;
+    text-align: center;
+}
+
+.app-navigation-links a.active i {
+    color: #ffc72c;
+}
+
+.app-navigation-toggle {
+    position: fixed;
+    z-index: 1202;
+    top: 18px;
+    left: calc(var(--app-navigation-width) - 48px);
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(255,255,255,.24);
+    border-radius: 9px;
+    background: #155493;
+    color: #fff;
+    cursor: pointer;
+    transition: left .2s ease, background .2s ease;
+}
+
+.app-navigation-toggle:hover {
+    background: #2369ad;
+}
+
+body.has-app-navigation.nav-collapsed .app-navigation {
+    width: var(--app-navigation-collapsed-width);
+}
+
+body.has-app-navigation.nav-collapsed .app-navigation-brand {
+    justify-content: center;
+    padding-right: 0;
+    padding-left: 0;
+}
+
+body.has-app-navigation.nav-collapsed .app-navigation-brand-text,
+body.has-app-navigation.nav-collapsed .app-navigation-links a span,
+body.has-app-navigation.nav-collapsed .app-navigation-logout span {
+    display: none;
+}
+
+body.has-app-navigation.nav-collapsed .app-navigation-links a,
+body.has-app-navigation.nav-collapsed .app-navigation-logout {
+    justify-content: center;
+    padding-right: 0;
+    padding-left: 0;
+}
+
+body.has-app-navigation.nav-collapsed .app-navigation-links i,
+body.has-app-navigation.nav-collapsed .app-navigation-logout i {
+    flex-basis: auto;
+}
+
+body.has-app-navigation.nav-collapsed .app-navigation-toggle {
+    left: 21px;
+}
+
+body.has-app-navigation.nav-collapsed .app-navigation-toggle i {
+    transform: rotate(180deg);
+}
+
+.app-navigation-backdrop {
+    display: none;
+}
+
+@media (max-width: 760px) {
+    body.has-app-navigation,
+    body.has-app-navigation.nav-collapsed {
+        padding-left: 0;
+    }
+
+    body.has-app-navigation .app-navigation {
+        width: var(--app-navigation-width);
+        transform: translateX(-105%);
+    }
+
+    body.has-app-navigation.nav-collapsed .app-navigation {
+        width: var(--app-navigation-width);
+    }
+
+    body.has-app-navigation.nav-mobile-open .app-navigation {
+        transform: translateX(0);
+    }
+
+    body.has-app-navigation.nav-collapsed .app-navigation-brand {
+        justify-content: flex-start;
+        padding-right: 9px;
+        padding-left: 9px;
+    }
+
+    body.has-app-navigation.nav-collapsed .app-navigation-brand-text,
+    body.has-app-navigation.nav-collapsed .app-navigation-links a span,
+    body.has-app-navigation.nav-collapsed .app-navigation-logout span {
+        display: grid;
+    }
+
+    body.has-app-navigation.nav-collapsed .app-navigation-links a,
+    body.has-app-navigation.nav-collapsed .app-navigation-logout {
+        justify-content: flex-start;
+        padding-right: 12px;
+        padding-left: 12px;
+    }
+
+    body.has-app-navigation.nav-collapsed .app-navigation-links i,
+    body.has-app-navigation.nav-collapsed .app-navigation-logout i {
+        flex-basis: 20px;
+    }
+
+    .app-navigation-toggle,
+    body.has-app-navigation.nav-collapsed .app-navigation-toggle {
+        top: 14px;
+        left: 14px;
+        border-color: #d6e1ef;
+        background: #fff;
+        color: #174b83;
+        box-shadow: 0 4px 14px rgba(8, 33, 67, .16);
+    }
+
+    body.has-app-navigation.nav-mobile-open .app-navigation-toggle {
+        left: calc(var(--app-navigation-width) - 50px);
+        border-color: rgba(255,255,255,.24);
+        background: #155493;
+        color: #fff;
+    }
+
+    body.has-app-navigation.nav-mobile-open .app-navigation-toggle i {
+        transform: rotate(180deg);
+    }
+
+    .app-navigation-backdrop:not([hidden]) {
+        position: fixed;
+        z-index: 1198;
+        inset: 0;
+        display: block;
+        background: rgba(10, 25, 44, .42);
+    }
+}

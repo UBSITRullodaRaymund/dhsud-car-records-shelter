@@ -29,6 +29,7 @@ const OFFICE_SHEETS = {
   "Housing Real Estate Development Regulation Office": "",
   "Homeowners Association and Community Development Office": "",
   "Environmental, Land Use and Urban Planning Office": "",
+  "Public Housing and Settlement Division": "",
   "Office of the Regional Director": ""
 };
 
@@ -89,49 +90,86 @@ function hasPermission(user, code) {
   return (user.permissions || []).indexOf(code) !== -1;
 }
 
-/*=========================================================
-  ENTRY POINTS
-  Wire your existing getDocuments/save/update/delete logic
-  in here behind requireAuth() + requireRole() checks.
-=========================================================*/
+function doGet() {
+  return jsonResponse({ error: "MySQL is the system of record. Read data through the PHP application." });
+}
 
-function doGet(e) {
-  const action = e.parameter.action;
+function getDashboardStats(auth, requestedOffice) {
+  const office = resolveOffice(auth, requestedOffice);
+  const definitions = [
+    { module: "incoming", sheet: "Incoming Documents" },
+    { module: "outgoing", sheet: "Outgoing Documents" },
+    { module: "dockets", sheet: "Dockets Issuances" },
+    { module: "docketsMapping", sheet: "Dockets Mapping" },
+    { module: "foi", sheet: "FOI" }
+  ];
+  const modules = {};
+  const totals = { "In progress": 0, Pending: 0, Completed: 0, Other: 0 };
 
-  if (action === "getDocuments") {
-    const auth = requireAuth(e.parameter.token);
-    if (!auth.ok) return jsonResponse({ error: auth.error }, 401);
-
-    const module = e.parameter.module;
-    if (!hasPermission(auth.user, module + ":view")) {
-      return jsonResponse({ error: "Forbidden" }, 403);
+  definitions.forEach(definition => {
+    if (!hasPermission(auth.user, definition.module + ":view")) {
+      modules[definition.module] = { allowed: false };
+      return;
     }
 
     try {
-      const office = resolveOffice(auth, e.parameter.office);
-      const sheet = getOfficeSheet(office, e.parameter.sheet);
+      const sheet = getOfficeSheet(office, definition.sheet);
+      const values = sheet.getDataRange().getValues();
+      const headers = values.shift() || [];
+      const statusColumn = headers.findIndex((header, index) =>
+        normalizeDocumentHeader(header, definition.sheet, 0) === "status"
+      );
+      const result = { allowed: true, count: 0, statuses: { "In progress": 0, Pending: 0, Completed: 0, Other: 0 } };
 
-      const data = sheet.getDataRange().getValues();
-      const headers = data.shift();
-      const records = data.map(row => {
-        const record = {};
-        const occurrences = {};
-        headers.forEach((header, index) => {
-          const baseKey = String(header || "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
-          const occurrence = occurrences[baseKey] || 0;
-          occurrences[baseKey] = occurrence + 1;
-          record[normalizeDocumentHeader(header, e.parameter.sheet, occurrence)] = row[index];
-        });
-        return record;
+      values.forEach(row => {
+        if (!row.some(value => value !== "" && value !== null)) return;
+        result.count++;
+        if (statusColumn < 0) return;
+
+        const category = dashboardStatusCategory(row[statusColumn]);
+        if (category) {
+          result.statuses[category]++;
+          totals[category]++;
+        }
       });
 
-      return jsonResponse(records);
-    } catch (err) {
-      return jsonResponse({ error: err.message }, 400);
+      modules[definition.module] = result;
+    } catch (error) {
+      modules[definition.module] = { allowed: true, error: error.message };
     }
-  }
+  });
 
-  return jsonResponse({ error: "Unknown action" }, 400);
+  return { success: true, office: office, modules: modules, statuses: totals };
+}
+
+function dashboardStatusCategory(value) {
+  const status = String(value || "").trim().toLowerCase();
+  if (!status) return "";
+  if (/complete|closed|released|accomplished|denied/.test(status)) return "Completed";
+  if (/pending|received|new|for review/.test(status)) return "Pending";
+  if (/process|ongoing|routed|assigned|awaiting|active/.test(status)) return "In progress";
+  return "Other";
+}
+
+function documentRecord(headers, row, sheetName) {
+  const record = {};
+  const occurrences = {};
+  headers.forEach((header, index) => {
+    const baseKey = String(header || "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+    const occurrence = occurrences[baseKey] || 0;
+    occurrences[baseKey] = occurrence + 1;
+    record[normalizeDocumentHeader(header, sheetName, occurrence)] = row[index];
+  });
+  return record;
+}
+
+function documentVersion(headers, row, sheetName) {
+  const digest = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256,
+    JSON.stringify(documentRecord(headers, row, sheetName)),
+    Utilities.Charset.UTF_8
+  );
+  return digest.map(byte => (byte < 0 ? byte + 256 : byte).toString(16).padStart(2, "0")).join("");
 }
 
 function normalizeDocumentHeader(header, sheetName, occurrence = 0) {
@@ -139,6 +177,7 @@ function normalizeDocumentHeader(header, sheetName, occurrence = 0) {
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "");
+  if (!key && sheetName === "Incoming Documents") return "routingSlip";
   const isDockets = sheetName === "Dockets Issuances";
   const isFoi = sheetName === "FOI";
 
@@ -166,6 +205,16 @@ function normalizeDocumentHeader(header, sheetName, occurrence = 0) {
     filename: "fileName",
     documentfile: "fileName",
     driveurl: "driveUrl"
+    ,dateofdocument: "dateDocument"
+    ,datereleased: "dateReleased"
+    ,to: "to"
+    ,actionno: "actionNo"
+    ,commentsremarks: "comments"
+    ,receivedby: "receivedBy"
+    ,emailadd: "email"
+    ,remindersent: "reminderSent"
+    ,datecompleted: "dateCompleted"
+    ,modeofcommunication: sheetName === "Incoming Documents" ? "mode" : "communicationMode"
   };
 
   const dockets = {
@@ -210,46 +259,189 @@ function normalizeDocumentHeader(header, sheetName, occurrence = 0) {
 }
 
 function doPost(e) {
-  const action = e.parameter.action;
+  if (e.parameter.action === "syncDatabaseMirror") return syncDatabaseMirror(e);
+  return jsonResponse({ error: "MySQL is the system of record. Writes must go through the PHP application." });
+}
 
-  if (action === "login") return handleLogin(e);
-  if (action === "logout") return handleLogout(e);
-
-  // Every other action (save/update/delete) must carry a valid token.
-  const auth = requireAuth(e.parameter.token);
-  if (!auth.ok) return jsonResponse({ error: auth.error }, 401);
-
-  if (action === "save") {
-    const module = e.parameter.module;
-    if (!hasPermission(auth.user, module + ":create")) {
-      return jsonResponse({ error: "Forbidden" }, 403);
+function syncDatabaseMirror(e) {
+    const expectedSecret = PropertiesService.getScriptProperties().getProperty("DHSUD_MIRROR_SECRET");
+    const suppliedSecret = String(e.parameter.secret || "");
+    if (!expectedSecret || !suppliedSecret || expectedSecret !== suppliedSecret) {
+      return jsonResponse({ error: "Spreadsheet mirror authentication failed." });
     }
+
+    let payload;
     try {
-      const office = resolveOffice(auth, e.parameter.office);
-      const sheet = getOfficeSheet(office, e.parameter.sheet);
-      const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+      payload = JSON.parse(String(e.parameter.payload || "{}"));
+      if (!payload || typeof payload !== "object") throw new Error("Invalid mirror payload.");
+    } catch (error) {
+      return jsonResponse({ error: "Spreadsheet mirror payload is invalid." });
+    }
 
-      // Build the row in header order from whatever fields the
-      // frontend sent, and stamp who created it + when.
-      const saveOccurrences = {};
-      const row = headers.map(h => {
-        if (h === "CreatedBy") return auth.user.email;
-        if (h === "CreatedAt") return new Date();
-        const baseKey = String(h || "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
-        const occurrence = saveOccurrences[baseKey] || 0;
-        saveOccurrences[baseKey] = occurrence + 1;
-        const field = normalizeDocumentHeader(h, e.parameter.sheet, occurrence);
-        return e.parameter[field] !== undefined ? e.parameter[field] : "";
-      });
-
-      sheet.appendRow(row);
-
-      logActivity(auth.user, module, "Create", e.parameter.recordId || "");
-      return jsonResponse({ success: true });
-    } catch (err) {
-      return jsonResponse({ error: err.message }, 400);
+    const lock = LockService.getScriptLock();
+    lock.waitLock(10000);
+    try {
+      const kind = String(e.parameter.kind || "");
+      if (kind === "records") {
+        return syncDatabaseRecords(String(e.parameter.module || ""), payload);
+      }
+      if (kind === "users") {
+        return syncDatabaseUsers(payload);
+      }
+      if (kind === "activity") {
+        return syncDatabaseActivity(payload);
+      }
+      return jsonResponse({ error: "Unsupported spreadsheet mirror type." });
+    } catch (error) {
+      console.error("MySQL mirror update failed.", error);
+      return jsonResponse({ error: String(error.message || error) });
+    } finally {
+      lock.releaseLock();
     }
   }
+
+function syncDatabaseRecords(module, payload) {
+    const sheets = {
+      incoming: "Incoming Documents",
+      outgoing: "Outgoing Documents",
+      dockets: "Dockets Issuances",
+      docketsMapping: "Dockets Mapping",
+      foi: "FOI"
+    };
+    const sheetName = sheets[module];
+    if (!sheetName || !Array.isArray(payload.records)) {
+      return jsonResponse({ error: "Invalid records mirror request." });
+    }
+    const chunkIndex = Math.max(0, Number(payload.chunkIndex) || 0);
+    const officeOffsets = payload.offsetsByOffice || {};
+
+    const officeNames = Object.keys(OFFICE_SHEETS);
+    const destinations = {};
+    officeNames.forEach(office => {
+      const spreadsheetId = OFFICE_SHEETS[office] || DEFAULT_DATA_SPREADSHEET_ID;
+      if (!destinations[spreadsheetId]) destinations[spreadsheetId] = { offices: [], includeUnassigned: false };
+      destinations[spreadsheetId].offices.push(office);
+      if (!OFFICE_SHEETS[office]) destinations[spreadsheetId].includeUnassigned = true;
+    });
+
+    Object.keys(destinations).forEach(spreadsheetId => {
+      const destination = destinations[spreadsheetId];
+      const mirrored = payload.records.filter(entry =>
+        destination.offices.includes(String(entry.office || ""))
+        || (destination.includeUnassigned && !entry.office)
+        || (!officeNames.includes(String(entry.office || "")) && destination.includeUnassigned)
+      );
+      const destinationOffset = destination.offices.reduce(
+        (total, office) => total + Number(officeOffsets[office] || 0),
+        destination.includeUnassigned ? Number(officeOffsets.__unassigned || 0) : 0
+      );
+      const spreadsheet = SpreadsheetApp.openById(spreadsheetId);
+      let sheet = spreadsheet.getSheetByName(sheetName);
+      if (!sheet) sheet = spreadsheet.insertSheet(sheetName);
+
+      let headers = sheet.getLastColumn() > 0
+        ? sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
+        : [];
+      if (!headers.length || headers.every(header => String(header || "").trim() === "")) {
+        headers = mirrored.length ? Object.keys(mirrored[0].data) : [];
+        if (headers.length) {
+          ensureSheetSize(sheet, 1, headers.length);
+          sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+        }
+      }
+
+      const rows = mirrored.map(entry => {
+        const occurrences = {};
+        return headers.map(header => {
+          const key = String(header || "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+          const occurrence = occurrences[key] || 0;
+          occurrences[key] = occurrence + 1;
+          const field = normalizeDocumentHeader(header, sheetName, occurrence);
+          const value = entry.data[field];
+          if ((field === "office" || field === "recordOffice") && (value === undefined || value === "")) {
+            return entry.office || "";
+          }
+          return value === undefined || value === null ? "" : value;
+        });
+      });
+
+      if (chunkIndex === 0) {
+        const lastRow = sheet.getLastRow();
+        if (lastRow > 1 && sheet.getLastColumn() > 0) {
+          sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).clearContent();
+        }
+      }
+      if (rows.length && headers.length) {
+        ensureSheetSize(sheet, destinationOffset + rows.length + 1, headers.length);
+        sheet.getRange(destinationOffset + 2, 1, rows.length, headers.length).setValues(rows);
+      }
+    });
+    return jsonResponse({ success: true });
+  }
+
+function syncDatabaseUsers(payload) {
+    if (!Array.isArray(payload.users)) return jsonResponse({ error: "Invalid users mirror request." });
+    const sheet = getOrCreateUsersSheet();
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const chunkIndex = Math.max(0, Number(payload.chunkIndex) || 0);
+    const startIndex = Math.max(0, Number(payload.startIndex) || 0);
+    const users = payload.users.map(user => headers.map(header => {
+      switch (String(header).trim()) {
+        case "Email": return user.email || "";
+        case "PasswordHash": return "";
+        case "Salt": return "";
+        case "FullName": return user.fullName || "";
+        case "Role": return user.role || "";
+        case "Office": return user.office || "";
+        case "Status": return user.status || "";
+        case "DateCreated": return user.dateCreated || "";
+        case "Permissions": return Array.isArray(user.permissions) ? user.permissions.join(",") : "";
+        default: return "";
+      }
+    }));
+
+    if (chunkIndex === 0) {
+      const lastRow = sheet.getLastRow();
+      if (lastRow > 1) sheet.getRange(2, 1, lastRow - 1, headers.length).clearContent();
+    }
+    if (users.length) {
+      ensureSheetSize(sheet, startIndex + users.length + 1, headers.length);
+      sheet.getRange(startIndex + 2, 1, users.length, headers.length).setValues(users);
+    }
+    return jsonResponse({ success: true });
+  }
+
+function syncDatabaseActivity(payload) {
+    if (!Array.isArray(payload.activity)) return jsonResponse({ error: "Invalid activity mirror request." });
+    const sheet = getOrCreateActivityLogSheet();
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const chunkIndex = Math.max(0, Number(payload.chunkIndex) || 0);
+    const startIndex = Math.max(0, Number(payload.startIndex) || 0);
+    const activity = payload.activity.map(entry => headers.map(header => entry[header] || ""));
+    if (chunkIndex === 0) {
+      const lastRow = sheet.getLastRow();
+      if (lastRow > 1) sheet.getRange(2, 1, lastRow - 1, headers.length).clearContent();
+    }
+    if (activity.length) {
+      ensureSheetSize(sheet, startIndex + activity.length + 1, headers.length);
+      sheet.getRange(startIndex + 2, 1, activity.length, headers.length).setValues(activity);
+    }
+    return jsonResponse({ success: true });
+  }
+
+function ensureSheetSize(sheet, minimumRows, minimumColumns) {
+    if (sheet.getMaxRows() < minimumRows) {
+      sheet.insertRowsAfter(sheet.getMaxRows(), minimumRows - sheet.getMaxRows());
+    }
+    if (sheet.getMaxColumns() < minimumColumns) {
+      sheet.insertColumnsAfter(sheet.getMaxColumns(), minimumColumns - sheet.getMaxColumns());
+    }
+  }
+
+function doPostRemaining(e) {
+  const action = e.parameter.action;
+  const auth = requireAuth(e.parameter.token);
+  if (!auth.ok) return jsonResponse({ error: auth.error }, 401);
 
   if (action === "update") {
     const module = e.parameter.module;
@@ -259,33 +451,42 @@ function doPost(e) {
     try {
       const office = resolveOffice(auth, e.parameter.office);
       const sheet = getOfficeSheet(office, e.parameter.sheet);
-      const idField = e.parameter.idField;   // e.g. "transactionNo"
-      const idValue = e.parameter.idValue;
+      const recordLock = LockService.getScriptLock();
+      recordLock.waitLock(10000);
+      try {
+        const idField = e.parameter.idField;   // e.g. "transactionNo"
+        const idValue = e.parameter.idValue;
 
-      const data = sheet.getDataRange().getValues();
-      const headers = data[0];
-      const updateIdOccurrences = {};
-      const idCol = headers.findIndex(h => {
-        const baseKey = String(h || "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
-        const occurrence = updateIdOccurrences[baseKey] || 0;
-        updateIdOccurrences[baseKey] = occurrence + 1;
-        return normalizeDocumentHeader(h, e.parameter.sheet, occurrence) === idField;
-      });
-      if (idCol === -1) throw new Error("ID field not found: " + idField);
+        const data = sheet.getDataRange().getValues();
+        const headers = data[0];
+        const updateIdOccurrences = {};
+        const idCol = headers.findIndex(h => {
+          const baseKey = String(h || "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+          const occurrence = updateIdOccurrences[baseKey] || 0;
+          updateIdOccurrences[baseKey] = occurrence + 1;
+          return normalizeDocumentHeader(h, e.parameter.sheet, occurrence) === idField;
+        });
+        if (idCol === -1) throw new Error("ID field not found: " + idField);
 
-      const rowIndex = data.findIndex((r, i) => i > 0 && String(r[idCol]) === String(idValue));
-      if (rowIndex === -1) return jsonResponse({ error: "Record not found" }, 404);
-
-      const updateOccurrences = {};
-      headers.forEach((h, colIndex) => {
-        const baseKey = String(h || "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
-        const occurrence = updateOccurrences[baseKey] || 0;
-        updateOccurrences[baseKey] = occurrence + 1;
-        const field = normalizeDocumentHeader(h, e.parameter.sheet, occurrence);
-        if (e.parameter[field] !== undefined) {
-          sheet.getRange(rowIndex + 1, colIndex + 1).setValue(e.parameter[field]);
+        const rowIndex = data.findIndex((r, i) => i > 0 && String(r[idCol]) === String(idValue));
+        if (rowIndex === -1) return jsonResponse({ error: "Record not found" }, 404);
+        if (e.parameter.syncVersion && documentVersion(headers, data[rowIndex], e.parameter.sheet) !== e.parameter.syncVersion) {
+          return jsonResponse({ error: "This record changed in the spreadsheet. Reload it before saving.", conflict: true }, 409);
         }
-      });
+
+        const updateOccurrences = {};
+        headers.forEach((h, colIndex) => {
+          const baseKey = String(h || "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+          const occurrence = updateOccurrences[baseKey] || 0;
+          updateOccurrences[baseKey] = occurrence + 1;
+          const field = normalizeDocumentHeader(h, e.parameter.sheet, occurrence);
+          if (e.parameter[field] !== undefined) {
+            sheet.getRange(rowIndex + 1, colIndex + 1).setValue(e.parameter[field]);
+          }
+        });
+      } finally {
+        recordLock.releaseLock();
+      }
 
       logActivity(auth.user, module, "Edit", idValue);
       return jsonResponse({ success: true });
@@ -302,24 +503,33 @@ function doPost(e) {
     try {
       const office = resolveOffice(auth, e.parameter.office);
       const sheet = getOfficeSheet(office, e.parameter.sheet);
-      const idField = e.parameter.idField;
-      const idValue = e.parameter.idValue;
+      const recordLock = LockService.getScriptLock();
+      recordLock.waitLock(10000);
+      let idValue = e.parameter.idValue;
+      try {
+        const idField = e.parameter.idField;
 
-      const data = sheet.getDataRange().getValues();
-      const headers = data[0];
-      const deleteIdOccurrences = {};
-      const idCol = headers.findIndex(h => {
-        const baseKey = String(h || "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
-        const occurrence = deleteIdOccurrences[baseKey] || 0;
-        deleteIdOccurrences[baseKey] = occurrence + 1;
-        return normalizeDocumentHeader(h, e.parameter.sheet, occurrence) === idField;
-      });
-      if (idCol === -1) throw new Error("ID field not found: " + idField);
+        const data = sheet.getDataRange().getValues();
+        const headers = data[0];
+        const deleteIdOccurrences = {};
+        const idCol = headers.findIndex(h => {
+          const baseKey = String(h || "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+          const occurrence = deleteIdOccurrences[baseKey] || 0;
+          deleteIdOccurrences[baseKey] = occurrence + 1;
+          return normalizeDocumentHeader(h, e.parameter.sheet, occurrence) === idField;
+        });
+        if (idCol === -1) throw new Error("ID field not found: " + idField);
 
-      const rowIndex = data.findIndex((r, i) => i > 0 && String(r[idCol]) === String(idValue));
-      if (rowIndex === -1) return jsonResponse({ error: "Record not found" }, 404);
+        const rowIndex = data.findIndex((r, i) => i > 0 && String(r[idCol]) === String(idValue));
+        if (rowIndex === -1) return jsonResponse({ error: "Record not found" }, 404);
+        if (e.parameter.syncVersion && documentVersion(headers, data[rowIndex], e.parameter.sheet) !== e.parameter.syncVersion) {
+          return jsonResponse({ error: "This record changed in the spreadsheet. Reload it before deleting.", conflict: true }, 409);
+        }
 
-      sheet.deleteRow(rowIndex + 1);
+        sheet.deleteRow(rowIndex + 1);
+      } finally {
+        recordLock.releaseLock();
+      }
 
       logActivity(auth.user, module, "Delete", idValue);
       return jsonResponse({ success: true });
@@ -552,6 +762,114 @@ function updateUserAccount(e, requestingUser) {
   }
 
   return jsonResponse({ success: true });
+}
+
+function updateOwnProfile(e, requestingUser) {
+  const currentPassword = String(e.parameter.currentPassword || "");
+  const fullName = String(e.parameter.fullName || "").trim();
+  const email = String(e.parameter.email || "").trim().toLowerCase();
+  const newPassword = String(e.parameter.newPassword || "");
+
+  if (!currentPassword || !fullName || !email) {
+    return jsonResponse({ error: "Current password, full name, and email are required." }, 400);
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return jsonResponse({ error: "Enter a valid email address." }, 400);
+  }
+  if (newPassword && newPassword.length < 8) {
+    return jsonResponse({ error: "A new password must be at least 8 characters." }, 400);
+  }
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const usersSheet = getOrCreateUsersSheet();
+    const users = usersSheet.getDataRange().getValues();
+    const headers = users[0];
+    const columns = {
+      email: headers.indexOf("Email"),
+      passwordHash: headers.indexOf("PasswordHash"),
+      salt: headers.indexOf("Salt"),
+      fullName: headers.indexOf("FullName"),
+      role: headers.indexOf("Role"),
+      office: headers.indexOf("Office"),
+      status: headers.indexOf("Status"),
+      permissions: headers.indexOf("Permissions")
+    };
+    const currentEmail = String(requestingUser.email || "").trim().toLowerCase();
+    const rowIndex = users.findIndex((row, index) =>
+      index > 0 && String(row[columns.email]).trim().toLowerCase() === currentEmail
+    );
+    if (rowIndex < 1) return jsonResponse({ error: "Account not found." }, 404);
+
+    const row = users[rowIndex];
+    if (String(row[columns.status]).trim() !== "Active") {
+      return jsonResponse({ error: "This account is inactive." }, 403);
+    }
+    if (hashPassword(currentPassword, row[columns.salt]) !== String(row[columns.passwordHash])) {
+      return jsonResponse({ error: "Current password is incorrect." }, 403);
+    }
+    if (users.some((candidate, index) =>
+      index !== rowIndex && String(candidate[columns.email]).trim().toLowerCase() === email
+    )) {
+      return jsonResponse({ error: "An account with this email already exists." }, 409);
+    }
+
+    const sessionsSheet = getOrCreateSessionsSheet();
+    let sessions = sessionsSheet.getDataRange().getValues();
+    let sessionHeaders = sessions[0];
+    const tokenColumn = sessionHeaders.indexOf("Token");
+    const emailColumn = sessionHeaders.indexOf("Email");
+    const nameColumn = sessionHeaders.indexOf("FullName");
+    let sessionIndex = sessions.findIndex((session, index) =>
+      index > 0 && session[tokenColumn] === e.parameter.token
+    );
+    if (sessionIndex < 1) {
+      return jsonResponse({ error: "The current session could not be updated." }, 401);
+    }
+
+    usersSheet.getRange(rowIndex + 1, columns.email + 1).setValue(email);
+    usersSheet.getRange(rowIndex + 1, columns.fullName + 1).setValue(fullName);
+    if (newPassword) {
+      const salt = generateSalt();
+      usersSheet.getRange(rowIndex + 1, columns.passwordHash + 1).setValue(hashPassword(newPassword, salt));
+      usersSheet.getRange(rowIndex + 1, columns.salt + 1).setValue(salt);
+    }
+
+    const updatedUser = {
+      email: email,
+      fullName: fullName,
+      role: row[columns.role],
+      office: row[columns.office],
+      status: row[columns.status],
+      permissions: parsePermissions(row[columns.permissions])
+    };
+    for (let index = sessions.length - 1; index > 0; index--) {
+      if (index !== sessionIndex && String(sessions[index][emailColumn]).trim().toLowerCase() === currentEmail) {
+        sessionsSheet.deleteRow(index + 1);
+      }
+    }
+
+    sessions = sessionsSheet.getDataRange().getValues();
+    sessionHeaders = sessions[0];
+    sessionIndex = sessions.findIndex((session, index) =>
+      index > 0 && session[sessionHeaders.indexOf("Token")] === e.parameter.token
+    );
+    sessionsSheet.getRange(sessionIndex + 1, emailColumn + 1).setValue(email);
+    sessionsSheet.getRange(sessionIndex + 1, nameColumn + 1).setValue(fullName);
+
+    lock.releaseLock();
+    let activityWarning = "";
+    try {
+      logActivity(updatedUser, "", "Update Profile", "");
+    } catch (error) {
+      console.error("Profile was updated, but the activity log could not be written.", error);
+      activityWarning = "Your profile was saved, but the activity log could not be updated.";
+    }
+    return jsonResponse({ success: true, user: updatedUser, activityWarning: activityWarning });
+  } finally {
+    if (lock.hasLock()) lock.releaseLock();
+  }
 }
 
 function deleteUserAccount(e, requestingUser) {

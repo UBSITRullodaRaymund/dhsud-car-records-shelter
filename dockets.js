@@ -12,6 +12,23 @@
 const SHEET_NAME = "Dockets Issuances";
 const MODULE_NAME = "dockets";
 
+const DOCKETS_SPREADSHEET_COLUMNS = [
+    ["Transaction No.", "transactionNo"],
+    ["Date of Request", "dateRequest"],
+    ["Document Name", "documentName"],
+    ["Classification", "classification"],
+    ["Requested By", "requestedBy"],
+    ["Released By", "releasedBy"],
+    ["Date Received", "dateReceived"],
+    ["Date Returned", "dateReturned"],
+    ["Returned By", "returnedBy"],
+    ["Verified By", "verifiedBy"],
+    ["Status", "status"],
+    ["Remarks", "remarks"],
+    ["File Name", "fileName"],
+    ["Date Uploaded", "dateUploaded"]
+];
+
 requireLogin();
 
 
@@ -158,15 +175,11 @@ async function loadDocuments(){
 
 function renderTable(data = documents){
 
-    tbody.innerHTML = "";
-
     if(data.length === 0){
 
         document.getElementById("emptyState").style.display="flex";
 
-        document.getElementById("showingCount").textContent=0;
-
-        document.getElementById("totalCount").textContent=0;
+        TablePagination.render(tbody, [], () => document.createElement("tr"));
 
         return;
 
@@ -174,60 +187,32 @@ function renderTable(data = documents){
 
     document.getElementById("emptyState").style.display="none";
 
-    document.getElementById("showingCount").textContent=data.length;
-
-    document.getElementById("totalCount").textContent=documents.length;
-
-    data.forEach((doc,index)=>{
+    TablePagination.render(tbody, data, (doc,index)=>{
 
         const row=document.createElement("tr");
+        DOCKETS_SPREADSHEET_COLUMNS.forEach(([label, key])=>{
+            const cell=document.createElement("td");
+            cell.dataset.label=label;
+            cell.textContent=doc[key] == null ? "" : String(doc[key]);
+            row.appendChild(cell);
+        });
 
-        row.innerHTML=`
+        const actions=document.createElement("td");
+        actions.dataset.label="Action";
+        actions.className="action-buttons";
+        actions.innerHTML=`
+            <button class="icon-btn view-btn" onclick="viewDocument(${index})" title="View">
+                <i class="fa-solid fa-eye"></i>
+            </button>
+            <button class="icon-btn edit-btn" onclick="editDocument(${index})" title="Edit">
+                <i class="fa-solid fa-pen"></i>
+            </button>
+            <button class="icon-btn delete-btn" onclick="deleteDocument(${index})" title="Delete">
+                <i class="fa-solid fa-trash"></i>
+            </button>`;
+        row.appendChild(actions);
 
-<td>${doc.transactionNo || "-"}</td>
-
-<td>${formatDate(doc.dateRequest)}</td>
-
-<td>${doc.documentName || "-"}</td>
-
-<td>${doc.classification || "-"}</td>
-
-<td>${doc.requestedBy || "-"}</td>
-
-<td>${doc.releasedBy || "-"}</td>
-
-<td>${formatDate(doc.dateReceived)}</td>
-
-<td>
-
-<span class="status-badge ${String(doc.status).toLowerCase()}">
-
-${doc.status}
-
-</span>
-
-</td>
-
-<td class="action-buttons">
-
-    <button class="icon-btn view-btn" onclick="viewDocument(${index})" title="View">
-        <i class="fa-solid fa-eye"></i>
-    </button>
-
-    <button class="icon-btn edit-btn" onclick="editDocument(${index})" title="Edit">
-        <i class="fa-solid fa-pen"></i>
-    </button>
-
-    <button class="icon-btn delete-btn" onclick="deleteDocument(${index})" title="Delete">
-        <i class="fa-solid fa-trash"></i>
-    </button>
-
-</td>
-
-`;
-
-        tbody.appendChild(row);
-
+        return row;
     });
 
 }
@@ -314,6 +299,11 @@ form.addEventListener("submit", async function(e){
             editingIndex === -1
             ? generateTransactionNumber()
             : documents[editingIndex].transactionNo,
+
+        _syncVersion:
+            editingIndex === -1
+            ? ""
+            : documents[editingIndex]._syncVersion,
 
         dateRequest:
             document.getElementById("dateRequest").value,
@@ -471,6 +461,7 @@ async function updateDocument(doc){
     formData.append("office", getRequestOffice());
     formData.append("idField", "transactionNo");
     formData.append("idValue", doc.transactionNo);
+    formData.append("_syncVersion", doc._syncVersion);
 
     formData.append("transactionNo",doc.transactionNo);
     formData.append("dateRequest",doc.dateRequest);
@@ -517,6 +508,7 @@ async function deleteDocument(index){
     formData.append("office", getRequestOffice());
     formData.append("idField", "transactionNo");
     formData.append("idValue", doc.transactionNo);
+    formData.append("_syncVersion", doc._syncVersion);
 
     const result = await authedPost(formData);
     if (!result || result.error) {

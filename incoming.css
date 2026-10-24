@@ -342,24 +342,35 @@ body {
 /* SEARCH */
 
 .masterlist-search {
-    height: 42px;
+    width: 100%;
+    min-height: 54px;
 
     background: #f7f9fc;
 
-    border-radius: 9px;
+    border: 1px solid #dbe5f0;
+    border-radius: 11px;
 
-    padding: 0 13px;
+    padding: 0 17px;
 
     display: flex;
     align-items: center;
 
-    margin-bottom: 15px;
+    margin-bottom: 18px;
+
+    transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+}
+
+.masterlist-search:focus-within {
+    background: #fff;
+    border-color: #4b91d1;
+    box-shadow: 0 0 0 3px rgba(18, 100, 183, .12);
 }
 
 .masterlist-search i {
     color: #1264b7;
 
-    margin-right: 9px;
+    margin-right: 12px;
+    font-size: 16px;
 }
 
 .masterlist-search input {
@@ -372,7 +383,12 @@ body {
 
     font-family: inherit;
 
-    font-size: 11px;
+    font-size: 15px;
+}
+
+.masterlist-search input::placeholder {
+    color: #75869a;
+    opacity: 1;
 }
 
 

@@ -10,8 +10,7 @@
   it in more than one loaded script will throw an error.
 =========================================================*/
 
-const API_URL =
-"https://script.google.com/macros/s/AKfycbz-QHC1nioYNOrFQw7h2q6M44Barh7rwYjDzFZ1I1PdU6f24tkncUjJEWTvqS1WtTfr/exec";
+const API_URL = "api/index.php";
 
 const SESSION_KEY = "dhsud_session";
 const DEFAULT_REQUEST_OFFICE = "Office of the Regional Director";
@@ -20,8 +19,8 @@ const DEFAULT_REQUEST_OFFICE = "Office of the Regional Director";
  SAVE / READ / CLEAR SESSION
 =========================================================*/
 
-function saveSession(token, user) {
-    const payload = JSON.stringify({ token, user });
+function saveSession(token, user, csrfToken) {
+    const payload = JSON.stringify({ token, user, csrfToken });
     localStorage.setItem(SESSION_KEY, payload);
     sessionStorage.setItem(SESSION_KEY, payload);
 }
@@ -87,13 +86,19 @@ function requireLogin() {
 
 async function logout() {
     const token = getToken();
+    const session = getSession();
 
     if (token) {
         try {
             const formData = new FormData();
             formData.append("action", "logout");
             formData.append("token", token);
-            await fetch(API_URL, { method: "POST", body: formData });
+            await fetch(API_URL, {
+                method: "POST",
+                body: formData,
+                credentials: "same-origin",
+                headers: { "X-CSRF-Token": session ? session.csrfToken : "" }
+            });
         } catch (e) {
             // Non-fatal — clear locally regardless.
         }
@@ -113,7 +118,7 @@ async function authedGet(params) {
     const token = getToken();
     const query = new URLSearchParams({ ...params, token }).toString();
 
-    const response = await fetch(`${API_URL}?${query}`);
+    const response = await fetch(`${API_URL}?${query}`, { credentials: "same-origin" });
     const result = await response.json();
 
     if (response.status === 401) {
@@ -127,9 +132,15 @@ async function authedGet(params) {
 
 async function authedPost(formData) {
     const token = getToken();
+    const session = getSession();
     formData.append("token", token);
 
-    const response = await fetch(API_URL, { method: "POST", body: formData });
+    const response = await fetch(API_URL, {
+        method: "POST",
+        body: formData,
+        credentials: "same-origin",
+        headers: { "X-CSRF-Token": session ? session.csrfToken : "" }
+    });
     const result = await response.json();
 
     if (response.status === 401) {
@@ -168,6 +179,24 @@ function normalizeRecordFields(record, moduleName) {
         filename: "fileName",
         documentfile: "fileName",
         driveurl: "driveUrl",
+        googledrivelink: "driveUrl",
+        project: "project",
+        folder: "folder",
+        filetype: "fileType",
+        filesize: "fileSize",
+        dateuploaded: "dateUploaded",
+        dateofdocument: "dateDocument",
+        datereleased: "dateReleased",
+        to: "to",
+        from: "from",
+        signatory: "signatory",
+        deadline: "deadline",
+        actionno: "actionNo",
+        commentsremarks: "comments",
+        receivedby: "receivedBy",
+        emailadd: "email",
+        remindersent: "reminderSent",
+        datecompleted: "dateCompleted",
         daterequest: "dateRequest",
         documentfilename: "documentName",
         documentname: "documentName",
@@ -180,7 +209,7 @@ function normalizeRecordFields(record, moduleName) {
         ,transactionno: "transactionNo"
         ,title: "title"
         ,contactnoemail: "contactEmail"
-        ,modeofcommunication: "communicationMode"
+        ,modeofcommunication: moduleName === "incoming" || moduleName === "outgoing" ? "mode" : "communicationMode"
         ,typeofid: "idType"
         ,agencyconnectingagency: "agency"
         ,titleofdocumentrecordrequested: "documentRequested"
