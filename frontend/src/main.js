@@ -11,5 +11,8 @@ window.loadPdfLib = async () => {
 
 const root = document.getElementById("app-navigation-root");
 if (root) {
-    createApp(Navigation, { currentPage: root.dataset.currentPage ?? "index" }).mount(root);
+    createApp(Navigation, {
+        currentPage: root.dataset.currentPage ?? "index",
+        currentUser: JSON.parse(root.dataset.currentUser ?? "null"),
+    }).mount(root);
 }

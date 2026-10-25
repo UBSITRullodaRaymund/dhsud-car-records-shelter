@@ -12,7 +12,8 @@ document.addEventListener("DOMContentLoaded", function () {
         refreshButton.addEventListener("click", loadDashboardStatistics);
     }
 
-    if (getCurrentUser()) {
+    const user = getCurrentUser();
+    if (user) {
         loadDashboardStatistics();
     }
 });
@@ -87,7 +88,7 @@ async function loadDashboardStatistics() {
         renderModuleChart(datasets);
         renderStatusChart(result.statuses || {});
 
-        const office = user.office ? ` for ${user.office}` : "";
+        const office = result.office ? ` for ${result.office}` : "";
         const unavailable = datasets.filter(function (dataset) {
             return !dataset.allowed || dataset.count === null;
         }).map(function (dataset) {

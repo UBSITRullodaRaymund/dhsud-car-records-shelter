@@ -152,8 +152,18 @@ ACCOUNT MODAL
         Module Access
     </h3>
     <p class="permissions-hint">
-        Ignored for Super Admin — that role always has full access.
+        Selecting a role applies its default module permissions. You can adjust Office Staff and Office Admin permissions. Super Admin has full access.
     </p>
+
+    <div class="form-group full">
+        <label class="cross-office-toggle" for="allOfficesRead">
+            <input type="checkbox" id="allOfficesRead">
+            <span>Allow read-only access to records from all offices</span>
+        </label>
+        <p class="permissions-hint">
+            Requires a module's View permission. Only Super Admin can grant this; record changes remain limited to the user's own office.
+        </p>
+    </div>
 
     <div class="permissions-table-wrap">
         <table class="permissions-table" id="permissionsTable">

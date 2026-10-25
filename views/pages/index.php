@@ -233,29 +233,6 @@
 </section>
 
 
-<!-- ==================================================
-     WELCOME
-================================================== -->
-
-<section id="welcome">
-
-    <div class="container">
-
-        <h2>
-            Welcome to the Records Shelter
-        </h2>
-
-        <p>
-            The Records Shelter serves as the centralized digital platform
-            of DHSUD-CAR for accessing department systems, managing records,
-            monitoring documents, organizing dockets, and facilitating
-            records transfer and custody.
-        </p>
-
-    </div>
-
-</section>
-
 
 <!-- ==================================================
      DEPARTMENTS
@@ -491,7 +468,7 @@
 
 
 <script src="auth.js"></script>
-<script src="dashboard.js"></script>
+<script src="dashboard.js?v=<?= filemtime(__DIR__ . '/../../dashboard.js') ?>"></script>
 <script src="script.js"></script>
 
 
@@ -499,7 +476,7 @@
 
 const departmentApps = {
 
-    PHSD: "https://script.google.com/macros/s/AKfycbz_on2WUMELQCRRYY52pD8RjI60P_-l2THzf-5oPdkeYGlpqyB3Id3Zd3uEL118sRwFxg/exec"
+    PHSD: "https://script.google.com/macros/s/AKfycbywCJxOZsBGOR27SKHaCt9qn26rTOwP3dgT1Jz6QMl9T_bYRe_oOwDNW8hlzxGDRxcb/exec"
 
 };
 

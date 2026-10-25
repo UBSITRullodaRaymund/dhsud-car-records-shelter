@@ -70,6 +70,49 @@
     display: none;
 }
 
+.record-details-row[hidden] {
+    display: none !important;
+}
+
+.record-details-row td {
+    padding: 14px 16px;
+    background: #f5f8fc;
+}
+
+.record-details {
+    display: grid;
+    grid-template-columns: minmax(150px, 1fr) minmax(180px, 2fr);
+    gap: 8px 16px;
+    margin: 0;
+}
+
+.record-details dt {
+    color: #405a76;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.record-details dd {
+    min-width: 0;
+    margin: 0;
+    color: #243b53;
+    font-size: 13px;
+    overflow-wrap: anywhere;
+}
+
+.record-summary-row {
+    cursor: pointer;
+}
+
+.record-summary-row:hover {
+    background: #edf5ff;
+}
+
+.record-summary-row:focus-visible {
+    outline: 2px solid #0b4ea2;
+    outline-offset: -2px;
+}
+
 .masterlist-table {
     font-size: 11px;
 }
@@ -331,6 +374,27 @@
     .documents-table td[colspan]::before,
     .spreadsheet-table td[colspan]::before {
         content: none;
+    }
+
+    .records-table tbody tr.record-details-row,
+    .masterlist-table tbody tr.record-details-row,
+    .documents-table tbody tr.record-details-row,
+    .spreadsheet-table tbody tr.record-details-row {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .record-details-row td {
+        display: block;
+        grid-column: 1 / -1;
+    }
+
+    .record-details {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 2px;
+    }
+
+    .record-details dd {
+        margin-bottom: 8px;
     }
 
     .table-pagination {

@@ -203,24 +203,11 @@
                 <thead>
 
                     <tr>
-                        <th aria-label="Blank header in Excel"></th>
-                        <th>DATE OF DOCUMENT</th>
+                        <th>ROUTING SLIP NO</th>
                         <th>DATE RECEIVED</th>
                         <th>SENDER</th>
-                        <th>SIGNATORY</th>
-                        <th>MODE OF COMMUNICATION</th>
                         <th>SUBJECT</th>
-                        <th>DATE RELEASED</th>
-                        <th>FROM</th>
-                        <th>TO</th>
-                        <th>ACTION NO.</th>
-                        <th>COMMENTS/ REMARKS</th>
-                        <th>RECEIVED BY</th>
-                        <th>E-MAIL ADD</th>
-                        <th>DEADLINE</th>
                         <th>STATUS</th>
-                        <th>REMINDER SENT</th>
-                        <th>Date Completed</th>
                         <th>Action</th>
                     </tr>
 
@@ -582,9 +569,9 @@
 </div>
 
 
-<script src="auth.js"></script>
+<script src="auth.js?v=<?= filemtime(__DIR__ . '/../../auth.js') ?>"></script>
 <script src="table-pagination.js?v=<?= filemtime(__DIR__ . '/../../table-pagination.js') ?>"></script>
-<script src="incoming.js"></script>
+<script src="incoming.js?v=<?= filemtime(__DIR__ . '/../../incoming.js') ?>"></script>
 
 </body>
 </html>

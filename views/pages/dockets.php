@@ -247,19 +247,10 @@ TRANSACTION TABLE
             <tr>
 
                 <th>Transaction No.</th>
-                <th>Date of Request</th>
                 <th>Document Name</th>
-                <th>Classification</th>
                 <th>Requested By</th>
-                <th>Released By</th>
-                <th>Date Received</th>
-                <th>Date Returned</th>
-                <th>Returned By</th>
-                <th>Verified By</th>
+                <th>Date of Request</th>
                 <th>Status</th>
-                <th>Remarks</th>
-                <th>File Name</th>
-                <th>Date Uploaded</th>
                 <th>Action</th>
 
             </tr>
@@ -675,6 +666,6 @@ Department of Human Settlements and Urban Development
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="auth.js"></script>
 <script src="table-pagination.js?v=<?= filemtime(__DIR__ . '/../../table-pagination.js') ?>"></script>
-<script src="dockets.js"></script>
+<script src="dockets.js?v=<?= filemtime(__DIR__ . '/../../dockets.js') ?>"></script>
 
 </html>

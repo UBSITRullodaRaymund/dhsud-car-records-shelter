@@ -32,6 +32,7 @@ const INCOMING_SPREADSHEET_COLUMNS = [
 ================================================== */
 
 document.addEventListener("DOMContentLoaded", async function () {
+    TablePagination.bindDetails(document.getElementById("masterlistBody"));
     await loadIncomingDocuments();
 
     const search = document.getElementById("masterlistSearch");
@@ -156,17 +157,19 @@ async function saveDocument(event) {
     ================================================== */
 
     const isEditing = Boolean(editingDocumentId);
+    const editedRecord = isEditing
+        ? incomingDocuments.find(record => record.id === editingDocumentId)
+        : null;
     const formData = new FormData();
     formData.append("action", isEditing ? "update" : "save");
     formData.append("module", "incoming");
     formData.append("sheet", "Incoming Documents");
-    formData.append("office", getRequestOffice());
+    formData.append("office", getRecordOffice(editedRecord));
     Object.entries(documentData).forEach(([key, value]) => formData.append(key, value));
 
     if (editingDocumentId) {
         formData.append("idField", "routingSlip");
         formData.append("idValue", editingDocumentId);
-        const editedRecord = incomingDocuments.find(record => record.id === editingDocumentId);
         formData.append("_syncVersion", editedRecord ? editedRecord._syncVersion || "" : "");
     } else {
         formData.append("to", "");
@@ -254,48 +257,76 @@ function renderMasterlist(searchTerm = "") {
 
 
     TablePagination.render(body, filtered, function (doc) {
+        const fragment = document.createDocumentFragment();
         const row = document.createElement("tr");
-        INCOMING_SPREADSHEET_COLUMNS.forEach(([label, key]) => {
+        TablePagination.makeExpandableRow(row);
+        const summaryColumns = [
+            ["Routing Slip No.", "routingSlip"],
+            ["Date Received", "dateReceived"],
+            ["Sender", "sender"],
+            ["Subject", "subject"],
+            ["Status", "status"]
+        ];
+        summaryColumns.forEach(([label, key]) => {
             const cell = document.createElement("td");
             cell.dataset.label = label;
-            if (key === "to") {
-                const select = document.createElement("select");
-                select.className = "route-select";
-                select.setAttribute("aria-label", "Route To");
-                select.innerHTML = `
-                    <option value="">Select Department</option>
-                    <option value="HREDRD">HREDRD</option>
-                    <option value="HOACDD">HOACDD</option>
-                    <option value="ELUPDD">ELUPDD</option>
-                    <option value="PHSD">PHSD</option>
-                    <option value="AFD">AFD</option>
-                    <option value="ORD">ORD</option>
-                `;
-                select.value = doc.routeTo || doc.to || "";
-                select.addEventListener("change", () => routeDocument(doc.id, select.value));
-                cell.appendChild(select);
-            } else {
-                cell.textContent = doc[key] == null ? "" : String(doc[key]);
-            }
+            cell.textContent = doc[key] == null || doc[key] === "" ? "—" : String(doc[key]);
             row.appendChild(cell);
         });
 
         const actionCell = document.createElement("td");
         actionCell.dataset.label = "Action";
         actionCell.className = "action-buttons";
-        const editButton = document.createElement("button");
-        editButton.type = "button";
-        editButton.className = "edit-btn";
-        editButton.innerHTML = '<i class="fa-solid fa-pen" aria-hidden="true"></i> Edit';
-        editButton.addEventListener("click", () => editIncomingDocument(doc.id));
-        actionCell.appendChild(editButton);
+        if (canEditRecordInOwnOffice(doc)) {
+            const editButton = document.createElement("button");
+            editButton.type = "button";
+            editButton.className = "edit-btn";
+            editButton.innerHTML = '<i class="fa-solid fa-pen" aria-hidden="true"></i> Edit';
+            editButton.addEventListener("click", () => editIncomingDocument(doc.id));
+            actionCell.appendChild(editButton);
+
+            if (doc.routingSlip) {
+                const deleteButton = document.createElement("button");
+                deleteButton.type = "button";
+                deleteButton.className = "delete-btn";
+                deleteButton.setAttribute("aria-label", `Delete incoming document ${doc.routingSlip}`);
+                deleteButton.innerHTML = '<i class="fa-solid fa-trash" aria-hidden="true"></i> Delete';
+                deleteButton.addEventListener("click", () => deleteIncomingDocument(doc));
+                actionCell.appendChild(deleteButton);
+            }
+        }
         row.appendChild(actionCell);
-        return row;
+
+        const fields = INCOMING_SPREADSHEET_COLUMNS.map(([label, key]) => {
+            if (key === "to" && !canEditRecordInOwnOffice(doc)) {
+                return [label, doc.routeTo || doc.to];
+            }
+            if (key !== "to") return [label, doc[key]];
+
+            const select = document.createElement("select");
+            select.className = "route-select";
+            select.setAttribute("aria-label", "Route To");
+            select.innerHTML = `
+                <option value="">Select Department</option>
+                <option value="HREDRD">HREDRD</option>
+                <option value="HOACDD">HOACDD</option>
+                <option value="ELUPDD">ELUPDD</option>
+                <option value="PHSD">PHSD</option>
+                <option value="AFD">AFD</option>
+                <option value="ORD">ORD</option>
+            `;
+            select.value = doc.routeTo || doc.to || "";
+            select.addEventListener("change", () => routeDocument(doc.id, select.value));
+            return [label, select];
+        });
+        fields.unshift(["Record Office", doc._recordOffice]);
+        fragment.append(row, TablePagination.createDetailsRow(fields, summaryColumns.length + 1));
+        return fragment;
     });
     if (filtered.length === 0) {
         const emptyRow = document.createElement("tr");
         const emptyCell = document.createElement("td");
-        emptyCell.colSpan = INCOMING_SPREADSHEET_COLUMNS.length + 1;
+        emptyCell.colSpan = 6;
         emptyCell.className = "empty-masterlist";
         emptyCell.textContent = "No incoming documents found.";
         emptyRow.appendChild(emptyCell);
@@ -308,6 +339,28 @@ function renderMasterlist(searchTerm = "") {
 /* ==================================================
    EDIT DOCUMENT
 ================================================== */
+
+async function deleteIncomingDocument(doc) {
+    if (!doc || !doc.routingSlip || !canEditRecordInOwnOffice(doc)) return;
+    if (!confirm(`Delete incoming document ${doc.routingSlip}?`)) return;
+
+    const formData = new FormData();
+    formData.append("action", "delete");
+    formData.append("module", "incoming");
+    formData.append("sheet", "Incoming Documents");
+    formData.append("office", getRecordOffice(doc));
+    formData.append("idField", "routingSlip");
+    formData.append("idValue", doc.routingSlip);
+    formData.append("_syncVersion", doc._syncVersion || "");
+
+    const result = await authedPost(formData);
+    if (!result || result.error) {
+        alert(result && result.error ? result.error : "Could not delete the incoming document.");
+        return;
+    }
+
+    await loadIncomingDocuments();
+}
 
 function editIncomingDocument(documentId) {
 
@@ -439,7 +492,7 @@ async function routeDocument(documentId, department) {
     formData.append("action", "update");
     formData.append("module", "incoming");
     formData.append("sheet", "Incoming Documents");
-    formData.append("office", getRequestOffice());
+    formData.append("office", getRecordOffice(record));
     formData.append("idField", "routingSlip");
     formData.append("idValue", record.routingSlip);
     formData.append("_syncVersion", record._syncVersion || "");

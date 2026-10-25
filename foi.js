@@ -78,6 +78,7 @@ let foiTemplateBytesPromise;
 let requests = [];
 let editingIndex = -1;
 const tbody = document.getElementById("foiBody");
+TablePagination.bindDetails(tbody);
 const form = document.getElementById("foiForm");
 const modal = document.getElementById("foiModal");
 const fieldsContainer = document.getElementById("foiFields");
@@ -125,6 +126,7 @@ function renderTable() {
         const actualIndex = requests.indexOf(request);
         const fragment = document.createDocumentFragment();
         const row = document.createElement("tr");
+        TablePagination.makeExpandableRow(row);
         const summaryValues = [
             getFoiCellValue(request, "transanctionNo") || request.transactionNo,
             getFoiRequesterName(request),
@@ -141,11 +143,10 @@ function renderTable() {
         const actions = document.createElement("td");
         actions.className = "action-buttons foi-actions";
         actions.dataset.label = "Actions";
-        actions.innerHTML = `
-            <button class="icon-btn" type="button" data-action="details" data-index="${actualIndex}" aria-expanded="false" title="Show all workbook fields" aria-label="Show all workbook fields"><i class="fa-solid fa-chevron-down"></i></button>
+        actions.innerHTML = canEditRecordInOwnOffice(request) ? `
             <button class="icon-btn edit-btn" type="button" data-action="edit" data-index="${actualIndex}" title="Edit" aria-label="Edit"><i class="fa-solid fa-pen"></i></button>
             <button class="icon-btn delete-btn" type="button" data-action="delete" data-index="${actualIndex}" title="Delete" aria-label="Delete"><i class="fa-solid fa-trash"></i></button>
-        `;
+        ` : "";
         const downloadLink = document.createElement("a");
         downloadLink.className = "icon-btn foi-download-btn";
         downloadLink.href = getFoiTemplateUrl();
@@ -167,12 +168,17 @@ function renderTable() {
         fragment.appendChild(row);
 
         const detailsRow = document.createElement("tr");
-        detailsRow.className = "foi-details-row";
+        detailsRow.className = "record-details-row foi-details-row";
         detailsRow.hidden = true;
         const detailsCell = document.createElement("td");
         detailsCell.colSpan = 6;
         const details = document.createElement("dl");
         details.className = "foi-details";
+        const officeTerm = document.createElement("dt");
+        officeTerm.textContent = "Record Office";
+        const officeValue = document.createElement("dd");
+        officeValue.textContent = request._recordOffice || "—";
+        details.append(officeTerm, officeValue);
         FOI_SPREADSHEET_COLUMNS.forEach(([label, key]) => {
             const term = document.createElement("dt");
             term.textContent = label || "Unlabeled workbook field";
@@ -489,7 +495,7 @@ async function deleteRequest(index) {
     if (!request || !confirm(`Delete FOI request ${request.transactionNo || "this record"}?`)) return;
     const result = await authedPost(buildFormData({
         action: "delete", module: MODULE_NAME, sheet: SHEET_NAME,
-        office: getRequestOffice(), idField: "transactionNo", idValue: request.transactionNo,
+        office: getRecordOffice(request), idField: "transactionNo", idValue: request.transactionNo,
         _syncVersion: request._syncVersion
     }));
     if (!result || result.error) { alert(result ? result.error : "Delete failed"); return; }
@@ -502,7 +508,7 @@ form.addEventListener("submit", async event => {
     fields.forEach(([key]) => { values[key] = document.getElementById(key).value; });
     const payload = editingIndex === -1
         ? { action: "save", module: MODULE_NAME, sheet: SHEET_NAME, office: getRequestOffice(), ...values }
-        : { action: "update", module: MODULE_NAME, sheet: SHEET_NAME, office: getRequestOffice(), idField: "transactionNo", idValue: requests[editingIndex].transactionNo, _syncVersion: requests[editingIndex]._syncVersion, ...values };
+        : { action: "update", module: MODULE_NAME, sheet: SHEET_NAME, office: getRecordOffice(requests[editingIndex]), idField: "transactionNo", idValue: requests[editingIndex].transactionNo, _syncVersion: requests[editingIndex]._syncVersion, ...values };
     const result = await authedPost(buildFormData(payload));
     if (!result || result.error) { alert(result ? result.error : "Save failed"); return; }
     closeForm();
@@ -542,14 +548,6 @@ tbody.addEventListener("click", event => {
     if (!button || !tbody.contains(button)) return;
     const index = Number(button.dataset.index);
     if (!Number.isInteger(index)) return;
-    if (button.dataset.action === "details") {
-        const detailsRow = button.closest("tr").nextElementSibling;
-        if (!detailsRow || !detailsRow.classList.contains("foi-details-row")) return;
-        detailsRow.hidden = !detailsRow.hidden;
-        button.setAttribute("aria-expanded", String(!detailsRow.hidden));
-        button.title = detailsRow.hidden ? "Show all workbook fields" : "Hide workbook fields";
-        return;
-    }
     if (button.dataset.action === "preview") previewFoiRequest(index);
     if (button.dataset.action === "edit") editRequest(index);
     if (button.dataset.action === "delete") deleteRequest(index);

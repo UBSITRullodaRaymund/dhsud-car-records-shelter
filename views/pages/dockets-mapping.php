@@ -8,7 +8,7 @@
 
 <title>Dockets Mapping | DHSUD-CAR Records Shelter</title>
 
-<link rel="stylesheet" href="dockets-mapping.css">
+<link rel="stylesheet" href="dockets-mapping.css?v=<?= filemtime(__DIR__ . '/../../dockets-mapping.css') ?>">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 
@@ -20,7 +20,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
 <?php require __DIR__ . '/../partials/navigation-assets.php'; ?>
 </head>
 
-<body class="has-app-navigation">
+<body class="has-app-navigation dockets-mapping-page">
 
 <?php require __DIR__ . '/../partials/navigation.php'; ?>
 <!-- ==========================================
@@ -160,46 +160,55 @@ SEARCH
 
 <section class="search-section">
 
+<div class="container">
+
+<div class="repository-search-heading">
+    <div>
+        <p class="repository-eyebrow">Find a record</p>
+        <h2>Search the repository</h2>
+    </div>
+    <p>Search by file, project, folder, or narrow the results with filters.</p>
+</div>
+
 <div class="search-box">
 
-<i class="fa-solid fa-search"></i>
+<label class="repository-search-field">
+    <span class="visually-hidden">Search files, projects, folders, or remarks</span>
+    <i class="fa-solid fa-search" aria-hidden="true"></i>
+    <input
+    id="searchInput"
+    type="search"
+    placeholder="Search files, projects, folders..."
+    oninput="applyFilters()">
+</label>
 
-<input
-id="searchInput"
-type="text"
-placeholder="Search files, projects, folders..."
-onkeyup="applyFilters()">
+<label class="repository-filter">
+    <span>Category</span>
+    <select id="categoryFilter" onchange="applyFilters()" aria-label="Filter by category">
+        <option value="">All Categories</option>
+    </select>
+</label>
 
-<select id="categoryFilter"
-onchange="applyFilters()">
+<label class="repository-filter">
+    <span>Project</span>
+    <select id="projectFilter" onchange="applyFilters()" aria-label="Filter by project">
+        <option value="">All Projects</option>
+    </select>
+</label>
 
-<option value="">All Categories</option>
+<label class="repository-filter">
+    <span>Folder</span>
+    <select id="folderFilter" onchange="applyFilters()" aria-label="Filter by folder">
+        <option value="">All Folders</option>
+    </select>
+</label>
 
-</select>
-
-<select id="projectFilter"
-onchange="applyFilters()">
-
-<option value="">All Projects</option>
-
-</select>
-
-<select id="folderFilter"
-onchange="applyFilters()">
-
-<option value="">All Folders</option>
-
-</select>
-
-<button
-class="primary-btn"
-onclick="clearFilters()">
-
-<i class="fa-solid fa-filter-circle-xmark"></i>
-
-Clear
-
+<button class="primary-btn clear-filters-btn" type="button" onclick="clearFilters()">
+    <i class="fa-solid fa-filter-circle-xmark" aria-hidden="true"></i>
+    <span>Clear filters</span>
 </button>
+
+</div>
 
 </div>
 
@@ -220,12 +229,10 @@ EXPLORER
 <aside class="sidebar">
 
 <h3>
-
-<i class="fa-solid fa-layer-group"></i>
-
-Categories
-
+    <span class="repository-step-number">1</span>
+    <span>Choose a category</span>
 </h3>
+<p class="repository-panel-hint">Start here to browse projects and files.</p>
 
 <div id="categoryList">
 
@@ -240,22 +247,18 @@ Categories
 <main class="explorer">
 
 <h3>
-
-<i class="fa-solid fa-folder-tree"></i>
-
-Explorer
-
+    <span class="repository-step-number">2</span>
+    <span>Browse projects &amp; folders</span>
 </h3>
 
 <!-- Breadcrumb -->
 
-<div id="breadcrumb" class="breadcrumb">
-
-    <span onclick="goHome()">
-        <i class="fa-solid fa-house"></i> Home
-    </span>
-
-</div>
+<nav id="breadcrumb" class="breadcrumb" aria-label="Repository location" aria-live="polite">
+    <button type="button" class="breadcrumb-link" onclick="goHome()" aria-current="page">
+        <i class="fa-solid fa-house" aria-hidden="true"></i>
+        <span>Repository home</span>
+    </button>
+</nav>
 
 <div id="explorerContent">
 
@@ -263,11 +266,11 @@ Explorer
 
 <i class="fa-solid fa-folder-open"></i>
 
-<h2>Select a category</h2>
+<h2>Choose a category to begin</h2>
 
 <p>
 
-Choose a category from the left to begin browsing.
+Your projects and folders will appear here. Use the location trail above to move back at any time.
 
 </p>
 
@@ -282,12 +285,10 @@ Choose a category from the left to begin browsing.
 <aside class="preview">
 
 <h3>
-
-<i class="fa-solid fa-file"></i>
-
-Preview
-
+    <span class="repository-step-number">3</span>
+    <span>Preview a document</span>
 </h3>
+<p id="previewPanelHint" class="repository-panel-hint">Select “Preview file” on a document to see it here.</p>
 
 <div id="previewContent">
 
@@ -317,7 +318,7 @@ Select a document to preview it here.
 
 <script src="auth.js"></script>
 <script src="table-pagination.js?v=<?= filemtime(__DIR__ . '/../../table-pagination.js') ?>"></script>
-<script src="dockets-mapping.js"></script>
+<script src="dockets-mapping.js?v=<?= filemtime(__DIR__ . '/../../dockets-mapping.js') ?>"></script>
 
 </body>
 

@@ -16,6 +16,7 @@ let currentProject = null;
 let currentFolder = null;
 let currentFile = null;
 let selectedFile = null;
+let showingSearchResults = false;
 
 const MAPPING_SPREADSHEET_COLUMNS = [
     ["Category", "category"],
@@ -31,13 +32,20 @@ const MAPPING_SPREADSHEET_COLUMNS = [
 ];
 
 function renderMappingTable(container, files, onPreview) {
+    const summaryColumns = [
+        ["File Name", "filename"],
+        ["Category", "category"],
+        ["Project", "project"],
+        ["Folder", "folder"],
+        ["Status", "status"]
+    ];
     const wrapper = document.createElement("div");
     wrapper.className = "spreadsheet-table-wrap";
     const table = document.createElement("table");
     table.className = "records-table modern-table spreadsheet-table";
     const head = document.createElement("thead");
     const headerRow = document.createElement("tr");
-    MAPPING_SPREADSHEET_COLUMNS.forEach(([label]) => {
+    summaryColumns.forEach(([label]) => {
         const th = document.createElement("th");
         th.textContent = label;
         headerRow.appendChild(th);
@@ -47,28 +55,46 @@ function renderMappingTable(container, files, onPreview) {
     headerRow.appendChild(actionHeader);
     head.appendChild(headerRow);
     const body = document.createElement("tbody");
+    TablePagination.bindDetails(body);
     table.append(head, body);
     wrapper.appendChild(table);
     container.appendChild(wrapper);
 
     TablePagination.render(body, files, file => {
+        const fragment = document.createDocumentFragment();
         const row = document.createElement("tr");
-        MAPPING_SPREADSHEET_COLUMNS.forEach(([label, key]) => {
+        TablePagination.makeExpandableRow(row);
+        summaryColumns.forEach(([label, key]) => {
             const cell = document.createElement("td");
             cell.dataset.label = label;
-            cell.textContent = file[key] == null ? "" : String(file[key]);
+            cell.textContent = file[key] == null || file[key] === "" ? "—" : String(file[key]);
             row.appendChild(cell);
         });
         const actions = document.createElement("td");
         actions.dataset.label = "Action";
+        actions.className = "action-buttons";
         const previewButton = document.createElement("button");
         previewButton.type = "button";
         previewButton.className = "primary-btn";
-        previewButton.innerHTML = '<i class="fa-solid fa-eye" aria-hidden="true"></i> Preview';
-        previewButton.addEventListener("click", () => onPreview(file));
+        previewButton.innerHTML = '<i class="fa-solid fa-eye" aria-hidden="true"></i> Preview file';
+        previewButton.addEventListener("click", () => {
+            body.querySelectorAll(".selected-document-row").forEach(selected => {
+                selected.classList.remove("selected-document-row");
+            });
+            row.classList.add("selected-document-row");
+            onPreview(file);
+        });
         actions.appendChild(previewButton);
         row.appendChild(actions);
-        return row;
+
+        fragment.append(
+            row,
+            TablePagination.createDetailsRow(
+                MAPPING_SPREADSHEET_COLUMNS.map(([label, key]) => [label, file[key]]),
+                summaryColumns.length + 1
+            )
+        );
+        return fragment;
     });
 }
 
@@ -126,7 +152,6 @@ document.addEventListener("DOMContentLoaded", async ()=>{
 
 });
 
-
 /*==================================================
 RENDER CATEGORIES
 ==================================================*/
@@ -148,24 +173,24 @@ function renderCategories(){
                 .map(doc => doc.project)
             ).size;
 
-        categoryList.innerHTML += `
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = `category-item${currentCategory === category ? " is-selected" : ""}`;
+        item.setAttribute("aria-pressed", String(currentCategory === category));
+        item.addEventListener("click", () => openCategory(category));
 
-        <div class="category-item"
-            onclick="openCategory('${category}')">
-
-            <i class="fa-solid fa-folder-tree"></i>
-
-            <div>
-
-                <h4>${category}</h4>
-
-                <p>${totalProjects} Project${totalProjects!=1?"s":""}</p>
-
-            </div>
-
-        </div>
-
-        `;
+        const icon = document.createElement("i");
+        icon.className = "fa-solid fa-folder-tree";
+        icon.setAttribute("aria-hidden", "true");
+        const content = document.createElement("span");
+        content.className = "category-item-copy";
+        const title = document.createElement("strong");
+        title.textContent = category;
+        const count = document.createElement("span");
+        count.textContent = `${totalProjects} ${totalProjects === 1 ? "project" : "projects"}`;
+        content.append(title, count);
+        item.append(icon, content);
+        categoryList.appendChild(item);
 
     });
 
@@ -177,10 +202,13 @@ OPEN CATEGORY
 
 function openCategory(category){
 
+    showingSearchResults = false;
+    resetRepositoryFilters();
     currentCategory = category;
     currentProject = null;
     currentFolder = null;
 
+    renderCategories();
     updateBreadcrumb();
 
     const explorer = document.getElementById("explorerContent");
@@ -192,9 +220,14 @@ function openCategory(category){
     )];
 
     let html = `
-        <h2 style="margin-bottom:20px;color:#0B4EA2;">
-            ${category}
-        </h2>
+        <div class="repository-content-heading">
+            <div>
+                <p class="repository-eyebrow">Step 2 of 3 · Projects</p>
+                <h2>${category}</h2>
+                <p>Choose a project to see its folders.</p>
+            </div>
+            <span class="repository-count">${projects.length} ${projects.length === 1 ? "project" : "projects"}</span>
+        </div>
 
         <div class="project-grid">
     `;
@@ -212,16 +245,17 @@ function openCategory(category){
 
         html += `
 
-        <div class="project-card"
+        <button type="button" class="project-card repository-selectable-card"
+            aria-label="Open project ${project}, ${folderCount} ${folderCount === 1 ? "folder" : "folders"}"
             onclick="openProject('${project}')">
 
             <i class="fa-solid fa-city"></i>
 
-            <h3>${project}</h3>
+            <strong>${project}</strong>
 
-            <p>${folderCount} Folder${folderCount!=1?"s":""}</p>
+            <span>${folderCount} ${folderCount === 1 ? "folder" : "folders"}</span>
 
-        </div>
+        </button>
 
         `;
 
@@ -255,6 +289,7 @@ OPEN PROJECT
 
 function openProject(project){
 
+    showingSearchResults = false;
     currentProject = project;
     currentFolder = null;
 
@@ -273,21 +308,24 @@ function openProject(project){
 
     let html = `
 
-        <button class="primary-btn"
+        <button class="repository-back-btn"
             onclick="openCategory('${currentCategory}')"
-            style="margin-bottom:20px;">
+            type="button">
 
             <i class="fa-solid fa-arrow-left"></i>
 
-            Back to ${currentCategory}
+            <span>All projects in ${currentCategory}</span>
 
         </button>
 
-        <h2 style="margin-bottom:20px;color:#0B4EA2;">
-
-            ${project}
-
-        </h2>
+        <div class="repository-content-heading">
+            <div>
+                <p class="repository-eyebrow">Step 2 of 3 · Folders</p>
+                <h2>${project}</h2>
+                <p>Choose a folder to view its documents.</p>
+            </div>
+            <span class="repository-count">${folders.length} ${folders.length === 1 ? "folder" : "folders"}</span>
+        </div>
 
         <div class="project-grid">
 
@@ -303,17 +341,17 @@ function openProject(project){
 
         html += `
 
-        <div class="project-card folder-card"
+        <button type="button" class="project-card folder-card repository-selectable-card"
 
             onclick="openFolder('${folder}')">
 
             <i class="fa-solid fa-folder"></i>
 
-            <h3>${folder}</h3>
+            <strong>${folder}</strong>
 
-            <p>${fileCount} File${fileCount!=1?"s":""}</p>
+            <span>${fileCount} ${fileCount === 1 ? "file" : "files"}</span>
 
-        </div>
+        </button>
 
         `;
 
@@ -349,6 +387,7 @@ OPEN FOLDER
 
 function openFolder(folder){
 
+    showingSearchResults = false;
     currentFolder = folder;
     updateBreadcrumb();
 
@@ -364,21 +403,24 @@ function openFolder(folder){
 
     const html = `
 
-        <button class="primary-btn"
+        <button class="repository-back-btn"
             onclick="openProject('${currentProject}')"
-            style="margin-bottom:20px;">
+            type="button">
 
             <i class="fa-solid fa-arrow-left"></i>
 
-            Back to ${currentProject}
+            <span>All folders in ${currentProject}</span>
 
         </button>
 
-        <h2 style="margin-bottom:20px;color:#0B4EA2;">
-
-            ${folder}
-
-        </h2>
+        <div class="repository-content-heading">
+            <div>
+                <p class="repository-eyebrow">Step 3 of 3 · Documents</p>
+                <h2>${folder}</h2>
+                <p>Select “Preview file” to open a document in the preview panel.</p>
+            </div>
+            <span class="repository-count">${files.length} ${files.length === 1 ? "document" : "documents"}</span>
+        </div>
 
         <div id="mappingFolderTable"></div>
     `;
@@ -430,6 +472,7 @@ if(selectedCard){
     );
 
     const file = files[index];
+    document.getElementById("previewPanelHint").textContent = "Showing the selected document preview.";
 
     // Convert Google Drive share link to preview link
     let previewURL = file.url;
@@ -633,10 +676,12 @@ HOME
 
 function renderHome(){
 
+    showingSearchResults = false;
     currentCategory = null;
     currentProject = null;
     currentFolder = null;
 
+    renderCategories();
     updateBreadcrumb();
 
     document.getElementById("explorerContent").innerHTML = `
@@ -720,10 +765,12 @@ HOME
 
 function renderHome(){
 
+    showingSearchResults = false;
     currentCategory = null;
     currentProject = null;
     currentFolder = null;
 
+    renderCategories();
     updateBreadcrumb();
 
     document.getElementById("explorerContent").innerHTML = `
@@ -732,12 +779,11 @@ function renderHome(){
 
             <i class="fa-solid fa-folder-open"></i>
 
-            <h2>Select a Category</h2>
+            <h2>Choose a category to begin</h2>
 
             <p>
 
-                Choose a category from the left panel
-                to begin browsing.
+                Your projects and folders will appear here. Use the location trail above to move back at any time.
 
             </p>
 
@@ -988,63 +1034,42 @@ function updateBreadcrumb(){
     const bc = document.getElementById("breadcrumb");
 
     let html = `
-
-        <span onclick="goHome()">
-
-            <i class="fa-solid fa-house"></i>
-
-            Home
-
-        </span>
-
+        <button type="button" class="breadcrumb-link" onclick="goHome()" ${!currentCategory ? 'aria-current="page"' : ""}>
+            <i class="fa-solid fa-house" aria-hidden="true"></i>
+            <span>Repository home</span>
+        </button>
     `;
 
     if(currentCategory){
-
         html += `
-
-            <span class="separator">></span>
-
-            <span onclick="openCategory('${currentCategory}')">
-
-                ${currentCategory}
-
-            </span>
-
+            <i class="fa-solid fa-chevron-right separator" aria-hidden="true"></i>
+            <button type="button" class="breadcrumb-link" onclick="openCategory('${currentCategory}')" ${!currentProject ? 'aria-current="page"' : ""}>
+                <span>${currentCategory}</span>
+            </button>
         `;
-
     }
 
     if(currentProject){
-
         html += `
-
-            <span class="separator">></span>
-
-            <span onclick="openProject('${currentProject}')">
-
-                ${currentProject}
-
-            </span>
-
+            <i class="fa-solid fa-chevron-right separator" aria-hidden="true"></i>
+            <button type="button" class="breadcrumb-link" onclick="openProject('${currentProject}')" ${!currentFolder ? 'aria-current="page"' : ""}>
+                <span>${currentProject}</span>
+            </button>
         `;
-
     }
 
     if(currentFolder){
-
         html += `
-
-            <span class="separator">></span>
-
-            <span>
-
-                ${currentFolder}
-
-            </span>
-
+            <i class="fa-solid fa-chevron-right separator" aria-hidden="true"></i>
+            <span class="breadcrumb-current" aria-current="page">${currentFolder}</span>
         `;
+    }
 
+    if(showingSearchResults && !currentCategory){
+        html += `
+            <i class="fa-solid fa-chevron-right separator" aria-hidden="true"></i>
+            <span class="breadcrumb-current" aria-current="page">Search results</span>
+        `;
     }
 
     bc.innerHTML = html;
@@ -1108,6 +1133,12 @@ function applyFilters(){
     const category = document.getElementById("categoryFilter").value;
     const project = document.getElementById("projectFilter").value;
     const folder = document.getElementById("folderFilter").value;
+    showingSearchResults = true;
+    currentCategory = null;
+    currentProject = null;
+    currentFolder = null;
+    renderCategories();
+    updateBreadcrumb();
 
     let filtered = documents.filter(doc=>{
 
@@ -1149,16 +1180,17 @@ CLEAR FILTERS
 
 function clearFilters(){
 
-    document.getElementById("searchInput").value="";
-
-    document.getElementById("categoryFilter").value="";
-
-    document.getElementById("projectFilter").value="";
-
-    document.getElementById("folderFilter").value="";
+    resetRepositoryFilters();
 
     renderHome();
 
+}
+
+function resetRepositoryFilters(){
+    document.getElementById("searchInput").value = "";
+    document.getElementById("categoryFilter").value = "";
+    document.getElementById("projectFilter").value = "";
+    document.getElementById("folderFilter").value = "";
 }
 
 /*==================================================
@@ -1168,21 +1200,27 @@ SEARCH RESULTS
 function renderSearchResults(files){
 
     const explorer = document.getElementById("explorerContent");
+    const search = document.getElementById("searchInput").value.trim();
+    const category = document.getElementById("categoryFilter").value;
+    const project = document.getElementById("projectFilter").value;
+    const folder = document.getElementById("folderFilter").value;
+    const activeFilters = [
+        search ? `Search: "${search}"` : "",
+        category ? `Category: ${category}` : "",
+        project ? `Project: ${project}` : "",
+        folder ? `Folder: ${folder}` : ""
+    ].filter(Boolean);
+    updateBreadcrumb();
 
     const html = `
-
-    <h2 style="margin-bottom:20px;color:#0B4EA2;">
-
-        Search Results
-
-    </h2>
-
-    <p style="margin-bottom:20px;color:#666;">
-
-        ${files.length} document(s) found
-
-    </p>
-
+        <div class="repository-content-heading repository-search-results-heading">
+            <div>
+                <p class="repository-eyebrow">Search &amp; filters</p>
+                <h2>Matching documents</h2>
+                <p>${activeFilters.length ? activeFilters.join(" · ") : "All repository documents"}</p>
+            </div>
+            <span class="repository-count">${files.length} ${files.length === 1 ? "result" : "results"}</span>
+        </div>
         <div id="mappingSearchTable"></div>
     `;
 
@@ -1208,10 +1246,12 @@ function previewSearchFile(index){
 
     const file = documents[index];
 
+    showingSearchResults = false;
     currentCategory = file.category;
     currentProject = file.project;
     currentFolder = file.folder;
 
+    renderCategories();
     updateBreadcrumb();
 
     previewFile(

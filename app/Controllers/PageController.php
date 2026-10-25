@@ -3,12 +3,18 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Models\ShelterRepository;
 use PDO;
+
+require_once dirname(__DIR__) . '/Models/ShelterRepository.php';
 
 final class PageController
 {
+    private readonly ShelterRepository $repository;
+
     public function __construct(private readonly PDO $db)
     {
+        $this->repository = new ShelterRepository($db);
     }
 
     private const PAGES = [
@@ -31,6 +37,9 @@ final class PageController
         'users',
         'profile',
         'activity-log',
+        'documents',
+        'records',
+        'requests',
         'incoming',
         'outgoing',
         'dockets',
@@ -46,23 +55,20 @@ final class PageController
             exit;
         }
 
-        if (in_array($page, self::PROTECTED, true)) {
-            $sessionHash = (string) ($_SESSION['auth_token_hash'] ?? '');
-            $statement = $this->db->prepare(
-                'SELECT 1 FROM auth_sessions s
-                 JOIN users u ON u.id = s.user_id
-                 WHERE s.session_hash = :session_hash
-                   AND s.expires_at > CURRENT_TIMESTAMP
-                   AND u.status = \'Active\'
-                 LIMIT 1'
-            );
-            $statement->execute(['session_hash' => $sessionHash]);
-            if ($sessionHash === '' || !$statement->fetchColumn()) {
-                header('Location: login', true, 302);
-                exit;
-            }
+        $sessionHash = (string) ($_SESSION['auth_token_hash'] ?? '');
+        $navigationUser = $sessionHash === '' ? null : $this->repository->userBySessionHash($sessionHash);
+        if (in_array($page, self::PROTECTED, true) && $navigationUser === null) {
+            header('Location: login', true, 302);
+            exit;
+        }
+        if ($navigationUser !== null && !$this->repository->canAccessPage($navigationUser, $page)) {
+            http_response_code(403);
+            require dirname(__DIR__, 2) . '/views/403.php';
+            exit;
         }
 
+        $userCanViewModule = fn (string $module): bool => $navigationUser !== null
+            && $this->repository->canViewModule($navigationUser, $module);
         require dirname(__DIR__, 2) . '/views/pages/' . $page . '.php';
         exit;
     }

@@ -17,7 +17,7 @@ The build writes `dist/assets/app.js` and `dist/assets/app.css`. Rebuild after c
 
 ## Record tables
 
-Incoming, outgoing, Dockets Issuances, and Dockets Mapping tables display every data column from their corresponding workbook sheet, in the same order and with the same headings. The FOI table keeps a compact summary and expands each record to show all workbook fields. Its row actions separately download the blank official FOI form or generate a filled PDF from that record for preview and printing. The generated form opens in an in-page preview; use its Print button after the preview loads. The filled-PDF action retrieves the template through a PHP endpoint with an explicit PDF content type. Application-only action controls remain separate. User and activity tables show their application fields. Tables show 10 rows per page by default, with controls to choose 25 or 50 rows. Search and filter changes return to the first page. Wide sheets scroll horizontally on desktop; on small screens each cell displays its column label.
+Incoming, outgoing, Dockets Issuances, and Dockets Mapping tables show a compact summary row that expands to display every data column from the corresponding workbook sheet, in the same order and with the same headings. The FOI table uses the same summary-and-expand pattern. Its row actions separately download the blank official FOI form or generate a filled PDF from that record for preview and printing. The generated form opens in an in-page preview; use its Print button after the preview loads. The filled-PDF action retrieves the template through a PHP endpoint with an explicit PDF content type. Application-only action controls remain separate. User and activity tables show their application fields. Tables show 10 rows per page by default, with controls to choose 25 or 50 rows. Search and filter changes return to the first page. Wide sheets scroll horizontally on desktop; on small screens each cell displays its column label.
 
 ## First-time database setup
 
@@ -85,4 +85,14 @@ The API entry point is `api/index.php`; the page front controller is `index.php`
 
 Mutating requests require the `X-CSRF-Token` header returned by `csrf` or `login`. PHP sessions and hashed session tokens are validated against MySQL. Record operations enforce role, office, module permissions, and record-version checks.
 
-Successful MySQL writes are not rolled back if the optional spreadsheet mirror is unavailable. Instead, the API reports a mirror warning and retries the queued MySQL snapshot later. Spreadsheet changes are never read back into MySQL.
+### Role-based access control
+
+- **SuperAdmin** has full module access and can read records and dashboard statistics across all offices, as well as manage users and activity system-wide.
+- **OfficeAdmin** can manage accounts and view activity only in their own office. They can grant module permissions to same-office accounts, but cannot create or promote anyone to SuperAdmin.
+- **OfficeStaff** can access only the modules and actions explicitly granted in their account.
+- In User Management, selecting **OfficeStaff** defaults to View on every listed module; **OfficeAdmin** defaults to all listed module actions; and **SuperAdmin** displays all module actions checked and locked. OfficeStaff and OfficeAdmin defaults can be adjusted before saving.
+- Module grants use `module:view`, `module:create`, `module:edit`, and `module:delete`. The active PHP API modules are Incoming, Outgoing, Dockets Issuances, Dockets Mapping, and FOI. Records Master List and Records Transfer permission codes are retained for their corresponding module cards, but those destinations do not yet have PHP pages or API-backed record operations.
+
+Module view grants control both the shared navigation and direct page access. Users must be signed in to access protected module pages; account management and activity history are limited to SuperAdmin and OfficeAdmin. By default, non-SuperAdmin record reads and writes are scoped to the actor's office. SuperAdmin can separately grant `records:all_offices:view` to let an account read records and dashboard statistics across offices for modules where it has `module:view`; changes remain restricted to the account's own office.
+
+MySQL is the authoritative source for displayed records. Successful MySQL writes are not rolled back if the optional spreadsheet mirror is unavailable; the API reports a mirror warning and retries the queued MySQL snapshot later. Spreadsheet changes are never read back into MySQL, so historical division records must be imported into MySQL before they can appear in the application.

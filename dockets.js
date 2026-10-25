@@ -47,6 +47,7 @@ let editingIndex = -1;
 
 const tbody =
 document.getElementById("recordsBody");
+TablePagination.bindDetails(tbody);
 
 const form =
 document.getElementById("documentForm");
@@ -189,30 +190,46 @@ function renderTable(data = documents){
 
     TablePagination.render(tbody, data, (doc,index)=>{
 
+        const fragment = document.createDocumentFragment();
         const row=document.createElement("tr");
-        DOCKETS_SPREADSHEET_COLUMNS.forEach(([label, key])=>{
+        TablePagination.makeExpandableRow(row);
+        const summaryColumns = [
+            ["Transaction No.", "transactionNo"],
+            ["Document Name", "documentName"],
+            ["Requested By", "requestedBy"],
+            ["Date of Request", "dateRequest"],
+            ["Status", "status"]
+        ];
+        summaryColumns.forEach(([label, key])=>{
             const cell=document.createElement("td");
             cell.dataset.label=label;
-            cell.textContent=doc[key] == null ? "" : String(doc[key]);
+            cell.textContent=doc[key] == null || doc[key] === "" ? "—" : String(doc[key]);
             row.appendChild(cell);
         });
-
         const actions=document.createElement("td");
         actions.dataset.label="Action";
         actions.className="action-buttons";
-        actions.innerHTML=`
+        actions.innerHTML = `
             <button class="icon-btn view-btn" onclick="viewDocument(${index})" title="View">
                 <i class="fa-solid fa-eye"></i>
             </button>
-            <button class="icon-btn edit-btn" onclick="editDocument(${index})" title="Edit">
-                <i class="fa-solid fa-pen"></i>
-            </button>
-            <button class="icon-btn delete-btn" onclick="deleteDocument(${index})" title="Delete">
-                <i class="fa-solid fa-trash"></i>
-            </button>`;
+            ${canEditRecordInOwnOffice(doc) ? `
+                <button class="icon-btn edit-btn" onclick="editDocument(${index})" title="Edit">
+                    <i class="fa-solid fa-pen"></i>
+                </button>
+                <button class="icon-btn delete-btn" onclick="deleteDocument(${index})" title="Delete">
+                    <i class="fa-solid fa-trash"></i>
+                </button>` : ""}`;
         row.appendChild(actions);
 
-        return row;
+        fragment.append(
+            row,
+            TablePagination.createDetailsRow([
+                ["Record Office", doc._recordOffice],
+                ...DOCKETS_SPREADSHEET_COLUMNS.map(([label, key]) => [label, doc[key]])
+            ], summaryColumns.length + 1)
+        );
+        return fragment;
     });
 
 }
@@ -458,7 +475,7 @@ async function updateDocument(doc){
     formData.append("action","update");
     formData.append("module", MODULE_NAME);
     formData.append("sheet",SHEET_NAME);
-    formData.append("office", getRequestOffice());
+    formData.append("office", getRecordOffice(doc));
     formData.append("idField", "transactionNo");
     formData.append("idValue", doc.transactionNo);
     formData.append("_syncVersion", doc._syncVersion);
@@ -505,7 +522,7 @@ async function deleteDocument(index){
     formData.append("action","delete");
     formData.append("module", MODULE_NAME);
     formData.append("sheet",SHEET_NAME);
-    formData.append("office", getRequestOffice());
+    formData.append("office", getRecordOffice(doc));
     formData.append("idField", "transactionNo");
     formData.append("idValue", doc.transactionNo);
     formData.append("_syncVersion", doc._syncVersion);

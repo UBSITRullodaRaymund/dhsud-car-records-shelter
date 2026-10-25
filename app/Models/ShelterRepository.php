@@ -7,12 +7,24 @@ use PDO;
 
 final class ShelterRepository
 {
+    public const CROSS_OFFICE_READ_PERMISSION = 'records:all_offices:view';
+
     public const MODULES = [
         'incoming' => 'Incoming Documents',
         'outgoing' => 'Outgoing Documents',
         'dockets' => 'Dockets Issuances',
         'docketsMapping' => 'Dockets Mapping',
         'foi' => 'FOI',
+    ];
+
+    public const PERMISSION_MODULES = [
+        'incoming',
+        'outgoing',
+        'dockets',
+        'docketsMapping',
+        'recordsMasterList',
+        'recordsTransfer',
+        'foi',
     ];
 
     public const OFFICES = [
@@ -73,16 +85,15 @@ final class ShelterRepository
         return $this->publicUser($row);
     }
 
-    public function createSession(int $userId, string $sessionHash, string $expiresAt): void
+    public function createSession(int $userId, string $sessionHash): void
     {
         $statement = $this->db->prepare(
             'INSERT INTO auth_sessions (session_hash, user_id, expires_at)
-             VALUES (:session_hash, :user_id, :expires_at)'
+             VALUES (:session_hash, :user_id, DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 8 HOUR))'
         );
         $statement->execute([
             'session_hash' => $sessionHash,
             'user_id' => $userId,
-            'expires_at' => $expiresAt,
         ]);
     }
 
@@ -146,6 +157,10 @@ final class ShelterRepository
             && ($office !== $actor['office'] || $role === 'SuperAdmin')) {
             throw new \DomainException('You can only create non-Super Admin accounts for your own office.');
         }
+        if ($actor['role'] !== 'SuperAdmin'
+            && in_array(self::CROSS_OFFICE_READ_PERMISSION, $permissions, true)) {
+            throw new \DomainException('Only a Super Admin can grant cross-office read access.');
+        }
 
         $statement = $this->db->prepare(
             'INSERT INTO users (email, password_hash, full_name, role, office, status, permissions)
@@ -191,7 +206,8 @@ final class ShelterRepository
         $office = trim((string) ($input['office'] ?? $target['office']));
         $role = trim((string) ($input['role'] ?? $target['role']));
         $status = trim((string) ($input['status'] ?? $target['status']));
-        $permissions = $this->validatedPermissions((string) ($input['permissions'] ?? implode(',', self::decodePermissions($target['permissions']))));
+        $currentPermissions = self::decodePermissions($target['permissions']);
+        $permissions = $this->validatedPermissions((string) ($input['permissions'] ?? implode(',', $currentPermissions)));
         $password = (string) ($input['password'] ?? '');
         if ($fullName === '' || strlen($fullName) > 255
             || !in_array($office, self::OFFICES, true)
@@ -203,6 +219,11 @@ final class ShelterRepository
         if ($actor['role'] !== 'SuperAdmin'
             && ($office !== $actor['office'] || $role === 'SuperAdmin')) {
             throw new \DomainException('You can only assign accounts to your own office and cannot grant Super Admin.');
+        }
+        if ($actor['role'] !== 'SuperAdmin'
+            && in_array(self::CROSS_OFFICE_READ_PERMISSION, $permissions, true)
+            && !in_array(self::CROSS_OFFICE_READ_PERMISSION, $currentPermissions, true)) {
+            throw new \DomainException('Only a Super Admin can grant cross-office read access.');
         }
 
         $sql = 'UPDATE users SET full_name = :full_name, office = :office, role = :role, status = :status,
@@ -294,11 +315,18 @@ final class ShelterRepository
     public function listRecords(array $actor, string $module, string $office): array
     {
         $this->requireModule($actor, $module, 'view');
-        $office = $this->resolveOffice($actor, $office);
-        $statement = $this->db->prepare(
-            'SELECT id, record_data FROM records WHERE module = :module AND office = :office ORDER BY id FOR UPDATE'
-        );
-        $statement->execute(['module' => $module, 'office' => $office]);
+        if ($this->canReadAllOffices($actor)) {
+            $statement = $this->db->prepare(
+                'SELECT id, office, record_data FROM records WHERE module = :module ORDER BY id'
+            );
+            $statement->execute(['module' => $module]);
+        } else {
+            $office = $this->resolveOffice($actor, $office);
+            $statement = $this->db->prepare(
+                'SELECT id, office, record_data FROM records WHERE module = :module AND office = :office ORDER BY id'
+            );
+            $statement->execute(['module' => $module, 'office' => $office]);
+        }
         $records = [];
         foreach ($statement->fetchAll() as $row) {
             $record = json_decode($row['record_data'], true, 512, JSON_THROW_ON_ERROR);
@@ -306,6 +334,7 @@ final class ShelterRepository
                 continue;
             }
             $record['_syncVersion'] = $this->recordVersion($record);
+            $record['_recordOffice'] = (string) $row['office'];
             $records[] = $record;
         }
         return $records;
@@ -365,7 +394,8 @@ final class ShelterRepository
 
     public function dashboardStats(array $actor, string $requestedOffice): array
     {
-        $office = $this->resolveOffice($actor, $requestedOffice);
+        $allOffices = $this->canReadAllOffices($actor);
+        $office = $allOffices ? 'All offices' : $this->resolveOffice($actor, $requestedOffice);
         $modules = [];
         $totals = ['In progress' => 0, 'Pending' => 0, 'Completed' => 0, 'Other' => 0];
         foreach (self::MODULES as $module => $_sheet) {
@@ -373,8 +403,13 @@ final class ShelterRepository
                 $modules[$module] = ['allowed' => false];
                 continue;
             }
-            $statement = $this->db->prepare('SELECT record_data FROM records WHERE module = :module AND office = :office');
-            $statement->execute(['module' => $module, 'office' => $office]);
+            if ($allOffices) {
+                $statement = $this->db->prepare('SELECT record_data FROM records WHERE module = :module');
+                $statement->execute(['module' => $module]);
+            } else {
+                $statement = $this->db->prepare('SELECT record_data FROM records WHERE module = :module AND office = :office');
+                $statement->execute(['module' => $module, 'office' => $office]);
+            }
             $statuses = ['In progress' => 0, 'Pending' => 0, 'Completed' => 0, 'Other' => 0];
             $count = 0;
             foreach ($statement->fetchAll(PDO::FETCH_COLUMN) as $json) {
@@ -442,6 +477,42 @@ final class ShelterRepository
         }
     }
 
+    public function canViewModule(array $actor, string $module): bool
+    {
+        return in_array($module, self::PERMISSION_MODULES, true)
+            && $this->hasPermission($actor, $module . ':view');
+    }
+
+    public function canAccessPage(array $actor, string $page): bool
+    {
+        if (in_array($page, ['users', 'activity-log'], true)) {
+            return in_array($actor['role'] ?? '', ['SuperAdmin', 'OfficeAdmin'], true);
+        }
+
+        $pageModules = match ($page) {
+            'incoming' => ['incoming'],
+            'outgoing' => ['outgoing'],
+            'dockets' => ['dockets'],
+            'dockets-mapping' => ['docketsMapping'],
+            'foi' => ['foi'],
+            'documents' => ['incoming', 'outgoing', 'dockets'],
+            'requests' => ['foi'],
+            'records' => self::PERMISSION_MODULES,
+            default => [],
+        };
+
+        if ($pageModules === []) {
+            return true;
+        }
+
+        foreach ($pageModules as $module) {
+            if ($this->canViewModule($actor, $module)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public function resolveOffice(array $actor, string $requestedOffice): string
     {
         if ($actor['role'] !== 'SuperAdmin') {
@@ -466,19 +537,27 @@ final class ShelterRepository
             || in_array($permission, $actor['permissions'] ?? [], true);
     }
 
+    private function hasCrossOfficeRead(array $actor): bool
+    {
+        return ($actor['role'] ?? '') !== 'SuperAdmin'
+            && $this->hasPermission($actor, self::CROSS_OFFICE_READ_PERMISSION);
+    }
+
+    private function canReadAllOffices(array $actor): bool
+    {
+        return ($actor['role'] ?? '') === 'SuperAdmin'
+            || $this->hasCrossOfficeRead($actor);
+    }
+
     private function validatedPermissions(string $raw): array
     {
         $known = [];
-        foreach (array_keys(self::MODULES) as $module) {
+        foreach (self::PERMISSION_MODULES as $module) {
             foreach (['view', 'create', 'edit', 'delete'] as $action) {
                 $known[] = $module . ':' . $action;
             }
         }
-        foreach (['recordsMasterList', 'recordsTransfer'] as $module) {
-            foreach (['view', 'create', 'edit', 'delete'] as $action) {
-                $known[] = $module . ':' . $action;
-            }
-        }
+        $known[] = self::CROSS_OFFICE_READ_PERMISSION;
         $permissions = array_values(array_unique(array_filter(array_map('trim', explode(',', $raw)))));
         foreach ($permissions as $permission) {
             if (!in_array($permission, $known, true)) {
@@ -529,7 +608,7 @@ final class ShelterRepository
     {
         $reserved = [
             'action', 'module', 'sheet', 'office', 'token', 'csrfToken',
-            'idField', 'idValue', '_syncVersion', 'syncVersion',
+            'idField', 'idValue', '_syncVersion', '_recordOffice', 'syncVersion',
         ];
         $data = [];
         foreach ($input as $key => $value) {

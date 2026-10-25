@@ -73,6 +73,7 @@ and dockets issuances in one place.
 
 <section class="documents-container">
 
+<?php if ($userCanViewModule('incoming')): ?>
 <div class="doc-card">
 
 <div class="doc-icon">
@@ -106,7 +107,9 @@ Open
 </div>
 
 </div>
+<?php endif; ?>
 
+<?php if ($userCanViewModule('outgoing')): ?>
 <div class="doc-card">
 
 <div class="doc-icon">
@@ -140,7 +143,9 @@ Open
 </div>
 
 </div>
+<?php endif; ?>
 
+<?php if ($userCanViewModule('dockets')): ?>
 <div class="doc-card">
 
 <div class="doc-icon">
@@ -174,6 +179,7 @@ Open
 </div>
 
 </div>
+<?php endif; ?>
 
 </section>
 

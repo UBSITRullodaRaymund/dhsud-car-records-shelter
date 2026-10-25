@@ -107,5 +107,71 @@
         if (state) state.page = 1;
     }
 
-    window.TablePagination = { render, reset };
+    function makeExpandableRow(row) {
+        row.classList.add("record-summary-row");
+        row.tabIndex = 0;
+        row.setAttribute("aria-expanded", "false");
+        row.setAttribute("aria-label", "Show complete record");
+        return row;
+    }
+
+    function createDetailsRow(fields, colSpan) {
+        const row = document.createElement("tr");
+        row.className = "record-details-row";
+        row.hidden = true;
+
+        const cell = document.createElement("td");
+        cell.colSpan = colSpan;
+
+        const details = document.createElement("dl");
+        details.className = "record-details";
+        fields.forEach(([label, value]) => {
+            const term = document.createElement("dt");
+            term.textContent = label || "Unlabeled workbook field";
+
+            const description = document.createElement("dd");
+            if (value instanceof Node) {
+                description.appendChild(value);
+            } else {
+                description.textContent = value == null || value === "" ? "—" : String(value);
+            }
+
+            details.append(term, description);
+        });
+
+        cell.appendChild(details);
+        row.appendChild(cell);
+        return row;
+    }
+
+    function bindDetails(tbody) {
+        tbody.addEventListener("click", event => {
+            const row = event.target.closest("tr.record-summary-row");
+            if (!row || !tbody.contains(row) || event.target.closest("a, button, input, select, textarea, label, [contenteditable='true']")) {
+                return;
+            }
+            toggleDetails(row);
+        });
+
+        tbody.addEventListener("keydown", event => {
+            const row = event.target.closest("tr.record-summary-row");
+            if (!row || event.target !== row || (event.key !== "Enter" && event.key !== " ")) return;
+            event.preventDefault();
+            toggleDetails(row);
+        });
+    }
+
+    function toggleDetails(row) {
+        const detailsRow = row.nextElementSibling;
+        if (!detailsRow || !detailsRow.classList.contains("record-details-row")) return;
+
+        detailsRow.hidden = !detailsRow.hidden;
+        const expanded = !detailsRow.hidden;
+        const label = expanded ? "Hide complete record" : "Show complete record";
+        row.setAttribute("aria-expanded", String(expanded));
+        row.setAttribute("aria-label", label);
+        row.title = label;
+    }
+
+    window.TablePagination = { render, reset, makeExpandableRow, createDetailsRow, bindDetails };
 })();

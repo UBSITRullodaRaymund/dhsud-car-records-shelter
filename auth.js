@@ -57,6 +57,21 @@ function getRequestOffice() {
     return user && user.office ? user.office : DEFAULT_REQUEST_OFFICE;
 }
 
+function canEditRecordInOwnOffice(record) {
+    const user = getCurrentUser();
+    return !record || !record._recordOffice || !user
+        || user.role === "SuperAdmin"
+        || record._recordOffice === user.office;
+}
+
+function getRecordOffice(record) {
+    const user = getCurrentUser();
+    if (user && user.role === "SuperAdmin" && record && record._recordOffice) {
+        return record._recordOffice;
+    }
+    return getRequestOffice();
+}
+
 function clearSession() {
     localStorage.removeItem(SESSION_KEY);
     sessionStorage.removeItem(SESSION_KEY);

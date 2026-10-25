@@ -322,23 +322,12 @@
 
             <tr>
               <th>ROUTING SLIP NO</th>
-              <th>DATE OF DOCUMENT</th>
               <th>DATE RECEIVED</th>
               <th>SENDER</th>
-              <th>SIGNATORY</th>
-              <th>MODE OF COMMUNICATION</th>
               <th>SUBJECT</th>
-              <th>DATE RELEASED</th>
-              <th>FROM</th>
               <th>TO</th>
-              <th>ACTION NO.</th>
-              <th>COMMENTS/ REMARKS</th>
-              <th>RECEIVED BY</th>
-              <th>E-MAIL ADD</th>
-              <th>DEADLINE</th>
               <th>STATUS</th>
-              <th>REMINDER SENT</th>
-              <th>Date Completed</th>
+              <th>Action</th>
 
             </tr>
 
@@ -349,7 +338,7 @@
             <tr>
 
               <td
-                colspan="12"
+                colspan="7"
                 class="empty-cell"
               >
                 No documents found.
@@ -393,7 +382,7 @@
   <script src="auth.js"></script>
   <script src="table-pagination.js?v=<?= filemtime(__DIR__ . '/../../table-pagination.js') ?>"></script>
   <script
-    src="outgoing.js"
+    src="outgoing.js?v=<?= filemtime(__DIR__ . '/../../outgoing.js') ?>"
     defer
   ></script>
 

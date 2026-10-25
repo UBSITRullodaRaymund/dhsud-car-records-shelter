@@ -123,8 +123,7 @@ final class MySqlApiController
 
             $clientToken = bin2hex(random_bytes(32));
             $tokenHash = hash('sha256', $clientToken);
-            $expiresAt = date('Y-m-d H:i:s', time() + 8 * 60 * 60);
-            $this->repository->createSession($userId, $tokenHash, $expiresAt);
+            $this->repository->createSession($userId, $tokenHash);
 
             session_regenerate_id(true);
             $_SESSION['auth_token_hash'] = $tokenHash;

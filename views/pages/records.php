@@ -122,175 +122,60 @@
     <div class="records-list">
 
 
-        <!-- DOCUMENTS MONITORING -->
-
+        <?php if ($userCanViewModule('incoming') || $userCanViewModule('outgoing') || $userCanViewModule('dockets')): ?>
         <div class="records-module-card">
-
-            <div class="records-module-icon">
-
-                <i class="fa-solid fa-folder-tree"></i>
-
-            </div>
-
+            <div class="records-module-icon"><i class="fa-solid fa-folder-tree"></i></div>
             <div class="records-module-content">
-
-                <h3>
-                    Documents Monitoring
-                </h3>
-
-                <p>
-                    Monitor all official incoming documents,
-                    outgoing documents, and document issuances
-                    in one place.
-                </p>
-
+                <h3>Documents Monitoring</h3>
+                <p>Monitor all official incoming documents, outgoing documents, and document issuances in one place.</p>
             </div>
-
-            <button onclick="window.location.href='documents'">
-
-                Open
-
-                <i class="fa-solid fa-arrow-right"></i>
-
-            </button>
-
+            <button onclick="window.location.href='documents'">Open <i class="fa-solid fa-arrow-right"></i></button>
         </div>
+        <?php endif; ?>
 
-
-        <!-- REQUESTS -->
-
+        <?php if ($userCanViewModule('foi')): ?>
         <div class="records-module-card">
-
-            <div class="records-module-icon">
-
-                <i class="fa-solid fa-file-circle-question"></i>
-
-            </div>
-
+            <div class="records-module-icon"><i class="fa-solid fa-file-circle-question"></i></div>
             <div class="records-module-content">
-
-                <h3>
-                    Requests
-                </h3>
-
-                <p>
-                    Manage FOI, Billing, Certified True Copy,
-                    Receiving, and other records-related requests.
-                </p>
-
+                <h3>Requests</h3>
+                <p>Manage FOI, Billing, Certified True Copy, Receiving, and other records-related requests.</p>
             </div>
-
-            <button onclick="window.location.href='requests'">
-
-                Open
-
-                <i class="fa-solid fa-arrow-right"></i>
-
-            </button>
-
+            <button onclick="window.location.href='requests'">Open <i class="fa-solid fa-arrow-right"></i></button>
         </div>
+        <?php endif; ?>
 
-
-        <!-- DOCKETS MAPPING -->
-
+        <?php if ($userCanViewModule('docketsMapping')): ?>
         <div class="records-module-card">
-
-            <div class="records-module-icon">
-
-                <i class="fa-solid fa-map-location-dot"></i>
-
-            </div>
-
+            <div class="records-module-icon"><i class="fa-solid fa-map-location-dot"></i></div>
             <div class="records-module-content">
-
-                <h3>
-                    Dockets Mapping
-                </h3>
-
-                <p>
-                    Search, locate, and organize official
-                    dockets and their corresponding records.
-                </p>
-
+                <h3>Dockets Mapping</h3>
+                <p>Search, locate, and organize official dockets and their corresponding records.</p>
             </div>
-
-            <button onclick="window.location.href='dockets-mapping'">
-
-                Open
-
-                <i class="fa-solid fa-arrow-right"></i>
-
-            </button>
-
+            <button onclick="window.location.href='dockets-mapping'">Open <i class="fa-solid fa-arrow-right"></i></button>
         </div>
+        <?php endif; ?>
 
-
-        <!-- RECORDS MASTER LIST -->
-
+        <?php if ($userCanViewModule('recordsMasterList')): ?>
         <div class="records-module-card">
-
-            <div class="records-module-icon">
-
-                <i class="fa-solid fa-book-open"></i>
-
-            </div>
-
+            <div class="records-module-icon"><i class="fa-solid fa-book-open"></i></div>
             <div class="records-module-content">
-
-                <h3>
-                    Records Master List
-                </h3>
-
-                <p>
-                    Manage records inventory, registries,
-                    and the masterlist of official records.
-                </p>
-
+                <h3>Records Master List</h3>
+                <p>Manage records inventory, registries, and the masterlist of official records.</p>
             </div>
-
-            <button onclick="window.location.href='records-masterlist'">
-
-                Open
-
-                <i class="fa-solid fa-arrow-right"></i>
-
-            </button>
-
+            <button onclick="window.location.href='records-masterlist'">Open <i class="fa-solid fa-arrow-right"></i></button>
         </div>
+        <?php endif; ?>
 
-
-        <!-- RECORDS TRANSFER CUSTODY -->
-
+        <?php if ($userCanViewModule('recordsTransfer')): ?>
         <div class="records-module-card">
-
-            <div class="records-module-icon">
-
-                <i class="fa-solid fa-boxes-packing"></i>
-
-            </div>
-
+            <div class="records-module-icon"><i class="fa-solid fa-boxes-packing"></i></div>
             <div class="records-module-content">
-
-                <h3>
-                    Records Transfer Custody
-                </h3>
-
-                <p>
-                    Track the transfer, receiving, and custody
-                    of official DHSUD-CAR records.
-                </p>
-
+                <h3>Records Transfer Custody</h3>
+                <p>Track the transfer, receiving, and custody of official DHSUD-CAR records.</p>
             </div>
-
-            <button onclick="window.location.href='records-transfer'">
-
-                Open
-
-                <i class="fa-solid fa-arrow-right"></i>
-
-            </button>
-
+            <button onclick="window.location.href='records-transfer'">Open <i class="fa-solid fa-arrow-right"></i></button>
         </div>
+        <?php endif; ?>
 
 
     </div>

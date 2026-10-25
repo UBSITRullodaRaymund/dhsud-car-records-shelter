@@ -16,6 +16,11 @@ const MODULES = [
 ];
 
 const ACTIONS = ["view", "create", "edit", "delete"];
+const ROLE_PERMISSION_PRESETS = {
+    OfficeStaff: MODULES.map(module => `${module.key}:view`),
+    OfficeAdmin: MODULES.flatMap(module => ACTIONS.map(action => `${module.key}:${action}`)),
+    SuperAdmin: MODULES.flatMap(module => ACTIONS.map(action => `${module.key}:${action}`))
+};
 
 let users = [];
 let editingEmail = null;
@@ -28,6 +33,7 @@ const permissionsBody = document.querySelector("#permissionsTable tbody");
 window.onload = function () {
     renderUserMenu("userMenu");
     buildPermissionsGrid();
+    document.getElementById("role").addEventListener("change", () => applyRolePermissionPreset());
     loadUsers();
 };
 
@@ -58,14 +64,38 @@ function buildPermissionsGrid() {
 }
 
 function getCheckedPermissions() {
-    return Array.from(document.querySelectorAll(".perm-checkbox"))
+    const permissions = Array.from(document.querySelectorAll(".perm-checkbox"))
         .filter(cb => cb.checked)
         .map(cb => cb.dataset.code);
+    if (document.getElementById("allOfficesRead").checked) {
+        permissions.push("records:all_offices:view");
+    }
+    return permissions;
 }
 
 function setCheckedPermissions(codes) {
     document.querySelectorAll(".perm-checkbox").forEach(cb => {
         cb.checked = codes.includes(cb.dataset.code);
+    });
+    document.getElementById("allOfficesRead").checked = codes.includes("records:all_offices:view");
+}
+
+function applyRolePermissionPreset() {
+    const role = document.getElementById("role").value;
+    const isSuperAdmin = role === "SuperAdmin";
+    const preset = ROLE_PERMISSION_PRESETS[role] || [];
+
+    document.querySelectorAll(".perm-checkbox").forEach(checkbox => {
+        checkbox.disabled = isSuperAdmin;
+        checkbox.checked = isSuperAdmin || preset.includes(checkbox.dataset.code);
+    });
+}
+
+function setRolePermissionControlState() {
+    const isSuperAdmin = document.getElementById("role").value === "SuperAdmin";
+    document.querySelectorAll(".perm-checkbox").forEach(checkbox => {
+        checkbox.disabled = isSuperAdmin;
+        if (isSuperAdmin) checkbox.checked = true;
     });
 }
 
@@ -126,6 +156,7 @@ function openModal() {
     editingEmail = null;
     form.reset();
     setCheckedPermissions([]);
+    applyRolePermissionPreset();
     document.getElementById("modalTitle").textContent = "New Account";
     document.getElementById("password").required = true;
     document.getElementById("password").placeholder = "Set an initial password";
@@ -153,6 +184,7 @@ function editUser(index) {
     document.getElementById("status").value = u.status;
 
     setCheckedPermissions(u.permissions || []);
+    setRolePermissionControlState();
 
     modal.style.display = "flex";
 }

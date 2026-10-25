@@ -146,6 +146,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
 function setupEvents() {
 
+  TablePagination.bindDetails(
+    document.getElementById("departmentDocumentsBody")
+  );
+
   const mainSearch =
     document.getElementById("outgoingSearch");
 
@@ -1764,14 +1768,33 @@ function renderDepartmentDocuments(
 
 
   TablePagination.render(body, departmentDocumentList, function (doc) {
+    const fragment = document.createDocumentFragment();
     const row = document.createElement("tr");
-    OUTGOING_SPREADSHEET_COLUMNS.forEach(([label, key]) => {
+    TablePagination.makeExpandableRow(row);
+    const summaryColumns = [
+      ["ROUTING SLIP NO", "routingSlipNo"],
+      ["DATE RECEIVED", "dateReceived"],
+      ["SENDER", "sender"],
+      ["SUBJECT", "subject"],
+      ["TO", "to"],
+      ["STATUS", "status"]
+    ];
+    summaryColumns.forEach(([label, key]) => {
       const cell = document.createElement("td");
       cell.dataset.label = label;
-      cell.textContent = doc[key] == null ? "" : String(doc[key]);
+      cell.textContent = doc[key] == null || doc[key] === "" ? "—" : String(doc[key]);
       row.appendChild(cell);
     });
-    return row;
+    const actions = document.createElement("td");
+    actions.dataset.label = "Action";
+    actions.className = "action-buttons";
+    row.appendChild(actions);
+
+    fragment.append(
+      row,
+      TablePagination.createDetailsRow(OUTGOING_SPREADSHEET_COLUMNS.map(([label, key]) => [label, doc[key]]), summaryColumns.length + 1)
+    );
+    return fragment;
   });
 
 }

@@ -1,10 +1,14 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 
-defineProps({
+const props = defineProps({
     currentPage: {
         type: String,
         required: true,
+    },
+    currentUser: {
+        type: Object,
+        default: null,
     },
 });
 
@@ -22,30 +26,60 @@ const links = [
     { page: "activity-log", href: "activity-log", label: "Activity Log", icon: "fa-clock-rotate-left" },
 ];
 
+const navigationPermissions = {
+    documents: ["incoming:view", "outgoing:view", "dockets:view"],
+    incoming: ["incoming:view"],
+    outgoing: ["outgoing:view"],
+    dockets: ["dockets:view"],
+    "dockets-mapping": ["docketsMapping:view"],
+    records: [
+        "incoming:view",
+        "outgoing:view",
+        "dockets:view",
+        "docketsMapping:view",
+        "recordsMasterList:view",
+        "recordsTransfer:view",
+        "foi:view",
+    ],
+    requests: ["foi:view"],
+    foi: ["foi:view"],
+};
+
+const knownPages = new Set([...links.map(link => link.page), "profile", "login"]);
+const activePage = computed(() => {
+    const pathPage = decodeURIComponent(window.location.pathname)
+        .split("/")
+        .filter(Boolean)
+        .at(-1);
+    return pathPage && knownPages.has(pathPage) ? pathPage : props.currentPage;
+});
+
 const mobileOpen = ref(false);
 const collapsed = ref(localStorage.getItem("dhsud_navigation_collapsed") === "true");
-const userDetails = ref(readUserDetails());
+const userDetails = ref(props.currentUser);
 const signedIn = computed(() => Boolean(userDetails.value));
+const visibleLinks = computed(() => links.filter(link => {
+    if (link.page === "index") {
+        return true;
+    }
+    if (!signedIn.value) {
+        return false;
+    }
+    if (["users", "activity-log"].includes(link.page)) {
+        return ["SuperAdmin", "OfficeAdmin"].includes(userDetails.value.role);
+    }
+    if (userDetails.value.role === "SuperAdmin") {
+        return true;
+    }
+    const requiredPermissions = navigationPermissions[link.page] || [];
+    return requiredPermissions.some(permission => userDetails.value.permissions?.includes(permission));
+}));
 const userInitials = computed(() => {
     const name = userDetails.value?.fullName || userDetails.value?.email || "User";
     return name.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join("").toUpperCase();
 });
-const mobileQuery = window.matchMedia("(max-width: 760px)");
+const mobileQuery = window.matchMedia("(max-width: 900px)");
 const isMobile = ref(mobileQuery.matches);
-
-function readUserDetails() {
-    if (typeof window.getCurrentUser === "function") {
-        return window.getCurrentUser();
-    }
-
-    try {
-        const rawSession = localStorage.getItem("dhsud_session") || sessionStorage.getItem("dhsud_session");
-        const session = rawSession ? JSON.parse(rawSession) : null;
-        return session?.token && session.user ? session.user : null;
-    } catch {
-        return null;
-    }
-}
 
 function readStoredSession() {
     try {
@@ -88,7 +122,21 @@ function onKeydown(event) {
 }
 
 function refreshSession() {
-    userDetails.value = readUserDetails();
+    fetch("api/index.php?action=session", { credentials: "same-origin" })
+        .then(async response => {
+            if (response.status === 401) {
+                userDetails.value = null;
+                return;
+            }
+            if (!response.ok) {
+                throw new Error(`Session refresh failed with status ${response.status}.`);
+            }
+            const result = await response.json();
+            userDetails.value = result.user ?? null;
+        })
+        .catch(error => {
+            console.error("Unable to refresh navigation permissions.", error);
+        });
 }
 
 async function logOut() {
@@ -161,7 +209,7 @@ onBeforeUnmount(() => {
                 class="nav-account flex min-h-[5.75rem] items-center gap-3 border-b border-white/10 px-3 no-underline transition-colors hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-sky-300"
                 :class="collapsed && !isMobile ? 'justify-center' : ''"
                 :title="collapsed && !isMobile ? [userDetails?.fullName, userDetails?.role, userDetails?.office].filter(Boolean).join(' · ') || 'Guest' : undefined"
-                :aria-current="currentPage === 'profile' ? 'page' : undefined"
+                :aria-current="activePage === 'profile' ? 'page' : undefined"
                 aria-label="View profile"
             >
                 <span class="nav-account-avatar grid h-10 w-10 shrink-0 place-items-center rounded-full text-sm font-bold" aria-hidden="true">
@@ -181,13 +229,13 @@ onBeforeUnmount(() => {
             </a>
             <nav class="flex-1 space-y-1 overflow-y-auto px-2 py-4" aria-label="Shelter sections">
                 <a
-                    v-for="link in links"
+                    v-for="link in visibleLinks"
                     :key="link.page"
                     :href="link.href"
                     :title="collapsed && !isMobile ? link.label : undefined"
-                    :aria-current="currentPage === link.page ? 'page' : undefined"
+                    :aria-current="activePage === link.page ? 'page' : undefined"
                     class="group flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium no-underline transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
-                    :class="currentPage === link.page ? 'bg-sky-400/15 text-sky-200 ring-1 ring-inset ring-sky-300/15' : 'text-slate-300 hover:bg-white/7 hover:text-white'"
+                    :class="activePage === link.page ? 'nav-link-active' : 'text-slate-300 hover:bg-white/7 hover:text-white'"
                 >
                     <i class="fa-solid w-5 shrink-0 text-center text-base" :class="link.icon" aria-hidden="true"></i>
                     <span v-if="!collapsed || isMobile" class="truncate">{{ link.label }}</span>
@@ -209,6 +257,7 @@ onBeforeUnmount(() => {
                     href="login"
                     class="flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium text-slate-300 no-underline transition-colors hover:bg-white/7 hover:text-white"
                     :title="collapsed && !isMobile ? 'Login' : undefined"
+                    :aria-current="activePage === 'login' ? 'page' : undefined"
                 >
                     <i class="fa-solid fa-right-to-bracket w-5 shrink-0 text-center" aria-hidden="true"></i>
                     <span v-if="!collapsed || isMobile">Login</span>
@@ -217,8 +266,8 @@ onBeforeUnmount(() => {
         </aside>
         <button
             type="button"
-            class="fixed top-4 z-[1202] grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-lg shadow-slate-900/10 transition-[left,background,color] duration-300 hover:bg-sky-50 hover:text-sky-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600 max-[760px]:left-3"
-            :class="mobileOpen ? 'left-[calc(min(18rem,86vw)-3.25rem)] !border-white/10 !bg-slate-900 !text-white' : (isMobile ? 'left-3' : (collapsed ? 'left-[1.15rem]' : 'left-[14.95rem]'))"
+            class="fixed top-4 z-[1202] grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-lg shadow-slate-900/10 transition-[left,background,color] duration-300 hover:bg-sky-50 hover:text-sky-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600"
+            :class="mobileOpen ? 'left-[calc(min(18rem,86vw)-3.25rem)] !border-white/10 !bg-slate-900 !text-white' : (isMobile ? 'left-3' : (collapsed ? 'left-[calc(4.875rem-1.25rem)]' : 'left-[14.95rem]'))"
             :aria-expanded="isMobile ? String(mobileOpen) : String(!collapsed)"
             aria-controls="appNavigation"
             :aria-label="isMobile ? (mobileOpen ? 'Hide navigation' : 'Show navigation') : (collapsed ? 'Expand navigation' : 'Collapse navigation')"

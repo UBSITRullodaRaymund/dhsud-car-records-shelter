@@ -505,6 +505,27 @@ body {
     margin-right: 4px;
 }
 
+.delete-btn {
+    border: none;
+    background: #fff0f0;
+    color: #b42318;
+    padding: 8px 11px;
+    border-radius: 7px;
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.delete-btn:hover {
+    background: #ffe0e0;
+}
+
+.delete-btn i {
+    margin-right: 4px;
+}
+
 
 /* EMPTY */
 
