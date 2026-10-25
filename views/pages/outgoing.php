@@ -16,7 +16,7 @@
     href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
   >
 
-  <link rel="stylesheet" href="outgoing.css">
+  <link rel="stylesheet" href="assets/css/outgoing.css">
 <?php require __DIR__ . '/../partials/navigation-assets.php'; ?>
 </head>
 
@@ -379,10 +379,10 @@
        JAVASCRIPT
   ========================================================== -->
 
-  <script src="auth.js"></script>
-  <script src="table-pagination.js?v=<?= filemtime(__DIR__ . '/../../table-pagination.js') ?>"></script>
+  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/table-pagination.js?v=<?= filemtime(__DIR__ . '/../../assets/js/table-pagination.js') ?>"></script>
   <script
-    src="outgoing.js?v=<?= filemtime(__DIR__ . '/../../outgoing.js') ?>"
+    src="assets/js/outgoing.js?v=<?= filemtime(__DIR__ . '/../../assets/js/outgoing.js') ?>"
     defer
   ></script>
 

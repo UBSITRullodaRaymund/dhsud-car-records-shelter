@@ -11,10 +11,10 @@ if (PHP_SAPI !== 'cli') {
     exit;
 }
 
-require_once dirname(__DIR__) . '/app/Core/Database.php';
-require_once dirname(__DIR__) . '/app/Core/GoogleSheetsBridge.php';
-require_once dirname(__DIR__) . '/app/Models/ShelterRepository.php';
-require_once dirname(__DIR__) . '/app/Models/SpreadsheetSyncQueue.php';
+require_once dirname(__DIR__) . '/includes/Database.php';
+require_once dirname(__DIR__) . '/includes/GoogleSheetsBridge.php';
+require_once dirname(__DIR__) . '/models/ShelterRepository.php';
+require_once dirname(__DIR__) . '/models/SpreadsheetSyncQueue.php';
 
 try {
     $db = Database::connection();
@@ -32,6 +32,11 @@ try {
     );
 
     $queue = new SpreadsheetSyncQueue($db, new GoogleSheetsBridge());
+    if (!$queue->isEnabled()) {
+        fwrite(STDOUT, "Spreadsheet mirror is disabled; existing queued snapshots were left unchanged.\n");
+        exit(0);
+    }
+
     $db->beginTransaction();
     try {
         foreach (array_keys(ShelterRepository::MODULES) as $module) {

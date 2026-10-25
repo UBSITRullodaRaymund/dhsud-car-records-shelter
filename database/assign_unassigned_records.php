@@ -11,10 +11,10 @@ if (PHP_SAPI !== 'cli') {
     exit;
 }
 
-require_once dirname(__DIR__) . '/app/Core/Database.php';
-require_once dirname(__DIR__) . '/app/Core/GoogleSheetsBridge.php';
-require_once dirname(__DIR__) . '/app/Models/ShelterRepository.php';
-require_once dirname(__DIR__) . '/app/Models/SpreadsheetSyncQueue.php';
+require_once dirname(__DIR__) . '/includes/Database.php';
+require_once dirname(__DIR__) . '/includes/GoogleSheetsBridge.php';
+require_once dirname(__DIR__) . '/models/ShelterRepository.php';
+require_once dirname(__DIR__) . '/models/SpreadsheetSyncQueue.php';
 
 $office = '';
 foreach ($argv as $argument) {

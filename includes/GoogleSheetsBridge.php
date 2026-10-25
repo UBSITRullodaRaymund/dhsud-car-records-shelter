@@ -48,6 +48,7 @@ final class GoogleSheetsBridge
         $body = curl_exec($handle);
         $error = curl_error($handle);
         $status = (int) curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
+        $contentType = (string) curl_getinfo($handle, CURLINFO_CONTENT_TYPE);
         curl_close($handle);
 
         if ($body === false || $error !== '') {
@@ -56,7 +57,25 @@ final class GoogleSheetsBridge
 
         $result = json_decode($body, true);
         if (!is_array($result)) {
-            throw new \RuntimeException('Google Apps Script returned an invalid response (HTTP ' . $status . ').');
+            $responseType = stripos($contentType, 'text/html') !== false
+                ? 'HTML'
+                : ($contentType !== '' ? $contentType : 'unknown content type');
+            $responseTitle = '';
+            if ($responseType === 'HTML'
+                && preg_match('/<title\b[^>]*>(.*?)<\/title>/is', $body, $titleMatch) === 1) {
+                $responseTitle = html_entity_decode(
+                    trim(strip_tags($titleMatch[1])),
+                    ENT_QUOTES | ENT_HTML5,
+                    'UTF-8'
+                );
+                $responseTitle = preg_replace('/\s+/', ' ', $responseTitle) ?? '';
+                $responseTitle = mb_substr($responseTitle, 0, 160);
+            }
+            $titleDetail = $responseTitle !== '' ? '; page title: ' . $responseTitle : '';
+            throw new \RuntimeException(
+                'Google Apps Script returned a non-JSON response (HTTP ' . $status . '; content type: '
+                . $responseType . $titleDetail . ').'
+            );
         }
 
         return $result;

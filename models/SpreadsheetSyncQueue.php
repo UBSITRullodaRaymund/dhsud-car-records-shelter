@@ -18,6 +18,10 @@ final class SpreadsheetSyncQueue
 
     public function enqueueSnapshot(string $kind, string $module = ''): void
     {
+        if (!$this->isEnabled()) {
+            return;
+        }
+
         $payload = match ($kind) {
             'records' => $this->recordsSnapshot($module),
             'users' => $this->usersSnapshot(),
@@ -43,6 +47,10 @@ final class SpreadsheetSyncQueue
 
     public function processPending(int $limit = 10): array
     {
+        if (!$this->isEnabled()) {
+            return ['synced' => 0, 'warning' => ''];
+        }
+
         $secret = getenv('DHSUD_MIRROR_SECRET') ?: '';
         if ($secret === '') {
             return ['synced' => 0, 'warning' => 'Spreadsheet mirror is not configured; set DHSUD_MIRROR_SECRET in PHP and Apps Script.'];
@@ -88,6 +96,11 @@ final class SpreadsheetSyncQueue
             'synced' => $synced,
             'warning' => $failed ? 'MySQL is up to date, but the spreadsheet mirror has pending changes and will be retried.' : '',
         ];
+    }
+
+    public function isEnabled(): bool
+    {
+        return getenv('DHSUD_SHEETS_MIRROR_ENABLED') === '1';
     }
 
     private function recordsSnapshot(string $module): array

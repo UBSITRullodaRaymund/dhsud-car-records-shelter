@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Profile | DHSUD-CAR Records Shelter</title>
     <link rel="icon" type="image/png" href="logo.png">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="assets/css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <?php require __DIR__ . '/../partials/navigation-assets.php'; ?>
@@ -115,7 +115,7 @@
     </section>
 </main>
 
-<script src="auth.js"></script>
-<script src="profile.js"></script>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/profile.js"></script>
 </body>
 </html>

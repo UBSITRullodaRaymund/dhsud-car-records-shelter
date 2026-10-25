@@ -8,7 +8,7 @@
 <title>Activity Log | DHSUD-CAR Records Shelter</title>
 <link rel="icon" type="image/png" href="logo.png">
 
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="assets/css/style.css">
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
@@ -106,9 +106,9 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
     <p>Department of Human Settlements and Urban Development</p>
 </footer>
 
-<script src="auth.js"></script>
-<script src="table-pagination.js?v=<?= filemtime(__DIR__ . '/../../table-pagination.js') ?>"></script>
-<script src="activity-log.js"></script>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/table-pagination.js?v=<?= filemtime(__DIR__ . '/../../assets/js/table-pagination.js') ?>"></script>
+<script src="assets/js/activity-log.js"></script>
 
 </body>
 </html>

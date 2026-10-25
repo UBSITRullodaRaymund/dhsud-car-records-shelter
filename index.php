@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/app/Controllers/PageController.php';
-require_once __DIR__ . '/app/Core/Database.php';
+require_once __DIR__ . '/controllers/PageController.php';
+require_once __DIR__ . '/includes/Database.php';
 
 ini_set('session.use_strict_mode', '1');
 ini_set('session.gc_maxlifetime', '28800');

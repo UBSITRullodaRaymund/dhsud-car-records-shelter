@@ -7,7 +7,7 @@
     <title>Dockets Issuances | DHSUD-CAR Records Shelter</title>
     <link rel="icon" type="image/png" href="logo.png">
 
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="assets/css/style.css">
 
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
@@ -664,8 +664,8 @@ Department of Human Settlements and Urban Development
 </body>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="auth.js"></script>
-<script src="table-pagination.js?v=<?= filemtime(__DIR__ . '/../../table-pagination.js') ?>"></script>
-<script src="dockets.js?v=<?= filemtime(__DIR__ . '/../../dockets.js') ?>"></script>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/table-pagination.js?v=<?= filemtime(__DIR__ . '/../../assets/js/table-pagination.js') ?>"></script>
+<script src="assets/js/dockets.js?v=<?= filemtime(__DIR__ . '/../../assets/js/dockets.js') ?>"></script>
 
 </html>

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Access Denied | DHSUD-CAR Records Shelter</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="assets/css/style.css">
     <?php require __DIR__ . '/partials/navigation-assets.php'; ?>
 </head>
 <body class="has-app-navigation">

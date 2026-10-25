@@ -91,12 +91,14 @@ DHSUD-CAR RECORDS SHELTER — USER ACCOUNTS
 .permissions-table-wrap{
     border:1px solid #e4ecf5;
     border-radius:12px;
-    overflow:hidden;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
     margin-bottom:20px;
 }
 
 .permissions-table{
     width:100%;
+    min-width:600px;
     border-collapse:collapse;
     font-size:13px;
 }

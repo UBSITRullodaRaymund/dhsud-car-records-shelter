@@ -594,6 +594,10 @@ body {
 .modal-content {
     width: 100%;
     max-width: 900px;
+    max-height: calc(100vh - 90px);
+    max-height: calc(100dvh - 90px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
 
     margin: 20px auto;
 
@@ -832,6 +836,48 @@ body {
         align-items: flex-start;
 
         gap: 10px;
+    }
+
+    .modal {
+        padding: 12px;
+    }
+
+    .modal.show {
+        align-items: flex-start;
+    }
+
+    .modal-content {
+        max-height: calc(100vh - 24px);
+        max-height: calc(100dvh - 24px);
+        margin: 0 auto;
+        border-radius: 12px;
+    }
+
+    .modal-header {
+        padding: 16px;
+        gap: 12px;
+    }
+
+    #incomingForm {
+        padding: 16px;
+    }
+
+    .form-actions {
+        flex-wrap: wrap;
+    }
+
+    .form-actions > button {
+        flex: 1 1 130px;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        font-size: 16px;
+    }
+
+    .form-group label {
+        font-size: 12px;
     }
 
 }

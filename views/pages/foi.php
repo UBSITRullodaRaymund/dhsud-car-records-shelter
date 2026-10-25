@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FOI Requests | DHSUD-CAR Records Shelter</title>
 <link rel="icon" type="image/png" href="logo.png">
-<link rel="stylesheet" href="style.css">
-<link rel="stylesheet" href="requests.css?v=<?= filemtime(__DIR__ . '/../../requests.css') ?>">
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/requests.css?v=<?= filemtime(__DIR__ . '/../../assets/css/requests.css') ?>">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 <?php require __DIR__ . '/../partials/navigation-assets.php'; ?>
@@ -29,8 +29,8 @@
 </section>
 <div id="foiModal" class="modal"><div class="modal-content foi-modal"><span class="close" id="closeModal">&times;</span><h2 id="modalTitle">New FOI Request</h2><p class="foi-help">Complete the registry fields below. Required fields are marked by the browser.</p><form id="foiForm"><div id="foiFields" class="foi-form-grid"></div><div class="modal-buttons"><button type="submit" class="save-btn"><i class="fa-solid fa-floppy-disk"></i> Save Request</button><button type="button" class="cancel-btn" id="cancelModal">Cancel</button></div></form></div></div>
 <div id="foiPreviewModal" class="modal foi-preview-overlay" aria-hidden="true"><section class="modal-content foi-preview-panel" role="dialog" aria-modal="true" aria-labelledby="foiPreviewTitle"><header class="foi-preview-header"><h2 id="foiPreviewTitle">Filled FOI Form Preview</h2><button type="button" class="icon-btn delete-btn" id="closeFoiPreview" aria-label="Close preview" title="Close preview"><i class="fa-solid fa-xmark"></i></button></header><div class="foi-preview-actions"><button type="button" class="save-btn" id="foiPreviewPrint" disabled><i class="fa-solid fa-print"></i> Print</button></div><iframe id="foiPreviewFrame" class="foi-preview-frame" title="Filled FOI PDF preview"></iframe></section></div>
-<script src="auth.js"></script>
-<script src="table-pagination.js?v=<?= filemtime(__DIR__ . '/../../table-pagination.js') ?>"></script>
-<script src="foi.js?v=<?= filemtime(__DIR__ . '/../../foi.js') ?>"></script>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/table-pagination.js?v=<?= filemtime(__DIR__ . '/../../assets/js/table-pagination.js') ?>"></script>
+<script src="assets/js/foi.js?v=<?= filemtime(__DIR__ . '/../../assets/js/foi.js') ?>"></script>
 </body>
 </html>

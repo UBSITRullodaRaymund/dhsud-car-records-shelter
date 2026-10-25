@@ -8,8 +8,8 @@
 <title>User Accounts | DHSUD-CAR Records Shelter</title>
 <link rel="icon" type="image/png" href="logo.png">
 
-<link rel="stylesheet" href="style.css">
-<link rel="stylesheet" href="users.css">
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/users.css">
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
@@ -197,9 +197,9 @@ ACCOUNT MODAL
 </div>
 </div>
 
-<script src="auth.js"></script>
-<script src="table-pagination.js?v=<?= filemtime(__DIR__ . '/../../table-pagination.js') ?>"></script>
-<script src="users.js"></script>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/table-pagination.js?v=<?= filemtime(__DIR__ . '/../../assets/js/table-pagination.js') ?>"></script>
+<script src="assets/js/users.js"></script>
 
 </body>
 </html>

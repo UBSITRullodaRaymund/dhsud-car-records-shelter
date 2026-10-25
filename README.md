@@ -2,7 +2,7 @@
 
 The Shelter is being migrated to PHP MVC with **MySQL as the authoritative database**. PHP handles authentication, sessions, permissions, record and account CRUD, dashboard statistics, and activity history. Google Sheets is an optional one-way mirror: a successful MySQL write is committed first, then its latest snapshot is queued for Apps Script. Editing a spreadsheet does not update MySQL.
 
-The application uses a PHP MVC structure: `index.php` routes requests through the page controller, controllers and models handle application logic and MySQL access, and PHP templates in `views/pages/` render each page. Routes are extensionless (for example, `/foi`); previous `.html` links redirect to their PHP route for bookmark compatibility. Browser-side JavaScript remains for interactive tables and forms, while PHP owns routing, sessions, authorization, database access, and HTML rendering. The shared Vue 3 navigation and Tailwind CSS design system are compiled locally; the application does not need a frontend CDN or development server at runtime.
+The application uses a PHP MVC structure: `index.php` routes requests through the page controller, controllers and models handle application logic and MySQL access, and PHP templates in `views/pages/` render each page. The MySQL API action handlers are grouped by feature in `controllers/features/`, and `ShelterRepository` composes its authentication, user, record, dashboard, activity, and authorization methods from `models/features/` while keeping its existing public interface. Routes are extensionless (for example, `/foi`); previous `.html` links redirect to their PHP route for bookmark compatibility. Browser-side JavaScript remains for interactive tables and forms, while PHP owns routing, sessions, authorization, database access, and HTML rendering. The shared Vue 3 navigation and Tailwind CSS design system are compiled locally; the application does not need a frontend CDN or development server at runtime.
 
 ## Frontend build
 
@@ -52,15 +52,16 @@ The workbook contains credential hashes and salts. Keep it, database backups, an
 
 ## Spreadsheet mirror setup
 
-Spreadsheet synchronization is optional but recommended for the requested mirror. PHP retains unsynchronized, size-bounded snapshots in `spreadsheet_sync_queue` and retries them during later API requests.
+Spreadsheet synchronization is optional and disabled unless `DHSUD_SHEETS_MIRROR_ENABLED` is set to `1` in the PHP environment. When enabled, PHP retains unsynchronized, size-bounded snapshots in `spreadsheet_sync_queue` and retries them during later API requests.
 
-1. Set `DHSUD_APPS_SCRIPT_URL` in the Apache/PHP environment to the current Apps Script web-app URL, then restart Apache.
-2. Generate a long random secret locally. Configure the exact same value as:
+1. Set `DHSUD_SHEETS_MIRROR_ENABLED` to `1` in the Apache/PHP environment to enable synchronization. Leave it unset or set it to `0` to pause synchronization; queued snapshots remain untouched, and new snapshots are not queued while disabled. Restart Apache after changing environment settings.
+2. Set `DHSUD_APPS_SCRIPT_URL` in the Apache/PHP environment to the current Apps Script web-app URL.
+3. Generate a long random secret locally. Configure the exact same value as:
    - PHP environment variable `DHSUD_MIRROR_SECRET`.
    - Apps Script project Script Property `DHSUD_MIRROR_SECRET`.
    Do not put the secret in this repository or in client-side JavaScript.
-3. Replace the Apps Script project code with the repository's current `Code.gs` and deploy a new web-app version. The endpoint accepts only the authenticated `syncDatabaseMirror` action for writes; `doGet` directs reads to the PHP application.
-4. After the MySQL import and mirror setup, seed the spreadsheet from MySQL:
+4. Replace the Apps Script project code with the repository's current `Code.gs` and deploy a new web-app version. The endpoint accepts only the authenticated `syncDatabaseMirror` action for writes; `doGet` directs reads to the PHP application.
+5. After the MySQL import and mirror setup, seed the spreadsheet from MySQL:
 
    ```powershell
    php database\queue_spreadsheet_mirror.php
@@ -68,9 +69,11 @@ Spreadsheet synchronization is optional but recommended for the requested mirror
 
 The seed command queues snapshots for all record modules, users, and activity. Spreadsheet user snapshots intentionally blank password hashes and salts. App users should read and write through this PHP application; edits made directly in Sheets are not authoritative and may be overwritten by the next MySQL snapshot.
 
+If synchronization fails, inspect `spreadsheet_sync_queue.last_error` without selecting or sharing the `payload` column. An HTTP 200 response can still be an HTML error page rather than the JSON response expected by PHP; the queue error reports the final response content type. The Apps Script handler returns authorized mirror errors as JSON, including lock-acquisition failures. After changing `Code.gs`, save and deploy a new web-app version before retrying. Back up destination sheets before running the seed command again because initial snapshots replace mirrored rows below the headers.
+
 ## API and application
 
-The API entry point is `api/index.php`; the page front controller is `index.php`; PHP templates live in `views/pages/`. Clean page routes are handled by Apache rewrite rules and rendered through `app/Controllers/PageController.php`.
+The API entry point is `api/index.php`; the page front controller is `index.php`; PHP templates live in `views/pages/`. Apache rewrites clean extensionless page URLs to `index.php`, and `controllers/PageController.php` dispatches only its declared routes, including whether each route requires authentication. Trailing slashes are canonicalized, and legacy `.html` links redirect to clean routes. PHP controllers, models, shared includes, and browser assets follow the ATI-RTC-style root layout (`controllers/`, `models/`, `includes/`, and `assets/css/`/`assets/js/`) while retaining DHSUD's namespaced, typed implementations.
 
 | Method | Action | Purpose |
 | --- | --- | --- |

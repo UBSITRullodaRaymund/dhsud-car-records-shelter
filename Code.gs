@@ -259,8 +259,27 @@ function normalizeDocumentHeader(header, sheetName, occurrence = 0) {
 }
 
 function doPost(e) {
-  if (e.parameter.action === "syncDatabaseMirror") return syncDatabaseMirror(e);
-  return jsonResponse({ error: "MySQL is the system of record. Writes must go through the PHP application." });
+  try {
+    const parameters = e && e.parameter ? e.parameter : {};
+    if (parameters.action === "syncDatabaseMirror") return syncDatabaseMirror(e);
+    return jsonResponse({ error: "MySQL is the system of record. Writes must go through the PHP application." });
+  } catch (error) {
+    console.error("MySQL mirror request failed.", error && error.stack ? error.stack : error);
+
+    let authorized = false;
+    try {
+      const parameters = e && e.parameter ? e.parameter : {};
+      const expected = PropertiesService.getScriptProperties().getProperty("DHSUD_MIRROR_SECRET");
+      const supplied = String(parameters.secret || "");
+      authorized = Boolean(expected && supplied && expected === supplied);
+    } catch (authError) {
+      console.error("Could not verify the mirror request while handling an error.", authError);
+    }
+
+    return jsonResponse({
+      error: authorized ? String(error.message || error) : "Mirror request failed."
+    });
+  }
 }
 
 function syncDatabaseMirror(e) {
@@ -279,8 +298,10 @@ function syncDatabaseMirror(e) {
     }
 
     const lock = LockService.getScriptLock();
-    lock.waitLock(10000);
+    let lockAcquired = false;
     try {
+      lock.waitLock(10000);
+      lockAcquired = true;
       const kind = String(e.parameter.kind || "");
       if (kind === "records") {
         return syncDatabaseRecords(String(e.parameter.module || ""), payload);
@@ -296,7 +317,7 @@ function syncDatabaseMirror(e) {
       console.error("MySQL mirror update failed.", error);
       return jsonResponse({ error: String(error.message || error) });
     } finally {
-      lock.releaseLock();
+      if (lockAcquired) lock.releaseLock();
     }
   }
 

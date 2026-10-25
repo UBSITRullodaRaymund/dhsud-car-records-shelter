@@ -8,12 +8,12 @@ use App\Controllers\MySqlApiController;
 use App\Models\ShelterRepository;
 use App\Models\SpreadsheetSyncQueue;
 
-require_once dirname(__DIR__) . '/app/Core/Database.php';
-require_once dirname(__DIR__) . '/app/Core/Http.php';
-require_once dirname(__DIR__) . '/app/Core/GoogleSheetsBridge.php';
-require_once dirname(__DIR__) . '/app/Models/ShelterRepository.php';
-require_once dirname(__DIR__) . '/app/Models/SpreadsheetSyncQueue.php';
-require_once dirname(__DIR__) . '/app/Controllers/MySqlApiController.php';
+require_once dirname(__DIR__) . '/includes/Database.php';
+require_once dirname(__DIR__) . '/includes/Http.php';
+require_once dirname(__DIR__) . '/includes/GoogleSheetsBridge.php';
+require_once dirname(__DIR__) . '/models/ShelterRepository.php';
+require_once dirname(__DIR__) . '/models/SpreadsheetSyncQueue.php';
+require_once dirname(__DIR__) . '/controllers/MySqlApiController.php';
 
 ini_set('session.use_strict_mode', '1');
 ini_set('session.gc_maxlifetime', '28800');

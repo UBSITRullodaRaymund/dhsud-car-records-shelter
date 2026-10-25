@@ -137,7 +137,7 @@ nav a:hover{
 
 .hero{
     height:100vh;
-    background:url("hero.png") center center/cover no-repeat;
+    background:url("../../hero.png") center center/cover no-repeat;
     position:relative;
 }
 
@@ -1594,18 +1594,24 @@ MODAL
     justify-content:center;
 
     align-items:center;
+
+    padding:18px;
+
+    overflow-y:auto;
 }
 
 .modal-content{
 
     background:#fff;
 
-    width:90%;
+    width:min(90%, 850px);
     max-width:850px;
 
-    max-height:90vh;
+    max-height:calc(100vh - 36px);
+    max-height:calc(100dvh - 36px);
 
     overflow-y:auto;
+    overscroll-behavior:contain;
 
     border-radius:15px;
 
@@ -2049,17 +2055,23 @@ ACTION BUTTONS
 
     z-index:99999;
 
+    padding:18px;
+
+    overflow-y:auto;
+
 }
 
 .view-modal .modal-content{
 
-    width:800px;
+    width:min(800px, 90%);
 
     max-width:90%;
 
-    max-height:90vh;
+    max-height:calc(100vh - 36px);
+    max-height:calc(100dvh - 36px);
 
     overflow-y:auto;
+    overscroll-behavior:contain;
 
     background:#fff;
 
@@ -2195,7 +2207,7 @@ RECORDS TRANSACTION FORM (RTF VIEW)
 .rtf-view{
 
     max-width:900px;
-    width:95%;
+    width:100%;
 
     background:#fff;
 
@@ -2365,6 +2377,86 @@ RECORDS TRANSACTION FORM (RTF VIEW)
 
     color:#006400;
 
+}
+
+@media (max-width: 700px) {
+    .modal,
+    .view-modal {
+        padding: 12px;
+    }
+
+    .modal-content,
+    .view-modal .modal-content {
+        width: 100%;
+        max-width: none;
+        max-height: calc(100vh - 24px);
+        max-height: calc(100dvh - 24px);
+        padding: 20px;
+        border-radius: 12px;
+    }
+
+    .form-grid,
+    .classification-view,
+    .rtf-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .form-grid .full {
+        grid-column: auto;
+    }
+
+    .modal-buttons {
+        flex-wrap: wrap;
+    }
+
+    .modal-buttons > button {
+        flex: 1 1 140px;
+    }
+
+    .rtf-view {
+        padding: 20px;
+    }
+
+    .rtf-header {
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .rtf-logo {
+        width: 56px;
+        height: 56px;
+        flex: 0 0 56px;
+    }
+
+    .rtf-header h2 {
+        font-size: 21px;
+    }
+
+    .rtf-row {
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .rtf-row label {
+        width: auto;
+    }
+}
+
+@media (max-width: 420px) {
+    .modal-content,
+    .view-modal .modal-content,
+    .rtf-view {
+        padding: 16px;
+    }
+
+    .modal-buttons {
+        flex-direction: column-reverse;
+    }
+
+    .modal-buttons > button {
+        width: 100%;
+        flex: 1 1 auto;
+    }
 }
 
 .remarks-box{

@@ -65,7 +65,8 @@
     .foi-actions{grid-column:1/-1}
     .foi-details{grid-template-columns:minmax(0,1fr);gap:2px;margin-bottom:10px}
     .foi-details dd{margin:0 0 8px}
-    .foi-preview-panel{width:100%;height:94vh;padding:14px}
+    .foi-preview-overlay{padding:12px}
+    .foi-preview-panel{width:100%;height:calc(100vh - 24px);height:calc(100dvh - 24px);max-height:calc(100vh - 24px);max-height:calc(100dvh - 24px);padding:14px}
 }
 .foi-filter-panel .filter-row{align-items:flex-end;gap:18px}
 .foi-search-filter{flex:1 1 520px;min-width:min(100%,320px)}

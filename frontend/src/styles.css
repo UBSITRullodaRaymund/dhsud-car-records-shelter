@@ -70,6 +70,36 @@ body.has-app-navigation.dashboard-page {
     }
 }
 
+body.has-app-navigation:not(.nav-collapsed) {
+    --modal-navigation-offset: 16.25rem;
+}
+
+body.has-app-navigation.nav-collapsed {
+    --modal-navigation-offset: 4.875rem;
+}
+
+body.has-app-navigation .modal,
+body.has-app-navigation .view-modal {
+    --modal-side-padding: 18px;
+    padding-left: calc(var(--modal-side-padding) + var(--modal-navigation-offset, 0px));
+    transition: padding-left 300ms ease-out;
+}
+
+body.has-app-navigation .foi-preview-overlay {
+    --modal-side-padding: 20px;
+}
+
+body.has-app-navigation #incomingModal {
+    --modal-side-padding: 25px;
+}
+
+@media (max-width: 900px) {
+    body.has-app-navigation .modal,
+    body.has-app-navigation .view-modal {
+        padding-left: var(--modal-side-padding, 18px);
+    }
+}
+
 /* Shared navigation */
 #app-navigation-root .vue-sidebar {
     border-color: rgba(255, 255, 255, .09);

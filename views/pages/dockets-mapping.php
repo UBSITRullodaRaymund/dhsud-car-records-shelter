@@ -8,7 +8,7 @@
 
 <title>Dockets Mapping | DHSUD-CAR Records Shelter</title>
 
-<link rel="stylesheet" href="dockets-mapping.css?v=<?= filemtime(__DIR__ . '/../../dockets-mapping.css') ?>">
+<link rel="stylesheet" href="assets/css/dockets-mapping.css?v=<?= filemtime(__DIR__ . '/../../assets/css/dockets-mapping.css') ?>">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 
@@ -316,9 +316,9 @@ Select a document to preview it here.
 
 </section>
 
-<script src="auth.js"></script>
-<script src="table-pagination.js?v=<?= filemtime(__DIR__ . '/../../table-pagination.js') ?>"></script>
-<script src="dockets-mapping.js?v=<?= filemtime(__DIR__ . '/../../dockets-mapping.js') ?>"></script>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/table-pagination.js?v=<?= filemtime(__DIR__ . '/../../assets/js/table-pagination.js') ?>"></script>
+<script src="assets/js/dockets-mapping.js?v=<?= filemtime(__DIR__ . '/../../assets/js/dockets-mapping.js') ?>"></script>
 
 </body>
 

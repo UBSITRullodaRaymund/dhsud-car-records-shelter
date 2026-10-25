@@ -14,7 +14,7 @@
     <link rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
-    <link rel="stylesheet" href="incoming.css">
+    <link rel="stylesheet" href="assets/css/incoming.css">
 <?php require __DIR__ . '/../partials/navigation-assets.php'; ?>
 </head>
 
@@ -569,9 +569,9 @@
 </div>
 
 
-<script src="auth.js?v=<?= filemtime(__DIR__ . '/../../auth.js') ?>"></script>
-<script src="table-pagination.js?v=<?= filemtime(__DIR__ . '/../../table-pagination.js') ?>"></script>
-<script src="incoming.js?v=<?= filemtime(__DIR__ . '/../../incoming.js') ?>"></script>
+<script src="assets/js/auth.js?v=<?= filemtime(__DIR__ . '/../../assets/js/auth.js') ?>"></script>
+<script src="assets/js/table-pagination.js?v=<?= filemtime(__DIR__ . '/../../assets/js/table-pagination.js') ?>"></script>
+<script src="assets/js/incoming.js?v=<?= filemtime(__DIR__ . '/../../assets/js/incoming.js') ?>"></script>
 
 </body>
 </html>

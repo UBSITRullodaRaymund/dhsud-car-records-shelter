@@ -9,7 +9,7 @@
     <title>DHSUD-CAR RECORDS SHELTER</title>
     <link rel="icon" type="image/png" href="logo.png">
 
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="assets/css/style.css">
 
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
           rel="stylesheet">
@@ -467,9 +467,9 @@
 </footer>
 
 
-<script src="auth.js"></script>
-<script src="dashboard.js?v=<?= filemtime(__DIR__ . '/../../dashboard.js') ?>"></script>
-<script src="script.js"></script>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/dashboard.js?v=<?= filemtime(__DIR__ . '/../../assets/js/dashboard.js') ?>"></script>
+<script src="assets/js/script.js"></script>
 
 
 <script>

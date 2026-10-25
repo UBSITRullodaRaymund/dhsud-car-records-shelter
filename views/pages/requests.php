@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Requests | DHSUD-CAR Records Shelter</title>
 <link rel="icon" type="image/png" href="logo.png">
-<link rel="stylesheet" href="style.css">
-<link rel="stylesheet" href="requests.css">
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/requests.css">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 <?php require __DIR__ . '/../partials/navigation-assets.php'; ?>
@@ -25,6 +25,6 @@
     <a class="request-card" href="#" aria-disabled="true"><i class="fa-solid fa-inbox"></i><div><h2>Receiving</h2><p>Receiving request registry.</p></div><span class="coming-soon">Coming soon</span></a>
 </section>
 <div class="back-home"><a href="./"><i class="fa-solid fa-house"></i> Back to Home</a></div>
-<script src="script.js"></script>
+<script src="assets/js/script.js"></script>
 </body>
 </html>
