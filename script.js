@@ -5,7 +5,7 @@
 // ======================================
 // DOCUMENT DATABASE
 // ======================================
-let documents = [];
+let documents = JSON.parse(localStorage.getItem("documents")) || [];
 
 // ===============================
 // EDIT MODE
@@ -333,11 +333,11 @@ const newDocument = {
 
     office: document.getElementById("office").value,
 
-    category: document.getElementById("category").value,
+    category: "Request",
 
     subcategory: document.getElementById("subject").value,
 
-    division: document.getElementById("division").value,
+    division: "Administrative and Finance Division",
 
     ageing: "1 DAY OF 3 DAYS",
 
@@ -362,6 +362,8 @@ if (editingIndex !== -1) {
 
 }
 
+localStorage.setItem("documents", JSON.stringify(documents));
+
 renderTable();
 
 modal.style.display = "none";
@@ -384,7 +386,36 @@ function renderTable() {
 
     tbody.innerHTML = "";
 
-    documents.forEach((doc, index) => {
+    // Get selected filters
+    const officeFilter =
+    document.getElementById("officeFilter")?.value || "All Offices";
+
+    const yearFilter =
+    document.getElementById("yearFilter")?.value || "All Years";
+
+    const statusFilter =
+    document.getElementById("statusFilter")?.value || "All Status";
+
+    documents
+.filter(doc => {
+
+    const officeMatch =
+        officeFilter === "All Offices" ||
+        doc.office === officeFilter;
+
+    const statusMatch =
+        statusFilter === "All Status" ||
+        doc.status === statusFilter;
+
+    const yearMatch =
+        yearFilter === "All Years" ||
+        (doc.dateReceived &&
+        new Date(doc.dateReceived).getFullYear().toString() === yearFilter);
+
+    return officeMatch && statusMatch && yearMatch;
+
+})
+.forEach((doc, index) => {
 
         const row = document.createElement("tr");
 
@@ -505,9 +536,11 @@ row.querySelector(".edit-btn").addEventListener("click", function () {
 // Delete button
 row.querySelector(".delete-btn").addEventListener("click", function () {
     if (confirm("Are you sure you want to delete this document?")) {
-         documents.splice(index, 1);
+         documents.splice(index,1);
+         
+        localStorage.setItem("documents", JSON.stringify(documents));
 
-        renderTable();
+renderTable();
     }
 
 });
@@ -525,6 +558,16 @@ updateDashboard();
 // Load existing data
 renderTable();
 updateDashboard();
+
+// ===============================
+// FILTER EVENTS
+// ===============================
+
+document.getElementById("officeFilter").addEventListener("change", renderTable);
+
+document.getElementById("yearFilter").addEventListener("change", renderTable);
+
+document.getElementById("statusFilter").addEventListener("change", renderTable);
 
 // ======================================
 // UPDATE DASHBOARD COUNTERS
