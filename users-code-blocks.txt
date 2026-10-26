@@ -1,0 +1,647 @@
+DHSUD-CAR RECORDS SHELTER
+USERS AUTHENTICATION CODE BLOCKS
+
+============================================================
+INTEGRATION INSTRUCTIONS: READ THIS FIRST
+============================================================
+
+These blocks are for the Google Apps Script backend and the
+existing static frontend in this project.
+
+BACKEND FILE
+1. Open the Apps Script project connected to your Users spreadsheet.
+2. Open Code.gs.
+3. Keep only one copy of each function name. Do not paste a second
+  doPost, handleLogin, requireAuth, jsonResponse, or sheet helper.
+4. Add LABEL 1 near the top of Code.gs with the other constants.
+5. Add LABEL 2 inside the existing doPost(e), immediately after:
+
+  const action = e.parameter.action;
+
+6. Add LABELS 3 through 12 below doPost(e), or replace the existing
+  Users versions of those functions if they already exist.
+7. If Code.gs already contains document routes such as save, update,
+  and delete, leave those routes in place. Add the Users routes to
+  the same doPost(e); do not create a second doPost(e).
+
+FRONTEND FILES
+1. auth.js must contain API_URL, session helpers, requireLogin,
+  authedPost, and renderUserMenu.
+2. login.html must load auth.js before its inline login script:
+
+  <script src="auth.js"></script>
+
+3. users.html must load auth.js before users.js at the bottom:
+
+  <script src="auth.js"></script>
+  <script src="users.js"></script>
+
+4. users.js must call requireLogin() near the top and use
+  authedPost() for listUsers, createUserAccount,
+  updateUserAccount, and deleteUserAccount.
+5. Do not define another const API_URL in users.js when auth.js
+  already defines it.
+
+GOOGLE SHEETS SETUP
+1. The Apps Script must be bound to, or have access to, the spreadsheet
+  containing the Users and Sessions sheets.
+2. The Users sheet must have this header row, in this order:
+
+  Email | PasswordHash | Salt | FullName | Role | Office | Status | DateCreated | Permissions
+
+3. The Sessions sheet must use this header row:
+
+  Token | Email | Role | Office | FullName | CreatedAt | ExpiresAt | Permissions
+
+4. The code creates Users and Sessions automatically if they do not
+  exist. ActivityLog is optional but is needed if login/logout or
+  other user actions call logActivity().
+5. Keep the Office value consistent between the Users sheet and the
+  Office options in users.html. Spelling and capitalization matter.
+
+SAFE INTEGRATION ORDER
+1. Back up the current Code.gs.
+2. Add or merge LABEL 1.
+3. Merge LABEL 2 into the existing doPost(e).
+4. Replace duplicate user functions with LABELS 3 through 12.
+5. Confirm auth.js loads before users.js.
+6. Confirm the Apps Script API URL in auth.js is the deployed URL.
+7. Run createUser_RUN_MANUALLY once, or add a valid SuperAdmin row.
+8. Deploy the Apps Script as a Web app and create a new version.
+9. Set access to the required users, then test login.
+10. Open users.html through a local web server, not file://.
+11. Test list, create, edit, status change, password change, and delete.
+
+IMPORTANT MERGE RULES
+- Do not paste the entire text file into Code.gs.
+- Do not create duplicate const SS, doPost, or helper functions.
+- Do not expose PasswordHash or Salt to users.js; listUsers removes them.
+- Do not store plain-text passwords in the Users sheet.
+- If the API returns "Invalid session", clear browser storage and log in
+  again after redeploying the Apps Script.
+
+
+============================================================
+LABEL 1: BASIC CONFIGURATION
+============================================================
+
+const SS = SpreadsheetApp.getActiveSpreadsheet();
+
+const USERS_SHEET_NAME = "Users";
+const SESSIONS_SHEET_NAME = "Sessions";
+const ACTIVITY_LOG_SHEET_NAME = "ActivityLog";
+const SESSION_DURATION_MS = 8 * 60 * 60 * 1000;
+
+
+============================================================
+LABEL 2: ADD THESE ROUTES INSIDE doPost(e)
+============================================================
+
+if (action === "login") return handleLogin(e);
+if (action === "logout") return handleLogout(e);
+
+const auth = requireAuth(e.parameter.token);
+if (!auth.ok) return jsonResponse({ error: auth.error }, 401);
+
+if (action === "listUsers") {
+  if (!requireRole(auth.user, ["SuperAdmin", "OfficeAdmin"])) {
+    return jsonResponse({ error: "Forbidden" }, 403);
+  }
+  return listUsers(auth.user);
+}
+
+if (action === "createUserAccount") {
+  if (!requireRole(auth.user, ["SuperAdmin", "OfficeAdmin"])) {
+    return jsonResponse({ error: "Forbidden" }, 403);
+  }
+  return createUserAccount(e, auth.user);
+}
+
+if (action === "updateUserAccount") {
+  if (!requireRole(auth.user, ["SuperAdmin", "OfficeAdmin"])) {
+    return jsonResponse({ error: "Forbidden" }, 403);
+  }
+  return updateUserAccount(e, auth.user);
+}
+
+if (action === "deleteUserAccount") {
+  if (!requireRole(auth.user, ["SuperAdmin", "OfficeAdmin"])) {
+    return jsonResponse({ error: "Forbidden" }, 403);
+  }
+  return deleteUserAccount(e, auth.user);
+}
+
+
+============================================================
+LABEL 3: LIST USERS
+============================================================
+
+function listUsers(requestingUser) {
+  const sheet = getOrCreateUsersSheet();
+  const data = sheet.getDataRange().getValues();
+
+  if (data.length < 2) return jsonResponse([]);
+
+  const headers = data[0];
+  let users = data.slice(1).map(row =>
+    Object.fromEntries(headers.map((header, i) => [header, row[i]]))
+  );
+
+  users = users.map(user => ({
+    email: user.Email,
+    fullName: user.FullName,
+    role: user.Role,
+    office: user.Office,
+    status: user.Status,
+    permissions: parsePermissions(user.Permissions)
+  }));
+
+  if (requestingUser.role !== "SuperAdmin") {
+    users = users.filter(user => user.office === requestingUser.office);
+  }
+
+  return jsonResponse(users);
+}
+
+
+============================================================
+LABEL 4: CREATE USER ACCOUNT
+============================================================
+
+function createUserAccount(e, requestingUser) {
+  const email = String(e.parameter.email || "").trim().toLowerCase();
+  const password = String(e.parameter.password || "");
+  const fullName = String(e.parameter.fullName || "");
+  const role = String(e.parameter.role || "OfficeStaff");
+  const office = String(e.parameter.office || "");
+  const status = String(e.parameter.status || "Active");
+  const permissions = String(e.parameter.permissions || "");
+
+  if (!email || !password || !office) {
+    return jsonResponse({
+      error: "Email, password, and office are required"
+    }, 400);
+  }
+
+  if (
+    requestingUser.role !== "SuperAdmin" &&
+    office !== requestingUser.office
+  ) {
+    return jsonResponse({
+      error: "You can only create accounts for your own office"
+    }, 403);
+  }
+
+  const sheet = getOrCreateUsersSheet();
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const emailColumn = headers.indexOf("Email");
+
+  const exists = data.some((row, index) =>
+    index > 0 &&
+    String(row[emailColumn]).toLowerCase() === email
+  );
+
+  if (exists) {
+    return jsonResponse({
+      error: "An account with this email already exists"
+    }, 409);
+  }
+
+  const salt = generateSalt();
+  const passwordHash = hashPassword(password, salt);
+
+  sheet.appendRow([
+    email,
+    passwordHash,
+    salt,
+    fullName,
+    role,
+    office,
+    status,
+    new Date(),
+    permissions
+  ]);
+
+  return jsonResponse({ success: true });
+}
+
+
+============================================================
+LABEL 5: UPDATE USER ACCOUNT
+============================================================
+
+function updateUserAccount(e, requestingUser) {
+  const email = String(e.parameter.email || "").trim().toLowerCase();
+
+  if (!email) {
+    return jsonResponse({ error: "Email is required" }, 400);
+  }
+
+  const sheet = getOrCreateUsersSheet();
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+
+  const index = {
+    email: headers.indexOf("Email"),
+    passwordHash: headers.indexOf("PasswordHash"),
+    salt: headers.indexOf("Salt"),
+    fullName: headers.indexOf("FullName"),
+    role: headers.indexOf("Role"),
+    office: headers.indexOf("Office"),
+    status: headers.indexOf("Status"),
+    permissions: headers.indexOf("Permissions")
+  };
+
+  const rowIndex = data.findIndex((row, i) =>
+    i > 0 &&
+    String(row[index.email]).toLowerCase() === email
+  );
+
+  if (rowIndex === -1) {
+    return jsonResponse({ error: "Account not found" }, 404);
+  }
+
+  const currentOffice = data[rowIndex][index.office];
+
+  if (
+    requestingUser.role !== "SuperAdmin" &&
+    currentOffice !== requestingUser.office
+  ) {
+    return jsonResponse({
+      error: "You can only manage accounts in your own office"
+    }, 403);
+  }
+
+  const values = {
+    fullName: e.parameter.fullName,
+    role: e.parameter.role,
+    office: e.parameter.office,
+    status: e.parameter.status,
+    permissions: e.parameter.permissions
+  };
+
+  Object.entries(values).forEach(([field, value]) => {
+    if (value !== undefined && index[field] !== -1) {
+      sheet.getRange(rowIndex + 1, index[field] + 1).setValue(value);
+    }
+  });
+
+  if (e.parameter.password) {
+    const salt = generateSalt();
+    const passwordHash = hashPassword(e.parameter.password, salt);
+
+    sheet.getRange(rowIndex + 1, index.passwordHash + 1)
+      .setValue(passwordHash);
+
+    sheet.getRange(rowIndex + 1, index.salt + 1)
+      .setValue(salt);
+  }
+
+  return jsonResponse({ success: true });
+}
+
+
+============================================================
+LABEL 6: DELETE USER ACCOUNT
+============================================================
+
+function deleteUserAccount(e, requestingUser) {
+  const email = String(e.parameter.email || "").trim().toLowerCase();
+
+  if (!email) {
+    return jsonResponse({ error: "Email is required" }, 400);
+  }
+
+  if (email === requestingUser.email.toLowerCase()) {
+    return jsonResponse({
+      error: "You cannot delete your own account"
+    }, 400);
+  }
+
+  const sheet = getOrCreateUsersSheet();
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+
+  const emailIndex = headers.indexOf("Email");
+  const officeIndex = headers.indexOf("Office");
+
+  const rowIndex = data.findIndex((row, i) =>
+    i > 0 &&
+    String(row[emailIndex]).toLowerCase() === email
+  );
+
+  if (rowIndex === -1) {
+    return jsonResponse({ error: "Account not found" }, 404);
+  }
+
+  if (
+    requestingUser.role !== "SuperAdmin" &&
+    data[rowIndex][officeIndex] !== requestingUser.office
+  ) {
+    return jsonResponse({
+      error: "You can only manage accounts in your own office"
+    }, 403);
+  }
+
+  sheet.deleteRow(rowIndex + 1);
+
+  return jsonResponse({ success: true });
+}
+
+
+============================================================
+LABEL 7: LOGIN
+============================================================
+
+function handleLogin(e) {
+  const email = String(e.parameter.email || "").trim().toLowerCase();
+  const password = String(e.parameter.password || "");
+
+  const sheet = getOrCreateUsersSheet();
+  const data = sheet.getDataRange().getValues();
+  const headers = data.shift();
+
+  const index = {
+    email: headers.indexOf("Email"),
+    hash: headers.indexOf("PasswordHash"),
+    salt: headers.indexOf("Salt"),
+    fullName: headers.indexOf("FullName"),
+    role: headers.indexOf("Role"),
+    office: headers.indexOf("Office"),
+    status: headers.indexOf("Status"),
+    permissions: headers.indexOf("Permissions")
+  };
+
+  const row = data.find(user =>
+    String(user[index.email]).toLowerCase() === email
+  );
+
+  if (!row) {
+    return jsonResponse({
+      error: "Invalid email or password"
+    }, 401);
+  }
+
+  if (String(row[index.status]).trim() !== "Active") {
+    return jsonResponse({
+      error: "This account is inactive"
+    }, 403);
+  }
+
+  const computedHash = hashPassword(password, row[index.salt]);
+
+  if (computedHash !== row[index.hash]) {
+    return jsonResponse({
+      error: "Invalid email or password"
+    }, 401);
+  }
+
+  const user = {
+    email,
+    fullName: row[index.fullName],
+    role: row[index.role],
+    office: row[index.office],
+    permissions: parsePermissions(row[index.permissions])
+  };
+
+  const token = createSession(user);
+
+  return jsonResponse({
+    success: true,
+    token,
+    user
+  });
+}
+
+
+============================================================
+LABEL 8: LOGOUT
+============================================================
+
+function handleLogout(e) {
+  const token = e.parameter.token;
+
+  if (!token) return jsonResponse({ success: true });
+
+  const sheet = getOrCreateSessionsSheet();
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const tokenIndex = headers.indexOf("Token");
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][tokenIndex] === token) {
+      sheet.deleteRow(i + 1);
+      break;
+    }
+  }
+
+  return jsonResponse({ success: true });
+}
+
+
+============================================================
+LABEL 9: SESSION FUNCTIONS
+============================================================
+
+function createSession(user) {
+  const sheet = getOrCreateSessionsSheet();
+  const token = Utilities.getUuid();
+  const now = new Date();
+  const expires = new Date(
+    now.getTime() + SESSION_DURATION_MS
+  );
+
+  sheet.appendRow([
+    token,
+    user.email,
+    user.role,
+    user.office,
+    user.fullName,
+    now,
+    expires,
+    (user.permissions || []).join(",")
+  ]);
+
+  return token;
+}
+
+function requireAuth(token) {
+  if (!token) {
+    return {
+      ok: false,
+      error: "Missing session token"
+    };
+  }
+
+  const sheet = getOrCreateSessionsSheet();
+  const data = sheet.getDataRange().getValues();
+  const headers = data.shift();
+  const tokenIndex = headers.indexOf("Token");
+  const row = data.find(session => session[tokenIndex] === token);
+
+  if (!row) {
+    return {
+      ok: false,
+      error: "Invalid session"
+    };
+  }
+
+  const expiresAt = row[headers.indexOf("ExpiresAt")];
+  if (new Date(expiresAt).getTime() < Date.now()) {
+    return {
+      ok: false,
+      error: "Session expired"
+    };
+  }
+
+  return {
+    ok: true,
+    user: {
+      email: row[headers.indexOf("Email")],
+      role: row[headers.indexOf("Role")],
+      office: row[headers.indexOf("Office")],
+      fullName: row[headers.indexOf("FullName")],
+      permissions: parsePermissions(
+        row[headers.indexOf("Permissions")]
+      )
+    }
+  };
+}
+
+function requireRole(user, allowedRoles) {
+  return allowedRoles.includes(user.role);
+}
+
+function parsePermissions(value) {
+  if (!value) return [];
+
+  return String(value)
+    .split(",")
+    .map(permission => permission.trim())
+    .filter(Boolean);
+}
+
+
+============================================================
+LABEL 10: PASSWORD HELPERS
+============================================================
+
+function hashPassword(password, salt) {
+  const bytes = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256,
+    password + salt,
+    Utilities.Charset.UTF_8
+  );
+
+  return bytes
+    .map(byte => (byte < 0 ? byte + 256 : byte)
+      .toString(16)
+      .padStart(2, "0"))
+    .join("");
+}
+
+function generateSalt() {
+  return Utilities.getUuid();
+}
+
+
+============================================================
+LABEL 11: USERS AND SESSIONS SHEETS
+============================================================
+
+function getOrCreateUsersSheet() {
+  let sheet = SS.getSheetByName(USERS_SHEET_NAME);
+
+  if (!sheet) {
+    sheet = SS.insertSheet(USERS_SHEET_NAME);
+  }
+
+  ensureSheetHeaders(sheet, [
+    "Email",
+    "PasswordHash",
+    "Salt",
+    "FullName",
+    "Role",
+    "Office",
+    "Status",
+    "DateCreated",
+    "Permissions"
+  ]);
+
+  return sheet;
+}
+
+function getOrCreateSessionsSheet() {
+  let sheet = SS.getSheetByName(SESSIONS_SHEET_NAME);
+
+  if (!sheet) {
+    sheet = SS.insertSheet(SESSIONS_SHEET_NAME);
+    sheet.appendRow([
+      "Token",
+      "Email",
+      "Role",
+      "Office",
+      "FullName",
+      "CreatedAt",
+      "ExpiresAt",
+      "Permissions"
+    ]);
+  }
+
+  return sheet;
+}
+
+function ensureSheetHeaders(sheet, requiredHeaders) {
+  const values = sheet.getDataRange().getValues();
+
+  if (!values.length) {
+    sheet.appendRow(requiredHeaders);
+    return;
+  }
+
+  const existingHeaders = values[0].map(header =>
+    String(header || "").trim()
+  );
+
+  const missingHeaders = requiredHeaders.filter(header =>
+    !existingHeaders.includes(header)
+  );
+
+  if (missingHeaders.length) {
+    sheet.getRange(
+      1,
+      1,
+      1,
+      existingHeaders.length + missingHeaders.length
+    ).setValues([
+      existingHeaders.concat(missingHeaders)
+    ]);
+  }
+}
+
+
+============================================================
+LABEL 12: JSON RESPONSE HELPER
+============================================================
+
+function jsonResponse(data) {
+  return ContentService
+    .createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+
+============================================================
+REQUIRED USERS SHEET HEADERS
+============================================================
+
+Email | PasswordHash | Salt | FullName | Role | Office | Status | DateCreated | Permissions
+
+
+============================================================
+REQUIRED HTML SCRIPT ORDER
+============================================================
+
+<script src="auth.js"></script>
+<script src="users.js"></script>

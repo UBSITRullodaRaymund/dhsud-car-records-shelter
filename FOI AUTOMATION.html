@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Add Form Fields to FOI PDF</title>
+</head>
+<body>
+<h1>Adding form fields…</h1>
+<p id="status">Loading PDF-lib…</p>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script>
+(async function () {
+    const status = document.getElementById('status');
+    try {
+        // 1. Load the flat PDF
+        status.textContent = 'Fetching flat PDF…';
+        const bytes = await fetch('FOI%20FORM_2023_REV%2007.17.26%20.pdf').then(r => r.arrayBuffer());
+        const pdf = await PDFLib.PDFDocument.load(bytes);
+        const page = pdf.getPages()[0];
+        const form = pdf.getForm();
+        const font = await pdf.embedFont(PDFLib.StandardFonts.Helvetica);
+        const rgb = PDFLib.rgb;
+        const { TextAlignment } = PDFLib;
+
+        // 2. Text field positions (same coordinates as your original code)
+        const TEXT_FIELDS = {
+            transactionNo:                                    { x: 326, y: 812, w: 170, h: 12 },
+            "requestingParty.title":                          { x: 99,  y: 750, w: 70,  h: 12 },
+            "requestingParty.givenName":                      { x: 180, y: 750, w: 105, h: 12 },
+            "requestingParty.middleInitial":                  { x: 300, y: 750, w: 38,  h: 12 },
+            "requestingParty.surname":                        { x: 355, y: 750, w: 155, h: 12 },
+            "requestingParty.address":                        { x: 95,  y: 724, w: 415, h: 13, multiline: true },
+            "requestingParty.contact":                        { x: 95,  y: 702, w: 415, h: 13 },
+            "requestedInformation.agency":                    { x: 95,  y: 586, w: 415, h: 11 },
+            "requestedInformation.documentRequested":         { x: 95,  y: 566, w: 415, h: 28, multiline: true },
+            "requestedInformation.datePeriod":                { x: 246, y: 545, w: 250, h: 12 },
+            "requestedInformation.purpose":                   { x: 95,  y: 510, w: 415, h: 29, multiline: true },
+            "requestedInformation.documentType":              { x: 95,  y: 494, w: 165, h: 11 },
+            "requestedInformation.referenceNo":               { x: 270, y: 482, w: 225, h: 10 },
+            "requestedInformation.additionalInformation":     { x: 260, y: 469, w: 235, h: 10 },
+            "declaration.dateAccomplished":                   { x: 350, y: 401, w: 145, h: 10 },
+            "receivingOfficer.name":                          { x: 95,  y: 365, w: 190, h: 10 },
+            "receivingOfficer.agency":                        { x: 300, y: 365, w: 205, h: 10 },
+            "receivingOfficer.dateEnteredEfoi":               { x: 95,  y: 328, w: 190, h: 10 },
+            "receivingOfficer.proofOfId":                     { x: 300, y: 328, w: 205, h: 10 },
+            "receivingOfficer.secondOfficer":                 { x: 270, y: 299, w: 225, h: 11 },
+            "receivingOfficer.decisionMaker":                 { x: 270, y: 284, w: 225, h: 11 },
+            "receivingOfficer.dateFinished":                  { x: 205, y: 201, w: 95,  h: 12 },
+            "acknowledgement.receivedDocuments":              { x: 88,  y: 74,  w: 420, h: 16, multiline: true },
+            "acknowledgement.dateReceived":                   { x: 205, y: 48,  w: 115, h: 12 }
+        };
+
+        // 3. Checkbox positions
+        const CHECKBOXES = {
+            "communication.landline":                  { x: 99,  y: 678 },
+            "communication.mobile":                    { x: 183, y: 678 },
+            "communication.email":                     { x: 265, y: 678 },
+            "communication.postal":                    { x: 350, y: 678 },
+            "requestingParty.id.passport":             { x: 99,  y: 638 },
+            "requestingParty.id.votersId":             { x: 185, y: 638 },
+            "requestingParty.id.postalId":             { x: 266, y: 638 },
+            "requestingParty.id.driversLicense":       { x: 349, y: 638 },
+            "requestingParty.id.sssId":                { x: 450, y: 638 },
+            "requestingParty.id.schoolId":             { x: 99,  y: 628 },
+            "requestingParty.id.companyId":            { x: 185, y: 628 },
+            "requestingParty.id.others":               { x: 266, y: 628 },
+            "recommendation.approved":                 { x: 273, y: 321 },
+            "recommendation.denied":                   { x: 355, y: 321 },
+            "denialReason.invalidRequest":             { x: 273, y: 311 },
+            "denialReason.incomplete":                 { x: 355, y: 311 },
+            "denialReason.online":                     { x: 426, y: 311 },
+            "decision.successful":                     { x: 211, y: 240 },
+            "decision.partiallySuccessful":            { x: 273, y: 240 },
+            "decision.denied":                         { x: 356, y: 240 },
+            "decisionDenialReason.invalidRequest":     { x: 273, y: 231 },
+            "decisionDenialReason.incomplete":         { x: 355, y: 231 },
+            "decisionDenialReason.online":             { x: 426, y: 231 },
+            "registryAccomplished.yes":                { x: 438, y: 205 },
+            "registryAccomplished.no":                 { x: 488, y: 205 }
+        };
+
+        // 4. Create text fields
+        status.textContent = 'Adding text fields…';
+        for (const [name, layout] of Object.entries(TEXT_FIELDS)) {
+            const field = form.createTextField(name);
+            if (layout.multiline) field.enableMultiline();
+            field.enableAutoSizing();
+            field.setAlignment(TextAlignment.Left);
+            field.addToPage(page, {
+                x: layout.x, y: layout.y,
+                width: layout.w, height: layout.h,
+                font: font,
+                fontSize: 9,
+                textColor: rgb(0.08, 0.1, 0.12),
+                borderWidth: 0.5,
+                borderColor: rgb(0.7, 0.7, 0.7),
+                backgroundColor: undefined
+            });
+        }
+
+        // 5. Create checkboxes
+        status.textContent = 'Adding checkboxes…';
+        for (const [name, layout] of Object.entries(CHECKBOXES)) {
+            const field = form.createCheckBox(name);
+            field.addToPage(page, {
+                x: layout.x, y: layout.y,
+                width: 7, height: 7,
+                borderWidth: 0.5,
+                borderColor: rgb(0.5, 0.5, 0.5),
+                backgroundColor: undefined
+            });
+        }
+
+        // 6. Save the new PDF
+        status.textContent = 'Saving form-enabled PDF…';
+        const out = await pdf.save();
+        const blob = new Blob([out], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'FOI-FORM-2023-with-fields.pdf';
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+
+        status.innerHTML = '<b style="color:green;">✅ Done!</b> Check your Downloads folder for <code>FOI-FORM-2023-with-fields.pdf</code>. Upload it to Apps Script to replace the old one.';
+    } catch (err) {
+        console.error(err);
+        status.innerHTML = '<b style="color:red;">❌ Error: ' + err.message + '</b>';
+    }
+})();
+</script>
+</body>
+</html>

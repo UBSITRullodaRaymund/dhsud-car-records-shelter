@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DHSUD-CAR Records Shelter - MVC Demo</title>
+    <link rel="icon" type="image/png" href="logo.png" />
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="src/mvc-demo.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" />
+  </head>
+  <body>
+    <header>
+      <nav>
+        <div class="logo">
+          <img src="logo.png" alt="DHSUD logo" />
+          <div>
+            <h2>DHSUD-CAR</h2>
+            <span>Records Shelter</span>
+          </div>
+        </div>
+
+        <ul>
+          <li><a href="#">Home</a></li>
+          <li><a href="#welcome">About</a></li>
+          <li><a href="#modules">Modules</a></li>
+          <li><a href="#footer">Contact</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <main id="app"></main>
+
+    <footer id="footer">
+      <div class="footer-content">
+        <p>© 2026 DHSUD-CAR Records Shelter</p>
+      </div>
+    </footer>
+
+    <script src="src/models/recordsModel.js"></script>
+    <script src="src/views/homeView.js"></script>
+    <script src="src/controllers/homeController.js"></script>
+    <script src="src/app.js"></script>
+  </body>
+</html>
